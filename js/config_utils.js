@@ -21,6 +21,8 @@ export const GameConfig = {
     { name: "Great Ball", quantity: 0, catchRate: 1.5, cost: 600 },
     { name: "Poção", quantity: 0, healAmount: 20, cost: 300 },
   ],
+  // Novo: Define o limite de Pokémons para a Pokédex (Geração 1)
+  POKEDEX_LIMIT: 151,
 };
 
 /**
@@ -34,12 +36,12 @@ export function initializeGameState() {
             items: GameConfig.SHOP_ITEMS.map(item => ({...item, quantity: item.name === "Pokébola" ? 10 : 5})),
             pokemon: [],
             trainerGender: "MALE",
-            // --- NOVO: Preferências ---
+            // NOVO: Conjunto (Set) para armazenar IDs de Pokémon já vistos/capturados
+            pokedex: new Set(), 
             preferences: { 
                 volume: 0.5,
                 isMuted: false
             }
-            // -------------------------
         },
         currentScreen: "mainMenu",
         battle: null,
@@ -58,10 +60,15 @@ export const Utils = {
       delete stateToSave.battle;
       delete stateToSave.pvpRoomId;
       
-      // Salva o perfil (inclui preferências agora)
+      // Converte o Set (pokedex) para Array antes de salvar
+      const profileToSave = {
+          ...stateToSave.profile,
+          pokedex: Array.from(stateToSave.profile.pokedex)
+      };
+
       localStorage.setItem(
         "pokemonGameProfile",
-        JSON.stringify(stateToSave.profile)
+        JSON.stringify(profileToSave)
       );
       localStorage.setItem(
         "pokemonGameExploreLog",
@@ -82,6 +89,14 @@ export const Utils = {
       if (savedProfile) {
         window.gameState.profile = JSON.parse(savedProfile);
         
+        // Converte o Array (pokedex salvo) de volta para Set
+        if (window.gameState.profile.pokedex) {
+            window.gameState.profile.pokedex = new Set(window.gameState.profile.pokedex);
+        } else {
+            // Se o save antigo não tiver 'pokedex', inicializa
+            window.gameState.profile.pokedex = new Set();
+        }
+
         // Garante que as preferências existem, mesmo que o save seja antigo
         if (!window.gameState.profile.preferences) {
             window.gameState.profile.preferences = { volume: 0.5, isMuted: false };
@@ -99,6 +114,17 @@ export const Utils = {
     return false;
   },
   
+  /** Adiciona um Pokémon à Pokédex pelo seu ID. */
+  registerPokemon: function (pokemonId) {
+      // Garante que pokemonId é um número inteiro, pois o Set armazena números
+      const id = parseInt(pokemonId);
+      if (!window.gameState.profile.pokedex.has(id)) {
+          window.gameState.profile.pokedex.add(id);
+          console.log(`Pokémon ID ${id} registrado na Pokédex.`);
+          Utils.saveGame(); // Salva o registro imediatamente
+      }
+  },
+  
   /** Aplica o volume atual do estado global à música de fundo. */
   applyVolume: function (volume, isMuted) {
       if (window.backgroundMusic) {
@@ -112,7 +138,6 @@ export const Utils = {
       window.gameState.profile.preferences.volume = parseFloat(newVolume);
       window.gameState.profile.preferences.isMuted = false;
       Utils.applyVolume(window.gameState.profile.preferences.volume, false);
-      Utils.saveGame();
       Renderer.renderPreferences(document.getElementById("app-container"));
   },
   
@@ -163,11 +188,36 @@ export const Utils = {
           window.gameState.battle?.playerPokemonIndex || 0
       ];
   },
+
+  /**
+   * Calcula o Max HP de um Pokémon com base nas estatísticas base, nível e uma variação.
+   * CÁLCULO FINAL: (Nível) * (HP Base) * (1 +/- 20% de Variação)
+   * @param {number} baseHp O valor base de HP do Pokémon.
+   * @param {number} level O nível atual do Pokémon.
+   * @returns {number} O valor máximo de HP.
+   */
+  calculateMaxHp: function(baseHp, level) {
+    // 1. Gera a variação (entre -0.2 e +0.2)
+    const variance = (Math.random() * 0.4) - 0.2; 
+    
+    // 2. Aplica a variação no HP Base: HP_Variavel = HP_Base * (1 + variance)
+    const hpWithVariance = baseHp * (1 + variance);
+    
+    // 3. Multiplica pelo nível: MaxHP = Nível * HP_Variavel
+    let finalMaxHp = Math.floor(level * hpWithVariance);
+
+    // Garante um valor mínimo de HP (importante para evitar 0 em níveis muito baixos)
+    finalMaxHp = Math.max(10, finalMaxHp);
+
+    return finalMaxHp;
+  },
   
   /**
    * Função auxiliar para buscar dados de Pokémon.
+   * @param {string|number} nameOrId Nome ou ID do Pokémon.
+   * @param {boolean} [isPokedexView=false] Indica se a busca é apenas para visualização da Pokédex (sem registro).
    */
-  async fetchPokemonData(nameOrId) {
+  async fetchPokemonData(nameOrId, isPokedexView = false) {
     try {
       const response = await axios.get(`${GameConfig.POKEAPI_BASE}${nameOrId}`);
       const data = response.data;
@@ -176,15 +226,29 @@ export const Utils = {
       data.stats.forEach((s) => {
         stats[s.stat.name.replace("-", "")] = s.base_stat;
       });
+      
+      // Define o nível inicial para novos Pokémons. Para Pokédex, o nível é irrelevante.
+      const initialLevel = 5; 
 
+      // NOVO: Calcula o HP Máximo usando a nova lógica baseada no nível.
+      const baseHp = stats.hp;
+      const calculatedMaxHp = Utils.calculateMaxHp(baseHp, initialLevel);
+      
+      // NOVO: Registra o Pokémon na Pokédex APENAS se não for para visualização pura da Pokédex
+      if (!isPokedexView) {
+        Utils.registerPokemon(data.id);
+      }
+      
+      // Retorna um objeto de dados de Pokémon
       return {
         name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
         id: data.id,
         sprite: data.sprites.front_default,
         stats: stats,
-        level: 5,
-        currentHp: stats.hp,
-        maxHp: stats.hp,
+        // Se for visualização da Pokédex, usamos o HP Base. Caso contrário, usamos o calculado.
+        maxHp: isPokedexView ? baseHp : calculatedMaxHp, 
+        level: initialLevel,
+        currentHp: isPokedexView ? baseHp : calculatedMaxHp,
         exp: 0,
         moves: moves,
         types: data.types.map((t) => t.type.name),

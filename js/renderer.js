@@ -5,7 +5,7 @@
  */
 
 // Importações (assumindo que GameLogic, BattleCore, etc. estão no escopo global ou em outros módulos)
-import { Utils } from './config_utils.js';
+import { Utils, GameConfig } from './config_utils.js'; // Importa GameConfig
 
 /**
  * Módulo para gerenciar toda a Geração de UI e Navegação de Tela.
@@ -470,7 +470,7 @@ export const Renderer = {
         'electabuzz', 'magmar', 'pinsir', 'tauros', 'gyarados', 
         'lapras', 'ditto', 'eevee', 'vaporeon', 'jolteon', 'flareon', 
         'porygon', 'omastar', 'kabutops', 'snorlax', 'dragonite', 'mewtwo', 'mew',
-        'porygon-z', 
+        'porygon-z','arcanine', 
     ].map(name => name.toLowerCase());
 
 
@@ -568,7 +568,7 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Exibe o modal de estatísticas detalhadas do Pokémon. */
+  /** Exibe o modal de estatísticas detalhadas do Pokémon (para o TIME). */
   showPokemonStats: async function (pokemonName, index) {
     const pokemon = window.gameState.profile.pokemon[index];
     if (!pokemon) {
@@ -646,28 +646,113 @@ export const Renderer = {
     }
   },
 
-  /** Renderiza a tela de Pokedex. */
-  renderPokedex: function (app) {
-    const caughtPokemon = window.gameState.profile.pokemon;
+  /** NOVO: Exibe o modal de estatísticas detalhadas do Pokémon (para POKÉDEX). */
+  showPokedexStats: async function (pokemonId) {
+      const pokemon = await window.PokeAPI.fetchPokemonData(pokemonId, true); // O 'true' indica que é apenas para visualização
+      if (!pokemon) {
+          Utils.showModal("errorModal", "Dados da Pokédex indisponíveis!");
+          return;
+      }
+      
+      const movesHtml = pokemon.moves
+          .map((move) => `<li class="text-sm">${Utils.formatName(move)}</li>`)
+          .join("");
+      const typesHtml = pokemon.types
+          .map(
+              (type) =>
+                  `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`
+          )
+          .join("");
 
-    const pokedexHtml = caughtPokemon
-      .map(
-        (p, index) => `
-            <div onclick="Renderer.showPokemonStats('${p.name}', ${index})" class="flex items-center p-2 border-b border-gray-300 cursor-pointer hover:bg-gray-200 transition-colors duration-100 flex-shrink-0">
-                <img src="${p.sprite}" alt="${p.name}" class="w-12 h-12 mr-4">
-                <span class="gba-font text-sm">${p.name}</span>
+      const statsHtml = Object.entries(pokemon.stats)
+          .map(
+              ([stat, value]) => `
+              <div class="flex justify-between items-center mb-1">
+                  <span class="text-xs gba-font">${Utils.formatName(stat)}:</span>
+                  <span class="text-xs gba-font">${value}</span>
+              </div>
+          `
+          )
+          .join("");
+
+      // O Pokémon da Pokédex não tem nível, HP, ou EXP real (exceto o HP base, que é maxHp)
+      const modalContent = `
+              <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
+                  ${pokemon.name} (#${pokemon.id})
+              </div>
+              <img src="${pokemon.sprite}" alt="${pokemon.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
+              
+              <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
+              
+              <div class="text-left gba-font text-xs flex-shrink-0">
+                  <p><strong>HP Base:</strong> ${pokemon.maxHp}</p>
+                  <p><strong>Tipo(s):</strong> ${pokemon.types.map(t => Utils.formatName(t)).join(', ')}</p>
+              </div>
+              
+              <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
+                  <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
+                  ${statsHtml}
+                  <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques Conhecidos:</h3>
+                  <ul class="list-disc list-inside gba-font text-xs">
+                      ${movesHtml || '<li class="text-sm">Nenhum ataque registrado.</li>'}
+                  </ul>
+              </div>
+              
+              <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+          `;
+
+      const modal = document.getElementById("pokemonStatsModal");
+      if (modal) {
+          const modalBody = modal.querySelector(".modal-body");
+          if (modalBody) {
+              modalBody.classList.add("flex", "flex-col", "h-full");
+              modalBody.innerHTML = modalContent;
+              modal.classList.remove("hidden");
+          }
+      }
+  },
+
+  /** Renderiza a tela de Pokedex. (NOVA LÓGICA) */
+  renderPokedex: function (app) {
+    const registeredIds = window.gameState.profile.pokedex;
+    const totalCaught = registeredIds.size;
+    const totalAvailable = GameConfig.POKEDEX_LIMIT;
+    const pokedexItems = [];
+
+    // Loop de 1 a 151 para incluir todos os Pokémon da Geração 1
+    for (let id = 1; id <= totalAvailable; id++) {
+        const isCaught = registeredIds.has(id);
+        const namePlaceholder = `??? (#${String(id).padStart(3, '0')})`;
+        const nameDisplay = isCaught ? `${Utils.formatName(String(id))} (#${id})` : namePlaceholder;
+        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        
+        // Estilo de sombra (silhueta)
+        const shadowStyle = "filter: grayscale(100%) brightness(0);";
+        
+        const itemHtml = `
+            <div onclick="${isCaught ? `Renderer.showPokedexStats(${id})` : ''}"
+                 class="flex flex-col items-center justify-start p-2 border border-gray-200 rounded-lg bg-white transition-shadow duration-150 hover:shadow-lg flex-shrink-0 ${isCaught ? 'cursor-pointer hover:bg-gray-100' : 'cursor-default'}">
+                <img src="${spriteUrl}" 
+                     alt="${isCaught ? Utils.formatName(String(id)) : namePlaceholder}" 
+                     class="w-20 h-20 ${isCaught ? '' : 'opacity-70'}"
+                     style="${isCaught ? '' : shadowStyle}">
+                <div class="gba-font text-[10px] text-center mt-1 w-full truncate ${isCaught ? 'text-gray-800 font-bold' : 'text-gray-500'}">
+                    ${nameDisplay}
+                </div>
             </div>
-        `
-      )
-      .join("");
+        `;
+        pokedexItems.push(itemHtml);
+    }
+
+    const pokedexHtml = pokedexItems.join("");
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX</div>
+            <p class="text-center text-sm gba-font mb-4 flex-shrink-0">Registrados: ${totalCaught} / ${totalAvailable}</p>
             <!-- flex-grow e overflow-y-auto para a lista da Pokédex -->
-            <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">${
-              pokedexHtml ||
-              '<p class="text-center text-gray-500 gba-font">Nenhum Pokémon capturado ainda.</p>'
-            }</div>
+            <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                ${pokedexHtml}
+            </div>
             <button onclick="Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     Renderer.renderGbaCard(content);

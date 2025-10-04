@@ -61,9 +61,17 @@ export const AuthSetup = {
     // Lendo as variáveis globais DENTRO da função para garantir que já foram definidas pelo index.html
     const firebaseConfig = window.firebaseConfig;
     const initialAuthToken = window.initialAuthToken;
+    let gameLoaded = false;
     
     // Antes de chamar setupInitialInteractions, garantimos que o gameState foi inicializado ou carregado
-    if (!Utils.loadGame()) {
+    if (Utils.loadGame()) {
+      gameLoaded = true;
+      // Lógica de retrocompatibilidade: Registra todos os Pokémons do time na Pokédex (se o save for antigo)
+      // O 'Utils.loadGame()' já garante que o 'window.gameState.profile.pokedex' é um Set.
+      window.gameState.profile.pokemon.forEach(p => {
+        Utils.registerPokemon(p.id);
+      });
+    } else {
       initializeGameState(); 
     }
     
@@ -93,8 +101,8 @@ export const AuthSetup = {
             // Fallback for anonymous user ID if auth is not ready
             window.userId = "anonymous-" + crypto.randomUUID();
           }
-
-          if (Utils.loadGame()) {
+          
+          if (gameLoaded) {
               const urlParams = new URLSearchParams(window.location.search);
               const roomId = urlParams.get("pvp");
               if (roomId) {
@@ -118,7 +126,7 @@ export const AuthSetup = {
         window.auth = null;
 
         window.userId = "anonymous-" + crypto.randomUUID();
-        if (!Utils.loadGame()) {
+        if (!gameLoaded) {
             initializeGameState();
             Renderer.showScreen("initialMenu");
         }
@@ -135,7 +143,7 @@ export const AuthSetup = {
       window.auth = null;
       window.userId = "anonymous-" + crypto.randomUUID();
       // O jogo já está carregado ou inicializado, apenas renderiza.
-      if (!Utils.loadGame()) {
+      if (!gameLoaded) {
           initializeGameState();
       }
       Renderer.showScreen("initialMenu");

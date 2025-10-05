@@ -45,7 +45,8 @@ export const Renderer = {
         Renderer.renderBag(app, extraData);
         break;
       case "pokedex":
-        Renderer.renderPokedex(app);
+        // NOVO: Passa o estado de busca/filtro (se existir)
+        Renderer.renderPokedex(app, extraData);
         break;
       case "managePokemon":
         Renderer.renderManagePokemon(app);
@@ -730,9 +731,12 @@ export const Renderer = {
     }
     
     // Busca os dados do Pokémon APENAS para visualização (isPokedexView=true)
-    const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId, true);
+    const [pokemonData, speciesData] = await Promise.all([
+        window.PokeAPI.fetchPokemonData(pokemonId, true),
+        window.PokeAPI.fetchSpeciesData(pokemonId) // NOVO: Busca dados de espécie
+    ]);
     
-    if (!pokemonData) {
+    if (!pokemonData || !speciesData) {
         window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
         return;
     }
@@ -757,6 +761,12 @@ export const Renderer = {
         `
       )
       .join("");
+      
+    // Conversão de unidades: 
+    // Altura: dm para m (divide por 10)
+    const heightMeters = (speciesData.height / 10).toFixed(1);
+    // Peso: hg para kg (divide por 10)
+    const weightKg = (speciesData.weight / 10).toFixed(1);
 
     const modalContent = `
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
@@ -766,11 +776,12 @@ export const Renderer = {
             
             <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
             
-            <div class="text-left gba-font text-xs flex-shrink-0">
-                <p><strong>HP Base:</strong> ${pokemonData.maxHp}</p>
+            <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
+                <p class="text-[8px] sm:text-xs"><strong>Altura:</strong> ${heightMeters} m | <strong>Peso:</strong> ${weightKg} kg</p>
+                <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${speciesData.description}</p>
             </div>
             
-            <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
+            <div class="p-2 flex-grow overflow-y-auto">
                 <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
                 ${statsHtml}
                 <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques Conhecidos:</h3>
@@ -793,48 +804,132 @@ export const Renderer = {
   },
 
   /** Renderiza a tela de Pokedex. */
-  renderPokedex: function (app) {
-    const pokedexSet = window.gameState.profile.pokedex;
-    const pokedexHtml = [];
-    const totalCaught = pokedexSet.size;
-    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+  renderPokedex: function (app, filters = null) {
+    // CORREÇÃO: Força filters a ser um objeto vazio se for null.
+    filters = filters ?? {}; 
 
-    for (let id = 1; id <= totalAvailable; id++) {
-        const isCaught = pokedexSet.has(id);
+    const pokedexSet = window.gameState.profile.pokedex;
+    const allTypes = ['grass', 'fire', 'water', 'bug', 'normal', 'poison', 'electric', 'ground', 'fairy', 'fighting', 'psychic', 'rock', 'ghost', 'ice', 'dragon', 'steel', 'dark', 'flying'];
+    
+    // Filtros atuais
+    // Agora que filters é garantido ser um objeto, podemos acessar suas propriedades.
+    const searchQuery = (filters.search || '').toLowerCase();
+    const typeFilter = filters.type || 'all';
+
+    // Exporta a função de re-renderização com filtros para uso no HTML
+    window.filterPokedex = (newSearch, newType) => {
+        Renderer.showScreen('pokedex', { 
+            search: newSearch !== undefined ? newSearch : searchQuery, 
+            type: newType !== undefined ? newType : typeFilter 
+        });
+    };
+    
+    // Lógica de filtragem: 
+    // 1. Cria uma lista de Pokémons (1 a 151)
+    let filteredPokedex = [];
+    
+    // NOVA CORREÇÃO: Inicializa pokedexCache se ainda não existir (caso de saves antigos)
+    if (!window.gameState.pokedexCache) {
+        window.gameState.pokedexCache = {};
+    }
+    
+    // NOVO: Adiciona uma chamada para carregar os dados de Pokédex assincronamente
+    // e redesenhar a tela quando concluído.
+    Renderer._ensurePokedexCacheLoaded();
+
+
+    for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+        // Verifica se o Pokémon está no cache (para obter o nome e tipos)
+        const cachedData = window.gameState.pokedexCache[id];
+        
+        // CORREÇÃO 1: Pega o nome REAL do Pokémon no cache, se ele existir.
+        // Se não houver nome no cache, assume que é o ID para fins de filtro de nome.
+        const pokemonNameRaw = cachedData?.name ? cachedData.name.toLowerCase() : `poke-${id}`;
+        const pokemonNameFormatted = window.Utils.formatName(pokemonNameRaw);
+
+        // CORREÇÃO 2: A lógica de exibição do nome
+        let displayName;
+        let isKnown = pokedexSet.has(id);
+
+        if (isKnown) {
+            // Se o nome real estiver no cache, use-o
+            displayName = cachedData?.name ? pokemonNameFormatted : `POKÉMON #${id.toString().padStart(3, '0')}`;
+        } else {
+            // Se não for capturado, mostra "???"
+            displayName = `???`;
+        }
+        
+        // CORREÇÃO 3 (Filtro de Tipo):
+        // Só ignora se o tipo for diferente de 'all' E
+        // o Pokémon está no cache (tem tipos definidos) E o tipo não corresponde.
+        // Se o Pokémon não estiver no cache (e, portanto, não tem tipo definido) ele DEVE ser exibido,
+        // a menos que o filtro não seja 'all'.
+
+        const hasTypeMatch = cachedData?.types?.includes(typeFilter) ?? false;
+        
+        // A lógica do filtro:
+        // Se o filtro for 'all', sempre mostra.
+        // Se o filtro for por um tipo específico:
+        //    - Se o Pokémon for conhecido (cache existe) E tiver o tipo: mostra.
+        //    - Se o Pokémon NÃO for conhecido (cache não existe), ele não tem tipo, então não mostra.
+        
+        if (typeFilter !== 'all') {
+             // Se o Pokémon estiver na Pokédex (visto/capturado) mas não tem o tipo filtrado, ou
+             // Se o Pokémon não foi visto e não tem o tipo filtrado,
+             // E o tipo filtrado é diferente de 'all', então continue (pula).
+             if (!hasTypeMatch) {
+                 continue;
+             }
+        }
+        
+        // Filtra por busca (nome ou ID)
+        if (searchQuery) {
+            const isMatchByName = pokemonNameRaw.includes(searchQuery);
+            const isMatchById = id.toString().includes(searchQuery);
+            
+            // O nome do Pokémon (raw, em minúsculas) deve bater OU o ID deve bater
+            if (!isMatchByName && !isMatchById) {
+                continue;
+            }
+        }
+        
+        // Adiciona à lista filtrada
+        filteredPokedex.push({ id: id, isCaught: isKnown, name: displayName });
+    }
+    
+    const pokedexHtml = filteredPokedex.map(p => {
+        const id = p.id;
+        const isCaught = p.isCaught;
         const displayId = id.toString().padStart(3, '0');
         
-        let displayUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-        let displayName = `???`;
-        let filterStyle = 'filter: grayscale(100%) brightness(0);';
+        const displayUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        let displayName = p.name;
+        let filterStyle = 'filter: grayscale(100%) brightness(0.1);';
         
-        // Se capturado, exibe o sprite colorido e o nome.
+        // Se capturado, exibe o sprite colorido.
         if (isCaught) {
             filterStyle = '';
-            // Tenta obter o nome se estiver no time, senão usa o ID para formatação
-            // Nota: Para a visualização de grade, usamos o ID e um nome temporário/abreviado para economizar espaço
-            displayName = `ID #${displayId}`; 
-            // Para mostrar o nome de verdade, a API teria que ser chamada, mas isso pode ser muito lento para a grade inteira.
-            // Por enquanto, usamos ID para o título do bloco.
         }
 
-        pokedexHtml.push(`
+        return `
             <div onclick="Renderer.showPokedexStats(${id}, ${!isCaught})" 
                  class="flex flex-col items-center p-1 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors duration-100 bg-white">
                 <img src="${displayUrl}" alt="Pokemon #${id}" class="w-12 h-12 mb-1" style="${filterStyle}">
                 
-                <!-- Nome/ID e Nível/HP (Placeholder para escala de grade) -->
+                <!-- Nome/ID (Placeholder para escala de grade) -->
                 <div class="text-center w-full truncate">
-                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${isCaught ? window.Utils.formatName(window.gameState.profile.pokemon.find(p => p.id === id)?.name || `POKE #${displayId}`) : '???' }</span>
+                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${displayName}</span>
                     <div class="text-[6px] gba-font text-gray-600 mt-1 truncate">
-                       ${isCaught ? `(Nv. ${window.gameState.profile.pokemon.find(p => p.id === id)?.level || '?'})` : '(DESCONHECIDO)'}
+                       #${displayId}
                     </div>
                 </div>
             </div>
-        `);
-    }
+        `;
+    }).join('');
     
-    // Converte o array de HTML para uma string única
-    const gridHtml = pokedexHtml.join('');
+    const totalCaught = pokedexSet.size;
+    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX</div>
@@ -844,15 +939,101 @@ export const Renderer = {
                 REGISTRADOS: ${totalCaught} / ${totalAvailable}
             </div>
             
+            <!-- NOVO: Área de Busca e Filtro -->
+            <div class="mb-4 flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                <!-- Busca por Nome/ID -->
+                <input id="pokedexSearch" type="text" placeholder="Buscar por Nome ou ID..."
+                       value="${searchQuery}"
+                       oninput="window.filterPokedex(this.value, undefined)"
+                       class="w-full sm:w-2/3 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
+                       
+                <!-- Filtro por Tipo -->
+                <select id="pokedexFilterType" onchange="window.filterPokedex(undefined, this.value)"
+                        class="w-full sm:w-1/3 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
+                    <option value="all">TODOS OS TIPOS</option>
+                    ${allTypes.map(type => 
+                        `<option value="${type}" ${type === typeFilter ? 'selected' : ''}>${window.Utils.formatName(type)}</option>`
+                    ).join('')}
+                </select>
+            </div>
+            
             <!-- Grid de Pokémons (3 Colunas, responsivo) -->
-            <div class="flex-grow overflow-y-auto border border-gray-400 p-0 mb-4 bg-gray-100">
+            <div class="flex-grow overflow-y-auto border border-gray-400 p-0 mb-4 bg-gray-100 pokemon-list-container">
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 p-1">
-                    ${gridHtml}
+                    ${pokedexHtml || '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon encontrado com o filtro atual.</p>'}
                 </div>
             </div>
             <button onclick="Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     Renderer.renderGbaCard(content);
+  },
+  
+  // NOVO: Função auxiliar para preencher o cache de Pokédex
+  _ensurePokedexCacheLoaded: async function() {
+    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+    const cache = window.gameState.pokedexCache;
+    let cacheUpdated = false;
+
+    // Se o cache já tiver sido preenchido para o limite total, saia.
+    if (Object.keys(cache).length >= totalAvailable) {
+        return;
+    }
+
+    // Cria um array de promessas para buscar todos os dados de Pokémons de 1 a 151
+    const fetchPromises = [];
+    for (let id = 1; id <= totalAvailable; id++) {
+        // Se o Pokémon não estiver no cache, adicione uma promessa de busca
+        if (!cache[id] && window.gameState.profile.pokedex.has(id)) {
+            fetchPromises.push(
+                window.PokeAPI.fetchPokemonData(id, true).then(data => {
+                    // Se a busca for bem-sucedida, o fetchPokemonData já deve ter preenchido o cache.
+                    if (data && data.id) {
+                         // Apenas para garantir que o cache seja preenchido com nome e tipos
+                         // (fetchPokemonData já faz isso, mas replicamos para clareza)
+                         if (!cache[data.id]) {
+                             cache[data.id] = { name: data.name, types: data.types };
+                         }
+                         cacheUpdated = true;
+                    }
+                }).catch(e => console.error(`Falha ao buscar ID ${id} para cache:`, e))
+            );
+        }
+    }
+    
+    // Se ainda faltar Pokémons não capturados para completar o cache, buscamos apenas os dados mais essenciais:
+    if (Object.keys(cache).length < totalAvailable) {
+        for (let id = 1; id <= totalAvailable; id++) {
+             if (!cache[id]) {
+                 fetchPromises.push(
+                     // Usamos um endpoint mais simples, se existir, ou fazemos uma busca leve
+                     window.PokeAPI.fetchPokemonData(id, true).then(data => {
+                         if (data && data.id) {
+                            cacheUpdated = true;
+                         }
+                     }).catch(e => {
+                         // Ignoramos o erro se o Pokémon for desconhecido, apenas marcamos o ID no cache
+                         // para não tentar buscar novamente no futuro, mas sem nome/tipo.
+                         if (!cache[id]) {
+                            cache[id] = { name: null, types: [] }; 
+                            cacheUpdated = true;
+                         }
+                     })
+                 );
+             }
+        }
+    }
+
+    if (fetchPromises.length > 0) {
+        await Promise.allSettled(fetchPromises);
+        
+        // Se o cache foi atualizado, redesenha a Pokédex
+        if (cacheUpdated) {
+             // Preserva o filtro de pesquisa atual
+             const currentFilters = { search: document.getElementById('pokedexSearch')?.value, type: document.getElementById('pokedexFilterType')?.value };
+             window.Utils.saveGame(); // Salva o cache atualizado
+             Renderer.showScreen('pokedex', currentFilters);
+        }
+    }
   },
 
   /** Renderiza a tela de Mochila (Bag). */

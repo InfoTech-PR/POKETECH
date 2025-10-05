@@ -52,6 +52,8 @@ export function initializeGameState() {
                 isMuted: false
             }
         },
+        // NOVO: Cache para armazenar dados mínimos de Pokémons (nome, tipos) para uso na Pokédex
+        pokedexCache: {}, 
         currentScreen: "mainMenu",
         battle: null,
         pvpRoomId: null,
@@ -75,6 +77,8 @@ export const Utils = {
           pokedex: Array.from(stateToSave.profile.pokedex)
       };
 
+      // Salva o cache de Pokédex
+      localStorage.setItem("pokemonGamePokedexCache", JSON.stringify(stateToSave.pokedexCache));
       localStorage.setItem(
         "pokemonGameProfile",
         JSON.stringify(profileToSave)
@@ -94,6 +98,9 @@ export const Utils = {
     try {
       const savedProfile = localStorage.getItem("pokemonGameProfile");
       const savedExploreLog = localStorage.getItem("pokemonGameExploreLog");
+      // NOVO: Carrega o cache
+      const savedPokedexCache = localStorage.getItem("pokemonGamePokedexCache");
+
 
       if (savedProfile) {
         window.gameState.profile = JSON.parse(savedProfile);
@@ -113,6 +120,9 @@ export const Utils = {
             // Se o save antigo não tiver 'pokedex', inicializa com Set vazio
             window.gameState.profile.pokedex = new Set();
         }
+        
+        // NOVO: Carrega o cache de Pokédex
+        window.gameState.pokedexCache = savedPokedexCache ? JSON.parse(savedPokedexCache) : {};
 
         // Garante que as preferências existem, mesmo que o save seja antigo
         if (!window.gameState.profile.preferences) {
@@ -136,6 +146,8 @@ export const Utils = {
     try {
       localStorage.removeItem("pokemonGameProfile");
       localStorage.removeItem("pokemonGameExploreLog");
+      // NOVO: Remove o cache ao resetar
+      localStorage.removeItem("pokemonGamePokedexCache"); 
       console.log("Dados do jogo resetados.");
       
       window.Utils.showModal("infoModal", "Dados apagados com sucesso! Recarregando...");
@@ -306,6 +318,18 @@ export const Utils = {
       const baseHp = stats.hp;
       const calculatedMaxHp = Utils.calculateMaxHp(baseHp, initialLevel);
       
+      const types = data.types.map((t) => t.type.name);
+
+      // NOVO: Registra dados no cache para uso na Pokédex
+      const pokemonId = data.id;
+      if (pokemonId) {
+        window.gameState.pokedexCache[pokemonId] = {
+            name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
+            types: types
+        };
+      }
+
+
       // NOVO: Registra o Pokémon na Pokédex APENAS se não for para visualização pura da Pokédex
       if (!isPokedexView) {
         Utils.registerPokemon(data.id);
@@ -314,7 +338,7 @@ export const Utils = {
       // Retorna um objeto de dados de Pokémon
       return {
         name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
-        id: data.id,
+        id: pokemonId,
         sprite: data.sprites.front_default,
         stats: stats,
         // Se for visualização da Pokédex, usamos o HP Base. Caso contrário, usamos o calculado.
@@ -323,7 +347,7 @@ export const Utils = {
         currentHp: isPokedexView ? baseHp : calculatedMaxHp,
         exp: 0,
         moves: moves,
-        types: data.types.map((t) => t.type.name),
+        types: types,
       };
     } catch (error) {
       console.error(
@@ -391,5 +415,42 @@ export const PokeAPI = {
         }
     
         return findNext(evoChain.chain, pokemonId);
+    },
+    
+    /** Cache para dados de espécie para não repetir chamadas. */
+    speciesDataCache: {},
+    
+    /** Busca dados de espécie do Pokémon (descrição, altura, peso) com cache. */
+    fetchSpeciesData: async function (pokemonId) {
+        if (PokeAPI.speciesDataCache[pokemonId]) {
+            return PokeAPI.speciesDataCache[pokemonId];
+        }
+
+        try {
+            const response = await axios.get(`${GameConfig.SPECIES_BASE}${pokemonId}`);
+            const speciesData = response.data;
+            
+            // Busca o texto da Pokédex em português (pt) ou inglês (en) se não encontrar.
+            const entry = speciesData.flavor_text_entries.find(
+                (entry) => entry.language.name === "pt" || entry.language.name === "en"
+            );
+            
+            // Faz uma segunda chamada para obter peso/altura, pois a API de espécies não os tem (estão na API de Pokemons)
+            const pokemonDataRes = await axios.get(`${GameConfig.POKEAPI_BASE}${pokemonId}`);
+            const pokemonData = pokemonDataRes.data;
+
+            const data = {
+                description: entry ? entry.flavor_text.replace(/\n/g, ' ') : "Descrição não encontrada.",
+                // Altura e Peso vêm da API de Pokemons (e não da API de Espécies)
+                height: pokemonData.height, 
+                weight: pokemonData.weight,
+            };
+            
+            PokeAPI.speciesDataCache[pokemonId] = data;
+            return data;
+        } catch (error) {
+            console.error(`Erro ao buscar dados de espécie para ID ${pokemonId}:`, error);
+            return { description: "Descrição não encontrada.", height: 0, weight: 0 };
+        }
     }
 }

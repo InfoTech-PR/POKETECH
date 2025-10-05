@@ -7,7 +7,7 @@ import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 import { GameLogic } from './game_logic.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
-import { AuthSetup } from './auth_setup.js'; // Importação do AuthSetup para controle de música
+// REMOVIDO: import { AuthSetup } from './auth_setup.js'; 
 
 /**
  * Módulo para gerenciar a lógica central de combate,
@@ -20,7 +20,7 @@ export const BattleCore = {
     const wildPokemonData = await PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
-      AuthSetup.handleBattleMusic(false); // 🔊 Garante que a música de fundo volte em caso de erro
+      window.AuthSetup?.handleBattleMusic(false); // 🔊 Garante que a música de fundo volte em caso de erro
       return;
     }
 
@@ -150,19 +150,23 @@ export const BattleCore = {
   
   /** Calcula a taxa de captura baseada em HP e Pokébola. */
   calculateCatchRate: function (pokemonHp, maxHp, ballCatchRate) {
-    const wildPokemon = window.gameState.battle.opponent;
-    const hpRatio = pokemonHp / maxHp; // Quanto menor o ratio, maior a chance
-    const levelFactor = wildPokemon.level / 100; // Reduz a influência do nível
-    
-    // FÓRMULA DE CAPTURA REVISADA
-    // Chance base de 150. É mais fácil capturar em HP baixo.
-    let catchChance = GameConfig.POKEBALL_BASE_CATCH_RATE / (hpRatio + 0.1); 
-    catchChance = catchChance * ballCatchRate;
-    
-    // Reduz a chance em níveis muito altos
-    catchChance = catchChance * (1 - levelFactor);
+    const CATCH_BASE = 85;        // força geral
+    const HP_OFFSET = 0.30;       // amortecimento do HP baixo
+    const LEVEL_K = 0.022;        // penalidade de nível (sublinear)
+    const BALL_EXP = 0.5;         // efeito sublinear da bola (sqrt)
+    const MIN_CATCH = 5;
+    const MAX_CATCH = 90;
+    const statusMultiplier = 1;
+     const wildPokemon = window.gameState.battle.opponent;
+      const hpRatio = Math.max(0, Math.min(1, pokemonHp / maxHp));
+      const level = Math.max(1, wildPokemon.level || 1);
 
-    return Math.min(95, Math.max(10, Math.floor(catchChance)));
+      const levelTerm = 1 / (1 + LEVEL_K * level);
+      const ballTerm = Math.pow(Math.max(0.1, ballCatchRate), BALL_EXP);
+
+      const raw = (CATCH_BASE / (hpRatio + HP_OFFSET)) * levelTerm * ballTerm * statusMultiplier;
+      const pct = Math.floor(raw);
+      return Math.min(MAX_CATCH, Math.max(MIN_CATCH, pct));
   },
 
   /** Simula a animação e o resultado da captura. */
@@ -174,6 +178,7 @@ export const BattleCore = {
         wildPokemon.maxHp,
         ballCatchRate
       );
+
       const roll = Math.floor(Math.random() * 100) + 1;
       const opponentSpriteElement =
         document.querySelector(".opponent-sprite");
@@ -186,6 +191,8 @@ export const BattleCore = {
       }
 
       let shakes = 0;
+      console.log("chance: "+chance);
+      console.log("roll: "+ roll);
       let isCaptured = roll <= chance;
 
       const shakeInterval = setInterval(() => {
@@ -208,7 +215,8 @@ export const BattleCore = {
             setTimeout(() => {
               window.gameState.profile.pokemon.push(wildPokemon);
               Utils.saveGame();
-              AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
+              // Acessa a função via window.AuthSetup, usando optional chaining (?)
+              window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
               Renderer.showScreen("mainMenu");
               resolve(true);
             }, 1000);
@@ -223,7 +231,8 @@ export const BattleCore = {
             if (roll > 90) {
               BattleCore.addBattleLog(`${wildPokemon.name} fugiu da batalha!`);
               setTimeout(() => {
-                AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
+                // Acessa a função via window.AuthSetup, usando optional chaining (?)
+                window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
                 Renderer.showScreen("mainMenu");
                 resolve(true);
               }, 1500);
@@ -290,7 +299,7 @@ export const BattleCore = {
           return;
       }
       // Encaminha para o core PvP e espera pelo listener
-      PvpCore.sendPvpAction(action, moveName);
+      window.PvpCore.sendPvpAction(action, moveName);
       return;
     }
 
@@ -330,12 +339,13 @@ export const BattleCore = {
     } else if (action === "item" && item) {
       // Itens de Cura/Pokébola
       if (item.catchRate) {
+        // CORREÇÃO: Usa moveName (nome da pokébola) em vez da variável indefinida 'ballName'
         await BattleCore.tryCapture(moveName, item.catchRate);
         return; // tryCapture gerencia o fluxo de turno
       }
       
       const isHealing = item.healAmount;
-      GameLogic.useItem(moveName); // Usa o item de cura (aplica localmente)
+      window.GameLogic.useItem(moveName); // Usa o item de cura (aplica localmente)
       
       if (isHealing) {
         // Se for cura, não há ataque do jogador, o oponente ataca no próximo bloco.
@@ -357,7 +367,7 @@ export const BattleCore = {
     // 2. Turno do Oponente
     // O oponente só ataca se a batalha não terminou e se o jogador não fugiu/usou item/trocou.
     // Usar item (cura) ou troca também é seguido por um ataque do oponente, exceto se a batalha terminar.
-    if (!ended && (action === "move" || action === "opponent_attack" || (action === "item" && item.healAmount))) {
+    if (!ended && (action === "move" || action === "opponent_attack" || (action === "item" && item?.healAmount))) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
       const randomOpponentMove =
@@ -402,7 +412,7 @@ export const BattleCore = {
     if (ended) {
       setTimeout(() => {
         window.gameState.battle = null;
-        AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
+        window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
         Renderer.showScreen("mainMenu");
         Utils.saveGame();
       }, 2000);
@@ -433,7 +443,7 @@ export const BattleCore = {
     BattleCore.addBattleLog(`Volte, ${currentPokemon.name}! Vá, ${newPokemon.name}!`);
 
     if (battle.type === "pvp") {
-      PvpCore.sendPvpAction("switch", null);
+      window.PvpCore.sendPvpAction("switch", null);
     } else {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       // Após a troca, o oponente ataca

@@ -1,7 +1,8 @@
 import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 import { BattleCore } from './battle_core.js';
 import { Renderer } from './renderer.js';
-import { AuthSetup } from './auth_setup.js'; // Importação do AuthSetup para controle de música
+// REMOVIDO: import { AuthSetup } from './auth_setup.js'; 
+// Acessaremos window.AuthSetup que é exportado pelo app.js
 
 export const GameLogic = {
   /** Adiciona uma mensagem ao log de exploração e atualiza a UI se estiver no Main Menu. */
@@ -33,12 +34,11 @@ export const GameLogic = {
     let resultMessage = "";
     let startedBattle = false;
 
-    console.log(roll);
-    if (roll < 0.1) {
+    if (roll < 0.3) {
       const money = Math.floor(Math.random() * 200) + 100;
       window.gameState.profile.money += money;
       resultMessage = `Você encontrou P$${money} no chão!`;
-    } else if (roll < 0.2) {
+    } else if (roll < 0.5) {
       const possibleItems = window.gameState.profile.items.filter(
         (i) => i.name !== "Great Ball" && i.name !== "Ultra Ball"
       );
@@ -48,7 +48,8 @@ export const GameLogic = {
       resultMessage = `Você encontrou 1x ${item.name}!`;
     } else if (roll < 0.75) {
       GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
-      AuthSetup.handleBattleMusic(true); // 🔊 INICIA MÚSICA DE BATALHA
+      // CORREÇÃO AQUI: Acessa a função via window.AuthSetup, usando optional chaining (?)
+      window.AuthSetup?.handleBattleMusic(true); // 🔊 INICIA MÚSICA DE BATALHA
       await window.BattleCore.startWildBattle();
       startedBattle = true;
     }else {

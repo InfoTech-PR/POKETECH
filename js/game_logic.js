@@ -1,7 +1,7 @@
 import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 import { BattleCore } from './battle_core.js';
 import { Renderer } from './renderer.js';
-import { AuthSetup } from './auth_setup.js';
+import { AuthSetup } from './auth_setup.js'; // Importação do AuthSetup para controle de música
 
 export const GameLogic = {
   /** Adiciona uma mensagem ao log de exploração e atualiza a UI se estiver no Main Menu. */
@@ -47,7 +47,7 @@ export const GameLogic = {
       resultMessage = `Você encontrou 1x ${item.name}!`;
     } else if (roll < 0.75) {
       GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
-      AuthSetup.handleBattleMusic(true); // 🔊 Toca música de batalha
+      AuthSetup.handleBattleMusic(true); // 🔊 INICIA MÚSICA DE BATALHA
       await window.BattleCore.startWildBattle();
       startedBattle = true;
     }else {

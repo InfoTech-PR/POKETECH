@@ -1,4 +1,8 @@
-
+/**
+ * js/renderer.js
+ * MÓDULO 5: RENDERER
+ * Gerencia toda a Geração de UI e Navegação de Tela.
+ */
 
 // Importações (assumindo que GameLogic, BattleCore, etc. estão no escopo global ou em outros módulos)
 import { Utils } from './config_utils.js';
@@ -99,6 +103,8 @@ export const Renderer = {
         ? ""
         : window.gameState.profile.trainerName;
 
+    const currentGender = window.gameState.profile.trainerGender;
+
     const getStarterSpriteKey = (name) => {
       switch (name) {
         case "bulbasaur":
@@ -126,7 +132,42 @@ export const Renderer = {
                     value="${trainerName}"
                     class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner">
             </div>
-            
+             <div class="mb-6">
+                    <p class="text-xs font-bold gba-font mb-3 text-center">Escolha seu Personagem:</p>
+                    <div class="flex justify-center gap-6 sm:gap-10">
+                        <!-- Personagem Masculino -->
+                        <div onclick="window.selectGender('MALE')" 
+                            class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
+                            ${
+                              currentGender === "MALE"
+                                ? "border-blue-600 bg-blue-200 shadow-lg"
+                                : "border-gray-300 bg-white hover:bg-gray-200"
+                            }">
+                            <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
+                                alt="Treinador Masculino" 
+                                class="h-24 object-contain" 
+                                onerror="this.src='https://placehold.co/150x150/38bdf8/fff?text=M'">
+                            <div class="text-xs gba-font mt-1">Homem</div>
+                        </div>
+                        
+                        <!-- Personagem Feminino -->
+                        <div onclick="window.selectGender('FEMALE')" 
+                            class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
+                            ${
+                              currentGender ===
+                              "FEMALE"
+                                ? "border-pink-600 bg-pink-200 shadow-lg"
+                                : "border-gray-300 bg-white hover:bg-gray-200"
+                            }">
+                            <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
+                                alt="Treinadora Feminina" 
+                                class="h-24 object-contain" 
+                                onerror="this.src='https://placehold.co/150x150/f87171/fff?text=F'">
+                            <div class="text-xs gba-font mt-1">Mulher</div>
+                        </div>
+                    </div>
+                </div>
+
             <!-- Conteúdo da lista de iniciais que pode rolar se for muito grande -->
             <div class="mb-6 overflow-y-auto flex-grow">
                 <p class="text-xs font-bold gba-font mb-3 mt-6 text-center">Escolha seu Inicial:</p>

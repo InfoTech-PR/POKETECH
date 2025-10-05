@@ -23,6 +23,12 @@ export const GameConfig = {
   ],
   // Novo: Define o limite de Pokémons para a Pokédex (Geração 1)
   POKEDEX_LIMIT: 151,
+  // COEFICIENTES AJUSTADOS PARA BALANCEAMENTO DE XP
+  EXP_BASE: 100, // AUMENTADO: EXP base para um Pokémon de Nível 1
+  EXP_GROWTH_RATE: 1.35, // AUMENTADO: Multiplicador para EXP necessária por nível (curva um pouco mais íngreme)
+  // NOVO: Coeficientes para o cálculo de HP
+  HP_BASE_MULTIPLIER: 0.8,
+  HP_LEVEL_MULTIPLIER: 0.25,
 };
 
 /**
@@ -190,26 +196,40 @@ export const Utils = {
   },
 
   /**
-   * Calcula o Max HP de um Pokémon com base nas estatísticas base, nível e uma variação.
-   * CÁLCULO FINAL: (Nível) * (HP Base) * (1 +/- 20% de Variação)
+   * Calcula o Max HP de um Pokémon com base nas estatísticas base e nível (Fórmula revisada).
+   * MaxHP = (HP_Base * Multiplicador_Base) + (Nível * Multiplicador_Nível)
    * @param {number} baseHp O valor base de HP do Pokémon.
    * @param {number} level O nível atual do Pokémon.
    * @returns {number} O valor máximo de HP.
    */
   calculateMaxHp: function(baseHp, level) {
-    // 1. Gera a variação (entre -0.2 e +0.2)
-    const variance = (Math.random() * 0.4) - 0.2; 
+    const { HP_BASE_MULTIPLIER, HP_LEVEL_MULTIPLIER } = GameConfig;
     
-    // 2. Aplica a variação no HP Base: HP_Variavel = HP_Base * (1 + variance)
-    const hpWithVariance = baseHp * (1 + variance);
+    // 1. Cálculo base (representa a força inerente do Pokémon)
+    const baseValue = baseHp * HP_BASE_MULTIPLIER;
     
-    // 3. Multiplica pelo nível: MaxHP = Nível * HP_Variavel
-    let finalMaxHp = Math.floor(level * hpWithVariance);
-
-    // Garante um valor mínimo de HP (importante para evitar 0 em níveis muito baixos)
+    // 2. Cálculo de crescimento por nível
+    const levelGrowth = level * HP_LEVEL_MULTIPLIER;
+    
+    // 3. HP Final = Arredondado(Base + Crescimento)
+    let finalMaxHp = Math.floor(baseValue + levelGrowth);
+    
+    // Garante um valor mínimo de HP.
     finalMaxHp = Math.max(10, finalMaxHp);
 
     return finalMaxHp;
+  },
+
+  /**
+   * Calcula a EXP necessária para o próximo nível (Fórmula revisada, mais linear).
+   * EXP_Next = EXP_Base * (Nível ^ Taxa_Crescimento)
+   * @param {number} level O nível atual do Pokémon.
+   * @returns {number} A experiência necessária para o próximo nível.
+   */
+  calculateExpToNextLevel: function(level) {
+      // Nível + 1 é usado para calcular a EXP *total* necessária para atingir esse nível.
+      const { EXP_BASE, EXP_GROWTH_RATE } = GameConfig;
+      return Math.floor(EXP_BASE * Math.pow(level + 1, EXP_GROWTH_RATE));
   },
   
   /**

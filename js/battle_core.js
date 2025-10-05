@@ -1,9 +1,18 @@
+/**
+ * js/battle_core.js
+ * MÓDULO 3: CORE DE BATALHA
+ * Gerencia a lógica central de combate, incluindo turnos PvE, cálculos e captura.
+ */
 import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 import { GameLogic } from './game_logic.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
-import { AuthSetup } from './auth_setup.js';
+import { AuthSetup } from './auth_setup.js'; // Importação do AuthSetup para controle de música
 
+/**
+ * Módulo para gerenciar a lógica central de combate,
+ * incluindo turnos PvE, cálculos e captura.
+ */
 export const BattleCore = {
   /** Inicia uma batalha selvagem. */
   startWildBattle: async function () {
@@ -11,6 +20,7 @@ export const BattleCore = {
     const wildPokemonData = await PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
+      AuthSetup.handleBattleMusic(false); // 🔊 Garante que a música de fundo volte em caso de erro
       return;
     }
 
@@ -22,6 +32,9 @@ export const BattleCore = {
       1,
       playerMaxLevel + (Math.random() > 0.5 ? 1 : -1)
     );
+    
+    // REVISÃO: Recalcula Max HP para o Pokémon Selvagem com base no seu nível aleatório
+    wildPokemonData.maxHp = Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
     wildPokemonData.currentHp = wildPokemonData.maxHp;
 
     window.gameState.battle = {
@@ -38,43 +51,64 @@ export const BattleCore = {
     Renderer.showScreen("battle");
   },
 
-  /** Calcula o dano simplificado entre dois Pokémons. */
+  /** * Calcula o dano simplificado entre dois Pokémons (Fórmula revisada para balanceamento).
+   * Dano = (((Nível * 0.4 + 2) * Ataque * Base_Dano) / (Defesa * 50)) * Modificador
+   */
   calculateDamage: function (attacker, move, defender) {
     const attackStat = attacker.stats.attack || 50;
     const defenseStat = defender.stats.defense || 50;
     const level = attacker.level || 5;
-    const baseDamageMultiplier = 2;
-    let modifier = Math.random() * 0.15 + 0.85;
+    
+    // Novo: Um valor base de dano para evitar que movimentos fracos causem zero dano
+    const movePower = 40; 
+    
+    // FÓRMULA DE DANO REVISADA: Simula melhor o sistema de dano de Pokémon
+    let baseDamage = (((2 * level / 5 + 2) * movePower * attackStat) / defenseStat / 50) + 2;
+    
+    let modifier = 1;
 
+    // 1. Crítico
     const criticalRoll = Math.random();
     let isCritical = false;
-    if (criticalRoll < 0.05) {
-      modifier *= 2;
+    if (criticalRoll < 0.0625) { // Chance de crítico de 6.25% (1/16)
+      modifier *= 1.5; // Dano crítico: 1.5x
       isCritical = true;
     }
 
-    let damage = Math.floor(
-      level * (attackStat / defenseStat) * baseDamageMultiplier * modifier
-    );
-    damage = Math.max(1, damage);
+    // 2. Variação (0.85 a 1.00)
+    const variance = Math.random() * 0.15 + 0.85;
+    modifier *= variance;
+
+    // 3. Efetividade de Tipo (IGNORADO POR ENQUANTO para simplificar)
+
+    let damage = Math.floor(baseDamage * modifier);
+    damage = Math.max(1, damage); // Garante que o dano mínimo seja 1
 
     return { damage, isCritical };
   },
   
   /** Adiciona EXP ao Pokémon vencedor e verifica se ele sobe de nível. */
   gainExp: function (winner, defeatedLevel) {
-    const expGain = Math.floor((defeatedLevel * 50) / 7);
+    // EXP ganha é baseada no nível do derrotado e é ajustada para a nova curva
+    const expGain = Math.floor((defeatedLevel * 50) / 5); 
     winner.exp += expGain;
 
-    let expToNextLevel = winner.level * winner.level * winner.level;
+    // A EXP necessária para o próximo nível agora usa a função revisada
+    let expToNextLevel = Utils.calculateExpToNextLevel(winner.level);
 
     while (winner.exp >= expToNextLevel) {
       winner.level++;
-      winner.maxHp += Math.floor(Math.random() * 5 + 5);
+      
+      // NOVO: Aumento de HP é recalculado usando a nova fórmula para garantir a progressão
+      winner.maxHp = Utils.calculateMaxHp(winner.stats.hp, winner.level);
       winner.currentHp = winner.maxHp;
       BattleCore.addBattleLog(`${winner.name} subiu para o Nível ${winner.level}!`);
 
-      expToNextLevel = winner.level * winner.level * winner.level;
+      // Calcula o próximo limite de EXP
+      expToNextLevel = Utils.calculateExpToNextLevel(winner.level);
+      
+      // Se o Pokémon atingiu o nível máximo, quebra o loop
+      if (winner.level >= 100) break;
     }
   },
   
@@ -88,6 +122,7 @@ export const BattleCore = {
 
     BattleCore.gainExp(winner, loser.level);
 
+    // As propriedades do Pokémon do perfil devem ser atualizadas para refletir o novo estado.
     const profilePoke =
       window.gameState.profile.pokemon[
         window.gameState.battle.playerPokemonIndex
@@ -95,6 +130,7 @@ export const BattleCore = {
     profilePoke.currentHp = winner.currentHp;
     profilePoke.exp = winner.exp;
     profilePoke.level = winner.level;
+    profilePoke.maxHp = winner.maxHp; // Inclui o novo maxHp
   },
   
   /** Adiciona uma mensagem ao log de batalha e atualiza a UI. */
@@ -115,12 +151,16 @@ export const BattleCore = {
   /** Calcula a taxa de captura baseada em HP e Pokébola. */
   calculateCatchRate: function (pokemonHp, maxHp, ballCatchRate) {
     const wildPokemon = window.gameState.battle.opponent;
-    const hpRatio = pokemonHp / maxHp;
-    const levelFactor = wildPokemon.level;
-
-    let catchChance =
-      GameConfig.POKEBALL_BASE_CATCH_RATE / (hpRatio * levelFactor * 2);
+    const hpRatio = pokemonHp / maxHp; // Quanto menor o ratio, maior a chance
+    const levelFactor = wildPokemon.level / 100; // Reduz a influência do nível
+    
+    // FÓRMULA DE CAPTURA REVISADA
+    // Chance base de 150. É mais fácil capturar em HP baixo.
+    let catchChance = GameConfig.POKEBALL_BASE_CATCH_RATE / (hpRatio + 0.1); 
     catchChance = catchChance * ballCatchRate;
+    
+    // Reduz a chance em níveis muito altos
+    catchChance = catchChance * (1 - levelFactor);
 
     return Math.min(95, Math.max(10, Math.floor(catchChance)));
   },
@@ -168,7 +208,7 @@ export const BattleCore = {
             setTimeout(() => {
               window.gameState.profile.pokemon.push(wildPokemon);
               Utils.saveGame();
-              AuthSetup.handleBattleMusic(false);
+              AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
               Renderer.showScreen("mainMenu");
               resolve(true);
             }, 1000);
@@ -183,7 +223,7 @@ export const BattleCore = {
             if (roll > 90) {
               BattleCore.addBattleLog(`${wildPokemon.name} fugiu da batalha!`);
               setTimeout(() => {
-                AuthSetup.handleBattleMusic(false);
+                AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
                 Renderer.showScreen("mainMenu");
                 resolve(true);
               }, 1500);
@@ -362,7 +402,7 @@ export const BattleCore = {
     if (ended) {
       setTimeout(() => {
         window.gameState.battle = null;
-        AuthSetup.handleBattleMusic(false);
+        AuthSetup.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
         Renderer.showScreen("mainMenu");
         Utils.saveGame();
       }, 2000);

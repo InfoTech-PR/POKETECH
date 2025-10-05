@@ -17,7 +17,9 @@ export const AuthSetup = {
       ];
       
       function playMusic() {
-          if (backgroundMusic) return;
+          if (window.backgroundMusic && !window.backgroundMusic.paused) {
+              return; // Já está tocando
+          }
           
           // --- Lendo e Aplicando Preferências de Volume ---
           const prefs = window.gameState.profile.preferences || { volume: 0.5, isMuted: false };
@@ -27,14 +29,17 @@ export const AuthSetup = {
           backgroundMusic = new Audio(tracks[currentTrack]);
           backgroundMusic.volume = volume; // Aplica o volume lido
           backgroundMusic.addEventListener("ended", () => {
-          currentTrack = (currentTrack + 1) % tracks.length;
-          backgroundMusic = null;
-          playMusic();
+              // Só muda de faixa se a música atual não for a de batalha (que deve ser em loop)
+              if (window.backgroundMusic === backgroundMusic) {
+                currentTrack = (currentTrack + 1) % tracks.length;
+                backgroundMusic = null;
+                playMusic();
+              }
           });
           backgroundMusic.play().catch((e) => {
-          console.warn(
-              "Música bloqueada. Ela será iniciada com a primeira interação."
-          );
+              console.warn(
+                  "Música bloqueada. Ela será iniciada com a primeira interação."
+              );
           });
           
           // Armazena a referência no window para ser manipulada pelo menu de preferências
@@ -45,26 +50,30 @@ export const AuthSetup = {
       document.addEventListener("click", () => { playMusic(); }, { once: true }); 
   },
 
+  /** * Gerencia a troca entre a música de fundo e a música de batalha. 
+   * @param {boolean} isBattle Se true, toca a música de batalha. Se false, volta para a música de fundo.
+   */
   handleBattleMusic: function (isBattle) {
       const prefs = window.gameState.profile.preferences || { volume: 0.5, isMuted: false };
       const volume = prefs.isMuted ? 0 : prefs.volume;
 
-      // Para a música atual
+      // 1. Para e limpa a referência da música atual
       if (window.backgroundMusic) {
           window.backgroundMusic.pause();
           window.backgroundMusic.currentTime = 0;
+          window.backgroundMusic = null;
       }
 
-      // Se for batalha, toca a trilha específica
+      // 2. Se for batalha, toca a trilha específica
       if (isBattle) {
-          const battleMusic = new Audio("./assets/sounds/musics/battle.mp3");
+          // Usamos o caminho do arquivo do repositório
+          const battleMusic = new Audio("./infotech-pr/poketech/POKETECH-b51b41c8822565bdd7ca2593e4371bd35cf4899c/assets/sounds/musics/battle.mp3");
           battleMusic.volume = volume;
           battleMusic.loop = true;
           battleMusic.play().catch(err => console.warn("Falha ao tocar música de batalha:", err));
           window.backgroundMusic = battleMusic;
       } else {
-          // Retorna à música normal
-          window.backgroundMusic = null;
+          // 3. Se não for batalha, retoma a música normal
           AuthSetup.setupInitialInteractions(); // retoma ciclo normal
       }
   },

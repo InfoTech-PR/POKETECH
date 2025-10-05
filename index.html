@@ -246,12 +246,11 @@
 
         window.onload = async () => {
             try {
-                // Importação dinâmica: isso garante que o app.js e todos os seus módulos dependentes 
-                // (config_utils.js, battle_core.js, etc.) sejam recarregados.
-                const { AuthSetup } = await import(appModulePath);
+                // Importação dinâmica: o app.js agora exporta uma função 'init'.
+                const { init } = await import(appModulePath);
                 
-                // Inicia a autenticação/jogo
-                AuthSetup.initAuth();
+                // Chamamos a nova função de inicialização, passando o cacheBuster para carregar as dependências
+                init(cacheBuster);
             } catch (error) {
                 console.error("Falha ao carregar o módulo principal (app.js):", error);
                 const gbaScreen = document.querySelector(".gba-screen");

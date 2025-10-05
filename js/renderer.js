@@ -1,8 +1,4 @@
-/**
- * js/renderer.js
- * MÓDULO 5: RENDERER
- * Gerencia toda a Geração de UI e Navegação de Tela.
- */
+
 
 // Importações (assumindo que GameLogic, BattleCore, etc. estão no escopo global ou em outros módulos)
 import { Utils } from './config_utils.js';

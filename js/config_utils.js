@@ -144,7 +144,11 @@ export const Utils = {
       window.gameState.profile.preferences.volume = parseFloat(newVolume);
       window.gameState.profile.preferences.isMuted = false;
       Utils.applyVolume(window.gameState.profile.preferences.volume, false);
-      Renderer.renderPreferences(document.getElementById("app-container"));
+      // Se Renderer não estiver carregado (início do app), esta chamada pode falhar.
+      // Assumimos que o App já carregou Renderer no escopo global para o fluxo normal.
+      if (window.Renderer && window.Renderer.renderPreferences) {
+        window.Renderer.renderPreferences(document.getElementById("app-container"));
+      }
   },
   
   /** Alterna o estado de mudo. */
@@ -153,7 +157,10 @@ export const Utils = {
       prefs.isMuted = !prefs.isMuted;
       Utils.applyVolume(prefs.volume, prefs.isMuted);
       Utils.saveGame();
-      Renderer.renderPreferences(document.getElementById("app-container"));
+      // Se Renderer não estiver carregado (início do app), esta chamada pode falhar.
+      if (window.Renderer && window.Renderer.renderPreferences) {
+        window.Renderer.renderPreferences(document.getElementById("app-container"));
+      }
   },
 
 
@@ -288,7 +295,7 @@ export const Utils = {
  * Função para lidar com a retrocompatibilidade durante o carregamento do jogo.
  * Ela registra todos os Pokémons do time na Pokédex caso o save seja antigo e não tenha o Set 'pokedex'.
  */
-export function registerExistingPokemonOnLoad() {
+export function registerExistingPokemonOnLoad() { // <--- AGORA EXPORTADA
     // É seguro chamar aqui, pois esta função só é chamada APÓS o módulo Utils ser completamente definido.
     if (window.gameState && window.gameState.profile && window.gameState.profile.pokemon) {
         window.gameState.profile.pokemon.forEach(p => {

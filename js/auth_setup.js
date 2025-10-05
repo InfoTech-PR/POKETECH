@@ -67,7 +67,7 @@ export const AuthSetup = {
       // 2. Se for batalha, toca a trilha específica
       if (isBattle) {
           // Usamos o caminho do arquivo do repositório
-          const battleMusic = new Audio("./infotech-pr/poketech/POKETECH-b51b41c8822565bdd7ca2593e4371bd35cf4899c/assets/sounds/musics/battle.mp3");
+          const battleMusic = new Audio("./assets/sounds/musics/battle.mp3");
           battleMusic.volume = volume;
           battleMusic.loop = true;
           battleMusic.play().catch(err => console.warn("Falha ao tocar música de batalha:", err));

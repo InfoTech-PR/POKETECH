@@ -167,6 +167,8 @@ export const GameLogic = {
       if (playerPokemon.currentHp >= playerPokemon.maxHp) {
         window.BattleCore.addBattleLog(`${playerPokemon.name} já está com HP máximo!`);
         item.quantity++; // Devolve o item
+        // NOTA: Se o item for devolvido, a animação não deve ser executada.
+        return; 
       } else {
         const actualHeal = Math.min(
           item.healAmount,
@@ -176,11 +178,14 @@ export const GameLogic = {
         window.BattleCore.addBattleLog(
           `Você usou ${itemName}. ${playerPokemon.name} curou ${actualHeal} HP.`
         );
+        // NOVO: Inicia a animação de cura aqui
+        window.BattleCore._animateBattleAction('.player-sprite', 'animate-heal', 500);
       }
     }
 
-    window.BattleCore.updateBattleScreen();
-    window.BattleCore.setBattleMenu("main");
+    // REMOVIDO: window.BattleCore.updateBattleScreen();
+    // REMOVIDO: window.BattleCore.setBattleMenu("main"); 
+    // O controle do redesenho e do menu é passado de volta para o BattleCore.playerTurn
   },
 
   /** Cura todos os Pokémons no Centro Pokémon. */

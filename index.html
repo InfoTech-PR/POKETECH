@@ -87,6 +87,51 @@
       .animate-spin-slow {
         animation: shake 1.2s infinite ease-in-out;
       }
+      
+      /* --- NOVAS ANIMAÇÕES DE BATALHA --- */
+
+      /* 1. Dano (Flash Vermelho/Branco) */
+      @keyframes damage-flash {
+        0% { filter: brightness(1); }
+        25% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px red); }
+        50% { filter: brightness(1); }
+        75% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px red); }
+        100% { filter: brightness(1); }
+      }
+      .animate-damage {
+        animation: damage-flash 0.5s ease-out;
+      }
+
+      /* 2. Cura (Flash Verde/Branco) */
+      @keyframes heal-flash {
+        0% { filter: brightness(1); }
+        50% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px limegreen); }
+        100% { filter: brightness(1); }
+      }
+      .animate-heal {
+        animation: heal-flash 0.5s ease-out;
+      }
+      
+      /* 3. Ataque (Ligeiro empurrão para frente) */
+      @keyframes attack-pulse {
+        0% { transform: translate(0, 0) scale(1.5); }
+        50% { transform: translate(10px, -5px) scale(1.6); }
+        100% { transform: translate(0, 0) scale(1.5); }
+      }
+      .animate-attack {
+        animation: attack-pulse 0.3s ease-out;
+      }
+      
+      /* 4. Ataque do Oponente (Ligeiro empurrão para baixo) */
+      @keyframes opponent-attack-pulse {
+        0% { transform: translate(0, 0) scale(1.5); }
+        50% { transform: translate(0, 5px) scale(1.6); }
+        100% { transform: translate(0, 0) scale(1.5); }
+      }
+      .animate-opponent-attack {
+        animation: opponent-attack-pulse 0.3s ease-out;
+      }
+
       /* Estilos específicos para o container principal */
       body {
         background-color: #2d3748; /* Fundo escuro */

@@ -4,7 +4,7 @@
  * Gerencia a lógica central de combate, incluindo turnos PvE, cálculos e captura.
  */
 // REMOVIDO: importações estáticas para evitar problemas de cache e garantir
-// que os módulos acessem as dependências via 'window' (definidas no app.js).
+// que os módulos acessem as dependências via 'window' (definidas no app.js).\
 // import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 // import { GameLogic } from './game_logic.js';
 // import { PvpCore } from './pvp_core.js';
@@ -28,6 +28,24 @@ export const BattleCore = {
               return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png';
           default:
               return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; // Fallback
+      }
+  },
+  
+  /**
+   * NOVO: Adiciona e remove classes de animação da sprite.
+   * @param {string} spriteSelector Seletor CSS para o elemento da sprite ('.player-sprite' ou '.opponent-sprite').
+   * @param {string} animationClass Classe CSS da animação (ex: 'animate-damage', 'animate-attack').
+   * @param {number} duration Duração da animação em milissegundos.
+   */
+  _animateBattleAction: function(spriteSelector, animationClass, duration = 500) {
+      const element = document.querySelector(spriteSelector);
+      if (element) {
+          element.classList.add(animationClass);
+          // O update será feito explicitamente no playerTurn após o fim da animação,
+          // evitando que o redesenho prematuro cancele o efeito CSS.
+          setTimeout(() => {
+              element.classList.remove(animationClass);
+          }, duration);
       }
   },
 
@@ -161,8 +179,8 @@ export const BattleCore = {
           window.gameState.battle.log.shift();
         }
       }
-      // Chama a atualização visual
-      BattleCore.updateBattleScreen();
+      // CORREÇÃO: Remove chamada automática de updateBattleScreen daqui.
+      // A atualização visual será gerenciada pelo playerTurn para não quebrar animações.
     }
   },
   
@@ -295,6 +313,9 @@ export const BattleCore = {
     // Decrementa o item após a tentativa, independentemente do resultado
     ballItem.quantity--;
     window.Utils.saveGame();
+    
+    // ATUALIZAÇÃO MANUAL da tela aqui, pois animateCapture não faz.
+    BattleCore.updateBattleScreen();
 
     if (!battleEnded) {
       // Se a captura falhou e a batalha não terminou, o oponente ataca
@@ -319,6 +340,9 @@ export const BattleCore = {
     
     // Define o menu como desabilitado no início do turno para evitar dupla ação
     BattleCore.setBattleMenu("disabled");
+    // CORREÇÃO: Redesenho explícito para mostrar menu "disabled"
+    // e garantir que a sprite do jogador esteja estável.
+    BattleCore.updateBattleScreen();
 
     const item = window.gameState.profile.items.find(
       (i) => i.name === moveName
@@ -345,21 +369,30 @@ export const BattleCore = {
       } else {
         BattleCore.addBattleLog(`Você falhou em fugir!`);
       }
+      BattleCore.updateBattleScreen();
     } else if (action === "move") {
       if (playerPokemon.currentHp <= 0) {
         BattleCore.addBattleLog(`${playerPokemon.name} desmaiou e não pode atacar!`);
         BattleCore.setBattleMenu("main"); // Volta o menu
         return;
       }
+      
+      // ANIMAÇÃO: Ataque do Jogador
+      BattleCore._animateBattleAction('.player-sprite', 'animate-attack', 300);
+      await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
+
       const damageResult = BattleCore.calculateDamage(
         playerPokemon,
         moveName,
         opponent
       );
+      
+      const opponentHpBefore = opponent.currentHp;
       opponent.currentHp = Math.max(
         0,
         opponent.currentHp - damageResult.damage
       );
+      const opponentTookDamage = opponentHpBefore > opponent.currentHp;
 
       // Acessando formatName via window.Utils
       let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
@@ -369,6 +402,16 @@ export const BattleCore = {
         logMessage += ` É UM ACERTO CRÍTICO!`;
       }
       BattleCore.addBattleLog(logMessage);
+      
+      // Atualiza a tela para mostrar a barra de HP do oponente caindo
+      BattleCore.updateBattleScreen();
+
+      // ANIMAÇÃO: Dano no Oponente
+      if (opponentTookDamage) {
+        BattleCore._animateBattleAction('.opponent-sprite', 'animate-damage', 500);
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Espera a animação de dano terminar
+      }
+      
     } else if (action === "item" && item) {
       // Itens de Cura/Pokébola
       if (item.catchRate) {
@@ -379,11 +422,22 @@ export const BattleCore = {
       
       const isHealing = item.healAmount;
       // Acessando useItem via window.GameLogic
-      window.GameLogic.useItem(moveName); // Usa o item de cura (aplica localmente)
+      // A chamada useItem já inicia a animação de cura (_animateBattleAction('player-sprite', 'animate-heal', 500))
+      window.GameLogic.useItem(moveName); 
       
       if (isHealing) {
-        // Se for cura, não há ataque do jogador, o oponente ataca no próximo bloco.
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // CORREÇÃO CRÍTICA: O updateBattleScreen() no início do playerTurn (L434) 
+        // já garantiu que a sprite está estável. A animação foi iniciada em useItem.
+        
+        // Esperamos o tempo da animação de cura (500ms).
+        await new Promise((resolve) => setTimeout(resolve, 500)); 
+        
+        // Em seguida, forçamos a atualização da tela para mostrar o HP restaurado.
+        BattleCore.updateBattleScreen();
+        
+        // O menu de itens ainda está selecionado, precisamos voltar para o disabled antes do ataque do oponente
+        BattleCore.setBattleMenu("disabled"); // <<<< ADICIONADO PARA DESABILITAR O MENU DE CURA/ITEM
+        
         action = "opponent_attack"; // Força o ataque do oponente
       }
     } else if (action === "opponent_attack") {
@@ -404,6 +458,10 @@ export const BattleCore = {
     if (!ended && (action === "move" || action === "opponent_attack" || (action === "item" && item?.healAmount))) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
+      // ANIMAÇÃO: Ataque do Oponente
+      BattleCore._animateBattleAction('.opponent-sprite', 'animate-opponent-attack', 300);
+      await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
+
       const randomOpponentMove =
         opponent.moves[Math.floor(Math.random() * opponent.moves.length)];
       const damageResult = BattleCore.calculateDamage(
@@ -411,10 +469,14 @@ export const BattleCore = {
         randomOpponentMove,
         playerPokemon
       );
+      
+      const playerHpBefore = playerPokemon.currentHp;
       playerPokemon.currentHp = Math.max(
         0,
         playerPokemon.currentHp - damageResult.damage
       );
+      const playerTookDamage = playerHpBefore > playerPokemon.currentHp;
+
 
       // Acessando formatName via window.Utils
       let logMessage = `${opponent.name} usou ${window.Utils.formatName(
@@ -424,6 +486,15 @@ export const BattleCore = {
         logMessage += ` É UM ACERTO CRÍTICO!`;
       }
       BattleCore.addBattleLog(logMessage);
+      
+      // Atualiza a tela para mostrar a barra de HP do jogador caindo
+      BattleCore.updateBattleScreen();
+      
+      // ANIMAÇÃO: Dano no Jogador
+      if (playerTookDamage) {
+        BattleCore._animateBattleAction('.player-sprite', 'animate-damage', 500);
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Espera a animação de dano terminar
+      }
 
       if (playerPokemon.currentHp === 0) {
         BattleCore.addBattleLog(
@@ -442,7 +513,7 @@ export const BattleCore = {
     }
 
     // 3. Fim do Turno / Batalha
-    BattleCore.updateBattleScreen();
+    BattleCore.updateBattleScreen(); // Última atualização de tela
 
     if (ended) {
       setTimeout(() => {
@@ -457,6 +528,7 @@ export const BattleCore = {
     // Volta o menu para as opções principais se a batalha não terminou
     if (!ended) {
         BattleCore.setBattleMenu("main");
+        // Redesenho explícito (agora dentro de setBattleMenu) para mostrar o menu principal
     }
   },
 
@@ -475,7 +547,9 @@ export const BattleCore = {
     }
 
     battle.playerPokemonIndex = newIndex;
-    BattleCore.setBattleMenu("disabled"); // Desabilita o menu durante a troca
+    BattleCore.setBattleMenu("disabled"); // Desabilita o menu e redesenha (linha 653)
+    // CORREÇÃO: Removendo chamada redundante
+    // BattleCore.updateBattleScreen(); // Garante que o log de troca apareça imediatamente
 
     BattleCore.addBattleLog(`Volte, ${currentPokemon.name}! Vá, ${newPokemon.name}!`);
 
@@ -500,7 +574,10 @@ export const BattleCore = {
         return; 
     }
     window.gameState.battle.currentMenu = menu;
-    BattleCore.updateBattleScreen();
+    // CORREÇÃO CRÍTICA: REINTRODUZ A CHAMADA AQUI para garantir que todos os botões (main, fight, item, back) funcionem,
+    // mas a chamada em playerTurn (L434) agora garante que a tela está atualizada ANTES da animação,
+    // prevenindo o problema da cura.
+    BattleCore.updateBattleScreen(); 
   },
   
   /** Atualiza os elementos visuais da batalha. */
@@ -516,6 +593,8 @@ export const BattleCore = {
     // Garante que o Pokémon do jogador está no time
     if (!playerPokemon) return;
 
+    // NOVO SELETOR: Adiciona uma classe para o player sprite para fácil manipulação
+    // CORREÇÃO: Usar a classe player-sprite também no img do player, para que o seletor funcione
     const playerBackSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${playerPokemon.id}.png`;
 
     const playerHpPercent =
@@ -658,7 +737,7 @@ export const BattleCore = {
                 <!-- Player Sprite: Centrado na parte inferior esquerda, move-se para a esquerda em telas maiores -->
                 <img src="${playerBackSprite}" alt="${
       playerPokemon.name
-    }" class="absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">
+    }" class="player-sprite absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">
             </div>
             
             <!-- LOG MESSAGE AREA -->

@@ -311,6 +311,11 @@ export const PvpCore = {
     let p1 = roomData.player1;
     let p2 = roomData.player2;
     let log = roomData.log;
+    
+    // Determine o meu seletor e o do oponente para as animações
+    const mySpriteSelector = isPlayer1 ? '.player-sprite' : '.opponent-sprite';
+    const oppSpriteSelector = isPlayer1 ? '.opponent-sprite' : '.player-sprite';
+
 
     const actions = [
       {
@@ -319,6 +324,10 @@ export const PvpCore = {
         pokemon: p1.pokemon,
         target: p2.pokemon,
         targetRole: "player2",
+        // NOVO: Adiciona seletores de sprite para animação
+        attackerSprite: isPlayer1 ? mySpriteSelector : oppSpriteSelector,
+        targetSprite: isPlayer1 ? oppSpriteSelector : mySpriteSelector,
+        attackAnimation: isPlayer1 ? 'animate-attack' : 'animate-opponent-attack',
       },
       {
         role: "player2",
@@ -326,6 +335,10 @@ export const PvpCore = {
         pokemon: p2.pokemon,
         target: p1.pokemon,
         targetRole: "player1",
+        // NOVO: Adiciona seletores de sprite para animação
+        attackerSprite: isPlayer1 ? oppSpriteSelector : mySpriteSelector,
+        targetSprite: isPlayer1 ? mySpriteSelector : oppSpriteSelector,
+        attackAnimation: isPlayer1 ? 'animate-opponent-attack' : 'animate-attack',
       },
     ];
 
@@ -335,13 +348,21 @@ export const PvpCore = {
     let battleFinished = false;
 
     // Processa ações de Ataque (moves)
-    for (const { role, action, pokemon, target, targetRole } of actions) {
+    for (const { role, action, pokemon, target, targetRole, attackerSprite, targetSprite, attackAnimation } of actions) {
       if (action.action === "move") {
+        
+        // ANIMAÇÃO: Ataque
+        window.BattleCore._animateBattleAction(attackerSprite, attackAnimation, 300);
+
         const damageResult = window.BattleCore.calculateDamage(pokemon, action.move, target); // Usa window.BattleCore
+        
+        const targetHpBefore = target.currentHp;
         target.currentHp = Math.max(
           0,
           target.currentHp - damageResult.damage
         );
+        const targetTookDamage = targetHpBefore > target.currentHp;
+
 
         let logMessage = `${roomData[role].trainerName}'s ${
           pokemon.name
@@ -352,12 +373,23 @@ export const PvpCore = {
           logMessage += ` É UM ACERTO CRÍTICO!`;
         }
         log.push(logMessage);
-
+        
+        // Aplica o dano no objeto de dados
         if (targetRole === "player1") {
           p1.pokemon = target;
         } else {
           p2.pokemon = target;
         }
+        
+        // ANIMAÇÃO: Dano no alvo
+        if (targetTookDamage) {
+            // A animação de dano precisa ser aplicada no cliente que está visualizando.
+            // Para simplificar, aplicamos localmente e atualizamos a tela.
+            // O listener já garante que a UI será re-renderizada pelo BattleCore.updateBattleScreen
+            window.BattleCore._animateBattleAction(targetSprite, 'animate-damage', 500);
+            await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
 
         if (target.currentHp === 0) {
           battleFinished = true;

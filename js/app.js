@@ -103,16 +103,11 @@ export async function init(cacheBuster) {
 
     try {
         // === PONTO DE INJEÇÃO DE ERRO ===
-        // ALTERE A LINHA ABAIXO PARA SIMULAR UM ERRO DE CARREGAMENTO:
-        // Exemplo: await import(`./config_utils_BROKEN.js${v}`);
-        const configModule = await import(`./config_utils.js${v}`); // <-- ERRO INJETADO AQUI!
+        // ALTERAÇÃO: Refatorado para usar desestruturação direta, que é mais robusta
+        const configModule = await import(`./config_utils.js${v}`); 
         // ================================
         
-        GameConfig = configModule.GameConfig;
-        initializeGameState = configModule.initializeGameState;
-        Utils = configModule.Utils;
-        PokeAPI = configModule.PokeAPI;
-        registerExistingPokemonOnLoad = configModule.registerExistingPokemonOnLoad; // NOVO: Importa a nova função
+        ({ GameConfig, initializeGameState, Utils, PokeAPI, registerExistingPokemonOnLoad } = configModule);
 
         const logicModule = await import(`./game_logic.js${v}`);
         GameLogic = logicModule.GameLogic;

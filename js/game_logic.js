@@ -33,17 +33,11 @@ export const GameLogic = {
     let resultMessage = "";
     let startedBattle = false;
 
-    // AUMENTADO A CHANCE DE ENCONTRAR POKÉMON PARA 50% (roll < 0.5)
-    if (roll < 0.5) { // Chance de 50% de iniciar uma batalha
-      GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
-      AuthSetup.handleBattleMusic(true); // 🔊 INICIA MÚSICA DE BATALHA
-      await window.BattleCore.startWildBattle();
-      startedBattle = true;
-    } else if (roll < 0.75) { // Chance de 25% de encontrar dinheiro
+    if (roll < 0.6) {
       const money = Math.floor(Math.random() * 200) + 100;
       window.gameState.profile.money += money;
       resultMessage = `Você encontrou P$${money} no chão!`;
-    } else if (roll < 0.9) { // Chance de 15% de encontrar um item
+    } else if (roll < 0.5) {
       const possibleItems = window.gameState.profile.items.filter(
         (i) => i.name !== "Great Ball" && i.name !== "Ultra Ball"
       );
@@ -51,7 +45,12 @@ export const GameLogic = {
         possibleItems[Math.floor(Math.random() * possibleItems.length)];
       item.quantity++;
       resultMessage = `Você encontrou 1x ${item.name}!`;
-    } else { // Chance de 10% de não encontrar nada
+    } else if (roll < 0.75) {
+      GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
+      AuthSetup.handleBattleMusic(true); // 🔊 INICIA MÚSICA DE BATALHA
+      await window.BattleCore.startWildBattle();
+      startedBattle = true;
+    }else {
       resultMessage =
         "Você explorou, mas não encontrou nada de interessante.";
     }

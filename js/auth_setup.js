@@ -90,7 +90,7 @@ export const AuthSetup = {
       gameLoaded = true;
       // LÓGICA DE RETROCOMPATIBILIDADE ATUALIZADA:
       // Chama a função centralizada que garante que Utils.registerPokemon esteja disponível.
-      // registerExistingPokemonOnLoad();
+      window.registerExistingPokemonOnLoad();
     } else {
       initializeGameState(); 
     }

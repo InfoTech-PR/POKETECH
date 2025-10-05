@@ -424,9 +424,15 @@ export const Renderer = {
   renderPokemonList: function (app) {
     const pokemonArray = window.gameState.profile.pokemon;
 
+    
+
     const pokemonHtml = pokemonArray
       .map(
-        (p, index) => `
+        (p, index) => { 
+          const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+          const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+          
+          return `
         <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
         <div id="pokemon-list-item-${index}" 
              data-pokemon-index="${index}"
@@ -462,12 +468,20 @@ export const Renderer = {
                     <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
-                      <span>EXP: ${p.exp}</span>
+                      <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
+                        <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
+                        <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
+                            <div class="h-1.5 rounded-full bg-blue-500 transition-all duration-500" 
+                                 style="width: ${expPercent}%;"></div>
+                        </div>
+                        <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(expPercent)}%</span>
+                    </div>
                     </div>
                 </div>
             </div>
         </div>
-    `
+    `;
+  }
       )
       .join("");
 
@@ -611,7 +625,8 @@ export const Renderer = {
 
     const healItem = window.gameState.profile.items.find(i => i.healAmount);
     const isHealItemAvailable = healItem && healItem.quantity > 0;
-    
+    const expToNextLevel = window.Utils.calculateExpToNextLevel(pokemon.level);
+    const expPercent = Math.min(100, (pokemon.exp / expToNextLevel) * 100);
     const movesHtml = pokemon.moves
       .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
       .join("");
@@ -644,7 +659,14 @@ export const Renderer = {
             <div class="text-left gba-font text-xs flex-shrink-0">
                 <p><strong>Nível:</strong> ${pokemon.level}</p>
                 <p><strong>HP:</strong> ${pokemon.currentHp}/${pokemon.maxHp}</p>
-                <p><strong>EXP:</strong> ${pokemon.exp}</p>
+                <div class="mt-2 flex items-center">
+                    <span class="gba-font text-[10px] mr-2">EXP</span>
+                    <div class="w-full bg-gray-300 h-2 rounded-full border border-gray-500">
+                        <div class="h-2 rounded-full bg-blue-500 transition-all duration-500" 
+                             style="width: ${expPercent}%;"></div>
+                    </div>
+                </div>
+                 <p class="text-[8px] text-gray-700 mt-1">Progresso: ${pokemon.exp} / ${expToNextLevel}</p>
             </div>
             
             <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">

@@ -1,13 +1,8 @@
-// REMOVIDO: importações estáticas locais para evitar problemas de cache. 
-// As dependências locais (Utils, PvpCore, Renderer, etc.) agora são acessadas através do 
-// objeto 'window' (exposto pelo app.js), que garante o cache-busting.
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 export const AuthSetup = {
-  /** Adiciona listener de música na primeira interação, e ativa tela cheia. */
   setupInitialInteractions: function () {
       let backgroundMusic = null;
       let currentTrack = 0;
@@ -27,79 +22,75 @@ export const AuthSetup = {
           // ------------------------------------------------
           
           backgroundMusic = new Audio(tracks[currentTrack]);
-          backgroundMusic.volume = volume; // Aplica o volume lido
-          backgroundMusic.loop = true; // Garante o loop do novo Audio
+          backgroundMusic.volume = volume; 
+          backgroundMusic.loop = true; 
           backgroundMusic.addEventListener("ended", () => {
-              // Só muda de faixa se a música atual não for a de batalha (que deve ser em loop)
               if (window.backgroundMusic === backgroundMusic) {
                 currentTrack = (currentTrack + 1) % tracks.length;
                 backgroundMusic = null;
                 playMusic();
               }
           });
-          backgroundMusic.play().catch((e) => {
-              console.warn(
-                  "Música bloqueada. Ela será iniciada com a primeira interação."
-              );
+          backgroundMusic.play().catch(() => {
+              console.warn("Música bloqueada. Ela será iniciada com a primeira interação.");
           });
           
-          // Armazena a referência no window para ser manipulada pelo menu de preferências
           window.backgroundMusic = backgroundMusic; 
       }
       
-      // Remove a chamada a Utils.toggleFullScreen() que estava comentada e não definida
       document.addEventListener("click", () => { playMusic(); }, { once: true }); 
   },
 
-  /** * Gerencia a troca entre a música de fundo e a música de batalha. 
-   * @param {boolean} isBattle Se true, toca a música de batalha. Se false, volta para a música de fundo.
-   */
   handleBattleMusic: function (isBattle) {
       const prefs = window.gameState.profile.preferences || { volume: 0.5, isMuted: false };
       const volume = prefs.isMuted ? 0 : prefs.volume;
 
-      // 1. Para e limpa a referência da música atual
       if (window.backgroundMusic) {
           window.backgroundMusic.pause();
           window.backgroundMusic.currentTime = 0;
           window.backgroundMusic = null;
       }
 
-      // 2. Se for batalha, toca a trilha específica
       if (isBattle) {
-          // Usamos o caminho do arquivo do repositório
-          const battleMusic = new Audio("./assets/sounds/musics/battle.mp3");
+          const battleMusic = new Audio(
+              "https://jetta.vgmtreasurechest.com/soundtracks/pokemon-game-boy-pok-mon-sound-complete-set-play-cd/dariqfbs/1-15.%20Battle%20%28VS%20Trainer%29.mp3"
+          );
           battleMusic.volume = volume;
           battleMusic.loop = true;
           battleMusic.play().catch(err => console.warn("Falha ao tocar música de batalha:", err));
           window.backgroundMusic = battleMusic;
       } else {
-          // 3. Se não for batalha, retoma a música normal
-          AuthSetup.setupInitialInteractions(); // retoma ciclo normal
+          AuthSetup.setupInitialInteractions(); 
       }
   },
 
-  /** Inicializa Firebase e Autenticação. */
   initAuth: async function () {
-    // Lendo as variáveis globais DENTRO da função para garantir que já foram definidas pelo index.html
     const firebaseConfig = window.firebaseConfig;
     const initialAuthToken = window.initialAuthToken;
     let gameLoaded = false;
     
-    // Antes de chamar setupInitialInteractions, garantimos que o gameState foi inicializado ou carregado
     if (window.Utils.loadGame()) {
       gameLoaded = true;
-      // LÓGICA DE RETROCOMPATIBILIDADE ATUALIZADA:
-      // Chama a função centralizada que garante que Utils.registerPokemon esteja disponível.
       window.registerExistingPokemonOnLoad();
     } else {
       window.initializeGameState(); 
     }
     
-    // Agora que o gameState está pronto, podemos configurar a música.
     AuthSetup.setupInitialInteractions();
 
-    if (firebaseConfig) { // Agora firebaseConfig contém o fallback ou a config real
+    // --- Integração automática com a tela de batalha ---
+    const originalShowScreen = window.Renderer.showScreen;
+    window.Renderer.showScreen = function (screenName) {
+        originalShowScreen(screenName);
+        if (screenName === "battle") {
+            AuthSetup.handleBattleMusic(true);
+        } else {
+            AuthSetup.handleBattleMusic(false);
+        }
+    };
+    // ---------------------------------------------------
+
+    if (firebaseConfig) {
       try {
         const app = initializeApp(firebaseConfig);
         window.db = getFirestore(app);
@@ -119,7 +110,6 @@ export const AuthSetup = {
             console.log("Usuário autenticado:", window.userId);
           } else {
             console.log("Nenhum usuário autenticado.");
-            // Fallback for anonymous user ID if auth is not ready
             window.userId = "anonymous-" + crypto.randomUUID();
           }
           
@@ -132,20 +122,14 @@ export const AuthSetup = {
                     window.Renderer.showScreen("mainMenu");
               }
           } else {
-              // Já inicializado acima, só exibe a tela
               window.Renderer.showScreen("initialMenu");
           }
           unsubscribe();
         });
       } catch (error) {
-        console.error(
-          "Erro fatal ao inicializar Firebase (Chaves Inválidas?):",
-          error
-        );
-
+        console.error("Erro fatal ao inicializar Firebase (Chaves Inválidas?):", error);
         window.db = null;
         window.auth = null;
-
         window.userId = "anonymous-" + crypto.randomUUID();
         if (!gameLoaded) {
             window.initializeGameState();
@@ -157,13 +141,10 @@ export const AuthSetup = {
         );
       }
     } else {
-      console.error(
-        "Firebase Configuração não encontrada. O PvP estará desativado."
-      );
+      console.error("Firebase Configuração não encontrada. O PvP estará desativado.");
       window.db = null;
       window.auth = null;
       window.userId = "anonymous-" + crypto.randomUUID();
-      // O jogo já está carregado ou inicializado, apenas renderiza.
       if (!gameLoaded) {
           window.initializeGameState();
       }

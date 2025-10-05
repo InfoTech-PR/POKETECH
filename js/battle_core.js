@@ -1,23 +1,5 @@
-/**
- * js/battle_core.js
- * MÓDULO 3: CORE DE BATALHA
- * Gerencia a lógica central de combate, incluindo turnos PvE, cálculos e captura.
- */
-// REMOVIDO: importações estáticas para evitar problemas de cache e garantir
-// que os módulos acessem as dependências via 'window' (definidas no app.js).\
-// import { GameConfig, Utils, PokeAPI } from './config_utils.js';
-// import { GameLogic } from './game_logic.js';
-// import { PvpCore } from './pvp_core.js';
-// import { Renderer } from './renderer.js';
-// REMOVIDO: import { AuthSetup } from './auth_setup.js'; 
-
-/**
- * Módulo para gerenciar a lógica central de combate,
- * incluindo turnos PvE, cálculos e captura.
- */
 export const BattleCore = {
   
-  /** Retorna a URL da sprite do item de captura com base no nome. */
   _getBallSpriteUrl: function(ballName) {
       switch (ballName.toLowerCase()) {
           case 'pokébola':
@@ -31,32 +13,22 @@ export const BattleCore = {
       }
   },
   
-  /**
-   * NOVO: Adiciona e remove classes de animação da sprite.
-   * @param {string} spriteSelector Seletor CSS para o elemento da sprite ('.player-sprite' ou '.opponent-sprite').
-   * @param {string} animationClass Classe CSS da animação (ex: 'animate-damage', 'animate-attack').
-   * @param {number} duration Duração da animação em milissegundos.
-   */
   _animateBattleAction: function(spriteSelector, animationClass, duration = 500) {
       const element = document.querySelector(spriteSelector);
       if (element) {
           element.classList.add(animationClass);
-          // O update será feito explicitamente no playerTurn após o fim da animação,
-          // evitando que o redesenho prematuro cancele o efeito CSS.
           setTimeout(() => {
               element.classList.remove(animationClass);
           }, duration);
       }
   },
 
-  /** Inicia uma batalha selvagem. */
   startWildBattle: async function () {
     const randomId = Math.floor(Math.random() * 151) + 1;
-    // Acessando PokeAPI e GameLogic via window.
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
-      window.AuthSetup?.handleBattleMusic(false); // 🔊 Garante que a música de fundo volte em caso de erro
+      window.AuthSetup?.handleBattleMusic(false); 
       return;
     }
 
@@ -69,7 +41,6 @@ export const BattleCore = {
       playerMaxLevel + (Math.random() > 0.5 ? 1 : -1)
     );
     
-    // CORREÇÃO APLICADA: Utiliza window.Utils para acessar a função calculateMaxHp
     wildPokemonData.maxHp = window.Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
     wildPokemonData.currentHp = wildPokemonData.maxHp;
 
@@ -80,27 +51,18 @@ export const BattleCore = {
       turn: 0,
       lastMessage: `Um ${wildPokemonData.name} selvagem apareceu!`,
       log: [],
-      currentMenu: "main", // Garante que o menu principal seja exibido ao iniciar
+      currentMenu: "main", 
     };
-
-    // Acessando Renderer via window.
     window.Renderer.showScreen("battle");
   },
 
-  /** * Calcula o dano simplificado entre dois Pokémons (Fórmula revisada para balanceamento).
-   * Dano = (((Nível * 0.4 + 2) * Ataque * Base_Dano) / (Defesa * 50)) * Modificador
-   */
   calculateDamage: function (attacker, move, defender) {
     const attackStat = attacker.stats.attack || 50;
     const defenseStat = defender.stats.defense || 50;
     const level = attacker.level || 5;
     
-    // Novo: Um valor base de dano para evitar que movimentos fracos causem zero dano
     const movePower = 40; 
-    
-    // FÓRMULA DE DANO REVISADA: Simula melhor o sistema de dano de Pokémon
     let baseDamage = (((2 * level / 5 + 2) * movePower * attackStat) / defenseStat / 50) + 2;
-    
     let modifier = 1;
 
     // 1. Crítico
@@ -116,39 +78,30 @@ export const BattleCore = {
     modifier *= variance;
 
     // 3. Efetividade de Tipo (IGNORADO POR ENQUANTO para simplificar)
-
     let damage = Math.floor(baseDamage * modifier);
     damage = Math.max(1, damage); // Garante que o dano mínimo seja 1
 
     return { damage, isCritical };
   },
   
-  /** Adiciona EXP ao Pokémon vencedor e verifica se ele sobe de nível. */
   gainExp: function (winner, defeatedLevel) {
-    // EXP ganha é baseada no nível do derrotado e é ajustada para a nova curva
     const expGain = Math.floor((defeatedLevel * 50) / 5); 
     winner.exp += expGain;
 
     // Acessando calculateExpToNextLevel via window.Utils
     let expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
-
     while (winner.exp >= expToNextLevel) {
       winner.level++;
       
-      // Acessando calculateMaxHp via window.Utils
       winner.maxHp = window.Utils.calculateMaxHp(winner.stats.hp, winner.level);
       winner.currentHp = winner.maxHp;
       BattleCore.addBattleLog(`${winner.name} subiu para o Nível ${winner.level}!`);
 
-      // Acessando calculateExpToNextLevel via window.Utils
       expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
-      
-      // Se o Pokémon atingiu o nível máximo, quebra o loop
       if (winner.level >= 100) break;
     }
   },
   
-  /** Lógica de vitória em PvE (ganho de dinheiro e EXP). */
   battleWin: function (winner, loser) {
     BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
 
@@ -158,7 +111,6 @@ export const BattleCore = {
 
     BattleCore.gainExp(winner, loser.level);
 
-    // As propriedades do Pokémon do perfil devem ser atualizadas para refletir o novo estado.
     const profilePoke =
       window.gameState.profile.pokemon[
         window.gameState.battle.playerPokemonIndex
@@ -166,10 +118,9 @@ export const BattleCore = {
     profilePoke.currentHp = winner.currentHp;
     profilePoke.exp = winner.exp;
     profilePoke.level = winner.level;
-    profilePoke.maxHp = winner.maxHp; // Inclui o novo maxHp
+    profilePoke.maxHp = winner.maxHp;
   },
   
-  /** Adiciona uma mensagem ao log de batalha e atualiza a UI. */
   addBattleLog: function (message) {
     if (window.gameState.battle) {
       window.gameState.battle.lastMessage = message;
@@ -179,12 +130,9 @@ export const BattleCore = {
           window.gameState.battle.log.shift();
         }
       }
-      // CORREÇÃO: Remove chamada automática de updateBattleScreen daqui.
-      // A atualização visual será gerenciada pelo playerTurn para não quebrar animações.
     }
   },
   
-  /** Calcula a taxa de captura baseada em HP e Pokébola. */
   calculateCatchRate: function (pokemonHp, maxHp, ballCatchRate) {
     const CATCH_BASE = 85;        // força geral
     const HP_OFFSET = 0.30;       // amortecimento do HP baixo
@@ -205,7 +153,6 @@ export const BattleCore = {
       return Math.min(MAX_CATCH, Math.max(MIN_CATCH, pct));
   },
 
-  /** Simula a animação e o resultado da captura. */
   animateCapture: function (ballName, ballCatchRate) {
     return new Promise((resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
@@ -294,7 +241,6 @@ export const BattleCore = {
     });
   },
   
-  /** Tenta capturar o Pokémon selvagem. */
   tryCapture: async function (ballName, ballCatchRate) {
     const ballItem = window.gameState.profile.items.find(
       (i) => i.name === ballName
@@ -330,7 +276,6 @@ export const BattleCore = {
     }
   },
 
-  /** Simula o turno de ação na batalha (PvE e encaminha PvP). */
   playerTurn: async function (action, moveName = null) {
     const battle = window.gameState.battle;
     // Acessando getActivePokemon via window.Utils
@@ -532,7 +477,6 @@ export const BattleCore = {
     }
   },
 
-  /** Troca o Pokémon ativo na batalha. */
   switchPokemon: async function (newIndex) {
     const battle = window.gameState.battle;
     // Acessando getActivePokemon via window.Utils
@@ -567,20 +511,14 @@ export const BattleCore = {
     window.Renderer.showScreen("battle");
   },
 
-  /** Define o menu de batalha atual. */
   setBattleMenu: function (menu) {
     if(window.gameState.battle.type === 'pvp' && window.gameState.battle.currentMenu === 'disabled' && menu !== 'main') {
-        // Bloqueia mudança de menu se for PvP e estiver esperando, a menos que seja para voltar ao menu principal.
         return; 
     }
     window.gameState.battle.currentMenu = menu;
-    // CORREÇÃO CRÍTICA: REINTRODUZ A CHAMADA AQUI para garantir que todos os botões (main, fight, item, back) funcionem,
-    // mas a chamada em playerTurn (L434) agora garante que a tela está atualizada ANTES da animação,
-    // prevenindo o problema da cura.
     BattleCore.updateBattleScreen(); 
   },
   
-  /** Atualiza os elementos visuais da batalha. */
   updateBattleScreen: function () {
     const battleArea = document.getElementById("battle-area");
     if (!battleArea || !window.gameState.battle) return;

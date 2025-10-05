@@ -1,23 +1,11 @@
-/**
- * js/auth_setup.js
- * MÓDULO 6: INICIALIZAÇÃO E SETUP
- * Contém a lógica de inicialização do Firebase, autenticação e carregamento inicial do jogo.
- */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// IMPORTAÇÃO ATUALIZADA: Incluindo a nova função de registro
 import { initializeGameState, Utils, registerExistingPokemonOnLoad } from './config_utils.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
 
-// **ATENÇÃO: Removidas as declarações de topo para ler diretamente do window.**
-// O valor só é definido em window.firebaseConfig APÓS o carregamento deste script.
-
-/**
- * Módulo de Inicialização e Autenticação.
- */
 export const AuthSetup = {
   /** Adiciona listener de música na primeira interação, e ativa tela cheia. */
   setupInitialInteractions: function () {
@@ -55,6 +43,30 @@ export const AuthSetup = {
       
       // Remove a chamada a Utils.toggleFullScreen() que estava comentada e não definida
       document.addEventListener("click", () => { playMusic(); }, { once: true }); 
+  },
+
+  handleBattleMusic: function (isBattle) {
+      const prefs = window.gameState.profile.preferences || { volume: 0.5, isMuted: false };
+      const volume = prefs.isMuted ? 0 : prefs.volume;
+
+      // Para a música atual
+      if (window.backgroundMusic) {
+          window.backgroundMusic.pause();
+          window.backgroundMusic.currentTime = 0;
+      }
+
+      // Se for batalha, toca a trilha específica
+      if (isBattle) {
+          const battleMusic = new Audio("./assets/sounds/musics/battle.mp3");
+          battleMusic.volume = volume;
+          battleMusic.loop = true;
+          battleMusic.play().catch(err => console.warn("Falha ao tocar música de batalha:", err));
+          window.backgroundMusic = battleMusic;
+      } else {
+          // Retorna à música normal
+          window.backgroundMusic = null;
+          AuthSetup.setupInitialInteractions(); // retoma ciclo normal
+      }
   },
 
   /** Inicializa Firebase e Autenticação. */

@@ -1,16 +1,8 @@
-/**
- * js/game_logic.js
- * MÓDULO 2: LÓGICA DE JOGO
- * Gerencia a progressão do jogador, inventário, exploração e interações fora de batalha.
- */
 import { GameConfig, Utils, PokeAPI } from './config_utils.js';
-import { BattleCore } from './battle_core.js'; // Importação necessária para explorar/batalha
-import { Renderer } from './renderer.js'; // Importação necessária para renderizar
+import { BattleCore } from './battle_core.js';
+import { Renderer } from './renderer.js';
+import { AuthSetup } from './auth_setup.js';
 
-/**
- * Módulo para gerenciar a progressão do jogador,
- * inventário, exploração e interações fora de batalha.
- */
 export const GameLogic = {
   /** Adiciona uma mensagem ao log de exploração e atualiza a UI se estiver no Main Menu. */
   addExploreLog: function (message) {
@@ -55,10 +47,10 @@ export const GameLogic = {
       resultMessage = `Você encontrou 1x ${item.name}!`;
     } else if (roll < 0.75) {
       GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
-      // Chamada para BattleCore.startWildBattle (Disponível via exportação)
+      AuthSetup.handleBattleMusic(true); // 🔊 Toca música de batalha
       await window.BattleCore.startWildBattle();
       startedBattle = true;
-    } else {
+    }else {
       resultMessage =
         "Você explorou, mas não encontrou nada de interessante.";
     }

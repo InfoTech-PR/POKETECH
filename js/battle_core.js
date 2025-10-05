@@ -1,17 +1,9 @@
-/**
- * js/battle_core.js
- * MÓDULO 3: CORE DE BATALHA
- * Gerencia a lógica central de combate, incluindo turnos PvE, cálculos e captura.
- */
 import { GameConfig, Utils, PokeAPI } from './config_utils.js';
 import { GameLogic } from './game_logic.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
+import { AuthSetup } from './auth_setup.js';
 
-/**
- * Módulo para gerenciar a lógica central de combate,
- * incluindo turnos PvE, cálculos e captura.
- */
 export const BattleCore = {
   /** Inicia uma batalha selvagem. */
   startWildBattle: async function () {
@@ -176,6 +168,7 @@ export const BattleCore = {
             setTimeout(() => {
               window.gameState.profile.pokemon.push(wildPokemon);
               Utils.saveGame();
+              AuthSetup.handleBattleMusic(false);
               Renderer.showScreen("mainMenu");
               resolve(true);
             }, 1000);
@@ -190,6 +183,7 @@ export const BattleCore = {
             if (roll > 90) {
               BattleCore.addBattleLog(`${wildPokemon.name} fugiu da batalha!`);
               setTimeout(() => {
+                AuthSetup.handleBattleMusic(false);
                 Renderer.showScreen("mainMenu");
                 resolve(true);
               }, 1500);
@@ -368,6 +362,7 @@ export const BattleCore = {
     if (ended) {
       setTimeout(() => {
         window.gameState.battle = null;
+        AuthSetup.handleBattleMusic(false);
         Renderer.showScreen("mainMenu");
         Utils.saveGame();
       }, 2000);

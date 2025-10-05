@@ -100,7 +100,6 @@ export async function init(cacheBuster) {
     };
     // -----------------------------------------------------------------
 
-
     try {
         // 1. Carrega Módulos com Cache-Busting
         const configModule = await import(`./config_utils.js${v}`); 
@@ -120,6 +119,9 @@ export async function init(cacheBuster) {
 
         const authModule = await import(`./auth_setup.js${v}`);
         AuthSetup = authModule.AuthSetup;
+
+        const friendshipModule = await import(`./poke_friendship.js${v}`);
+        window.PokeFriendship = friendshipModule.PokeFriendship;
 
         // 2. Exportações Globais (Para o escopo do HTML e comunicação inter-módulos)
         // ESSENCIAL: Permite que todos os módulos acessem suas dependências via 'window.'
@@ -162,6 +164,9 @@ export async function init(cacheBuster) {
         window.dragLeave = GameLogic.dragLeave;
         window.releasePokemon = GameLogic.releasePokemon;
         window.setPokemonAsActive = GameLogic.setPokemonAsActive; 
+
+        window.showFriendListModal = PokeFriendship.showFriendListModal;
+        window.sendFriendRequest = PokeFriendship.sendFriendRequest;
 
         // --- NOVAS EXPORTAÇÕES DE PREFERÊNCIAS ---
         window.updateVolume = Utils.updateVolume;

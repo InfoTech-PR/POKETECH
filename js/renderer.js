@@ -32,6 +32,9 @@ export const Renderer = {
       case "initialMenu":
         Renderer.renderInitialMenu(app);
         break;
+      case "friendshipMenu":
+        Renderer.renderFriendshipMenu(app);
+        break;
       case "mainMenu":
         Renderer.renderMainMenu(app);
         break;
@@ -336,8 +339,38 @@ export const Renderer = {
     Renderer.renderGbaCard(combinedHtml);
   },
 
-  // --- NOVAS FUNÇÕES DE SUBMENU ---
+  renderProfileMenu: function (app) {
+    const content = `
+      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL E OPÇÕES</div>
+    
+      <div class="space-y-4 p-4 flex-grow overflow-y-auto">
+      <button onclick="Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600">PERFIL DO TREINADOR</button>
+      <button onclick="Renderer.showScreen('friendshipMenu')" class="gba-button bg-orange-500 hover:bg-orange-600">AMIZADES</button>
+      <button onclick="Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600">PREFERÊNCIAS</button>
+      </div>
+    
+      <button onclick="Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+    `;
+    Renderer.renderGbaCard(content);
+  },
 
+  /** Renderiza o submenu de amizades. */
+  renderFriendshipMenu: function (app) {
+    const content = `
+    <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>
+    
+    <div class="space-y-4 p-4 flex-grow overflow-y-auto">
+      <button onclick="window.showFriendListModal()" class="gba-button bg-blue-500 hover:bg-blue-600">LISTA DE AMIGOS</button>
+      <input id="friendIdInput" type="text" placeholder="ID do Amigo para Enviar" class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner">
+      <button onclick="window.sendFriendRequest(document.getElementById('friendIdInput').value)" class="gba-button bg-green-500 hover:bg-green-600">ENVIAR PEDIDO</button>
+    </div>
+    
+    <button onclick="Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+    `;
+    Renderer.renderGbaCard(content);
+  },
+
+  // --- NOVAS FUNÇÕES DE SUBMENU ---
   /** Renderiza o submenu de Pokémons (Time, Mochila, Pokédex). */
   renderPokemonMenu: function (app) {
     const content = `
@@ -369,22 +402,7 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza o submenu de Perfil e Opções. */
-  renderProfileMenu: function (app) {
-    const content = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL E OPÇÕES</div>
-            
-            <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-                <button onclick="Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600">PERFIL DO TREINADOR</button>
-                <button onclick="Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600">PREFERÊNCIAS</button>
-            </div>
-            
-            <button onclick="Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
-        `;
-    Renderer.renderGbaCard(content);
-  },
   // --- FIM DAS NOVAS FUNÇÕES DE SUBMENU ---
-
   /** Renderiza o novo menu de preferências. */
   renderPreferences: function (app) {
       const prefs = window.gameState.profile.preferences;

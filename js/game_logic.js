@@ -189,42 +189,51 @@ export const GameLogic = {
   },
 
   /** Cura todos os Pokémons no Centro Pokémon. */
-  healAllPokemon: function () {
-    const profile = window.gameState.profile;
-    const GameConfig = window.GameConfig;
-    let totalCost = 0;
-    let healedCount = 0;
+healAllPokemon: function () {
+  const profile = window.gameState.profile;
+  const GameConfig = window.GameConfig;
+  let totalCost = 0;
+  let healedCount = 0;
 
-    profile.pokemon.forEach((p) => {
-      if (p.currentHp < p.maxHp) {
-        p.currentHp = p.maxHp;
-        totalCost += GameConfig.HEAL_COST_PER_POKE;
-        healedCount++;
-      }
-    });
-
-    if (healedCount === 0) {
-      window.Utils.showModal("infoModal", "Todos os seus Pokémons já estão saudáveis!");
-      return;
+  profile.pokemon.forEach((p) => {
+    if (p.currentHp < p.maxHp) {
+      p.currentHp = p.maxHp;
+      totalCost += GameConfig.HEAL_COST_PER_POKE;
+      healedCount++;
     }
+  });
 
-    if (profile.money < totalCost) {
-      window.Utils.showModal(
-        "errorModal",
-        `Você não tem dinheiro suficiente! Custo total: P$${totalCost}.`
-      );
-      return;
-    }
+  if (healedCount === 0) {
+    window.Utils.showModal("infoModal", "Todos os seus Pokémons já estão saudáveis!");
+    return;
+  }
 
-    profile.money -= totalCost;
-
+  if (profile.money < totalCost) {
     window.Utils.showModal(
-      "infoModal",
-      `Obrigado por esperar! ${healedCount} Pokémons curados por P$${totalCost}.`
+      "errorModal",
+      `Você não tem dinheiro suficiente! Custo total: P$${totalCost}.`
     );
-    window.Utils.saveGame();
-    window.Renderer.showScreen("healCenter");
-  },
+    return;
+  }
+
+  profile.money -= totalCost;
+
+  // 🔊 Som de recuperação (toca uma vez, sem loop)
+  const healSound = new Audio(
+    "https://jetta.vgmtreasurechest.com/soundtracks/pokemon-game-boy-pok-mon-sound-complete-set-play-cd/wfmtgcrc/1-11.%20Recovery.mp3"
+  );
+  healSound.volume = (window.gameState.profile.preferences?.isMuted)
+    ? 0
+    : (window.gameState.profile.preferences?.volume ?? 0.5);
+  healSound.play().catch(err => console.warn("Falha ao tocar som de cura:", err));
+
+  window.Utils.showModal(
+    "infoModal",
+    `Obrigado por esperar! ${healedCount} Pokémons curados por P$${totalCost}.`
+  );
+  window.Utils.saveGame();
+  window.Renderer.showScreen("healCenter");
+},
 
   /** Executa a lógica de evolução de um Pokémon. */
   evolvePokemon: async function (pokemonIndex) {

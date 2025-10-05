@@ -78,16 +78,39 @@ export const AuthSetup = {
     
     AuthSetup.setupInitialInteractions();
 
-    // --- Integração automática com a tela de batalha ---
-    const originalShowScreen = window.Renderer.showScreen;
-    window.Renderer.showScreen = function (screenName) {
-        originalShowScreen(screenName);
-        if (screenName === "battle") {
-            AuthSetup.handleBattleMusic(true);
-        } else {
-            AuthSetup.handleBattleMusic(false);
-        }
-    };
+// --- Integração automática com telas que têm música especial ---
+const originalShowScreen = window.Renderer.showScreen;
+window.Renderer.showScreen = function (screenName) {
+    originalShowScreen(screenName);
+
+    if (screenName === "battle") {
+        AuthSetup.handleBattleMusic(true);
+    } 
+    else if (screenName === "healCenter") {
+      // Música especial para o Centro Pokémon
+      const prefs = window.gameState.profile.preferences || { volume: 0.5, isMuted: false };
+      const volume = prefs.isMuted ? 0 : prefs.volume;
+
+      if (window.backgroundMusic) {
+          window.backgroundMusic.pause();
+          window.backgroundMusic.currentTime = 0;
+          window.backgroundMusic = null;
+      }
+
+      const healMusic = new Audio(
+          "https://jetta.vgmtreasurechest.com/soundtracks/pokemon-game-boy-pok-mon-sound-complete-set-play-cd/juvsbgak/1-10.%20Pok%C3%A9mon%20Center.mp3"
+      );
+      healMusic.volume = volume;
+      healMusic.loop = true;
+      healMusic.play().catch(err => console.warn("Falha ao tocar música do Centro Pokémon:", err));
+      window.backgroundMusic = healMusic;
+  }
+  else {
+      AuthSetup.handleBattleMusic(false);
+  }
+};
+// ---------------------------------------------------
+
     // ---------------------------------------------------
 
     if (firebaseConfig) {
@@ -150,5 +173,42 @@ export const AuthSetup = {
       }
       window.Renderer.showScreen("initialMenu");
     }
+  },
+  
+  healAllPokemon: function () {
+    const profile = window.gameState.profile;
+    const GameConfig = window.GameConfig;
+    
+    let totalHealable = 0;
+    profile.pokemon.forEach(p => {
+        if (p.currentHp < p.maxHp) {
+            totalHealable++;
+        }
+    });
+
+    const totalCost = totalHealable * GameConfig.HEAL_COST_PER_POKE;
+    
+    if (totalHealable === 0) {
+        window.Utils.showModal("infoModal", "Todos os seus Pokémons já estão saudáveis!");
+        return false;
+    }
+
+    if (profile.money < totalCost) {
+        window.Utils.showModal("errorModal", "Dinheiro insuficiente para curar seus Pokémons.");
+        return false;
+    }
+
+    // Realiza a cura e o pagamento
+    profile.pokemon.forEach(p => {
+        p.currentHp = p.maxHp;
+    });
+    profile.money -= totalCost;
+    
+    window.Utils.saveGame();
+    window.Utils.showModal("successModal", "Seus Pokémons foram curados com sucesso!");
+    
+    // Redireciona de volta para a tela de healCenter para refletir as mudanças
+    window.Renderer.showScreen("healCenter");
+    return true;
   }
 };

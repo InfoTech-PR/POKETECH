@@ -4,6 +4,7 @@
  */
 
 // Firebase Imports (Necessário para o módulo de Auth e PvP)
+// Importações de CDN com versão definida no URL.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -135,11 +136,11 @@ export const Utils = {
       localStorage.removeItem("pokemonGameExploreLog");
       console.log("Dados do jogo resetados.");
       
-      Utils.showModal("infoModal", "Dados apagados com sucesso! Recarregando...");
+      window.Utils.showModal("infoModal", "Dados apagados com sucesso! Recarregando...");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
       console.error("Erro ao resetar dados:", e);
-      Utils.showModal("errorModal", "Falha ao resetar os dados.");
+      window.Utils.showModal("errorModal", "Falha ao resetar os dados.");
     }
   },
 
@@ -169,7 +170,7 @@ export const Utils = {
       if (!window.gameState.profile.pokedex.has(id)) {
           window.gameState.profile.pokedex.add(id);
           console.log(`Pokémon ID ${id} registrado na Pokédex.`);
-          Utils.saveGame(); // Salva o registro imediatamente
+          window.Utils.saveGame(); // Salva o registro imediatamente
       }
   },
   
@@ -185,7 +186,7 @@ export const Utils = {
   updateVolume: function (newVolume) {
       window.gameState.profile.preferences.volume = parseFloat(newVolume);
       window.gameState.profile.preferences.isMuted = false;
-      Utils.applyVolume(window.gameState.profile.preferences.volume, false);
+      window.Utils.applyVolume(window.gameState.profile.preferences.volume, false);
       // Chamada global para Renderer, que deve ser carregado no app.js
       if (window.Renderer) {
           window.Renderer.renderPreferences(document.getElementById("app-container"));
@@ -196,8 +197,8 @@ export const Utils = {
   toggleMute: function () {
       const prefs = window.gameState.profile.preferences;
       prefs.isMuted = !prefs.isMuted;
-      Utils.applyVolume(prefs.volume, prefs.isMuted);
-      Utils.saveGame();
+      window.Utils.applyVolume(prefs.volume, prefs.isMuted);
+      window.Utils.saveGame();
       // Chamada global para Renderer, que deve ser carregado no app.js
       if (window.Renderer) {
           window.Renderer.renderPreferences(document.getElementById("app-container"));
@@ -344,6 +345,7 @@ export function registerExistingPokemonOnLoad() {
         window.gameState.profile.pokemon.forEach(p => {
             // Verifica se o Pokémon tem um ID antes de tentar registrar.
             if (p.id) { 
+                // Chamamos diretamente Utils.registerPokemon (que já está no escopo do módulo)
                 Utils.registerPokemon(p.id);
             }
         });
@@ -358,6 +360,7 @@ export const PokeAPI = {
 
     /** Busca a próxima evolução possível na cadeia de evolução. */
     fetchNextEvolution: async function (pokemonId) {
+        // Usa GameConfig (que está no escopo do módulo)
         const res = await fetch(
           `${GameConfig.SPECIES_BASE}/${pokemonId}/`
         );

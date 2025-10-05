@@ -1,8 +1,5 @@
-import { GameConfig, Utils, PokeAPI } from './config_utils.js';
-import { BattleCore } from './battle_core.js';
-import { Renderer } from './renderer.js';
-// REMOVIDO: import { AuthSetup } from './auth_setup.js'; 
-// Acessaremos window.AuthSetup que é exportado pelo app.js
+// REMOVIDO: importações estáticas para evitar problemas de cache. 
+// As dependências agora são acessadas através do objeto 'window' (exposto pelo app.js).
 
 export const GameLogic = {
   /** Adiciona uma mensagem ao log de exploração e atualiza a UI se estiver no Main Menu. */
@@ -26,7 +23,7 @@ export const GameLogic = {
     );
     if (!hasLivePokemon && window.gameState.profile.pokemon.length > 0) {
       GameLogic.addExploreLog("Todos os Pokémons desmaiaram! Não é seguro explorar.");
-      Renderer.renderMainMenu(document.getElementById("app-container"));
+      window.Renderer.renderMainMenu(document.getElementById("app-container"));
       return;
     }
 
@@ -59,9 +56,9 @@ export const GameLogic = {
 
     if (!startedBattle) {
       GameLogic.addExploreLog(resultMessage);
-      Utils.saveGame();
+      window.Utils.saveGame();
       // Chamada para Renderer.renderMainMenu (Disponível via exportação)
-      Renderer.renderMainMenu(document.getElementById("app-container"));
+      window.Renderer.renderMainMenu(document.getElementById("app-container"));
     }
   },
 
@@ -69,7 +66,7 @@ export const GameLogic = {
   buyItem: function (itemName) {
     const itemToBuy = window.GameConfig.SHOP_ITEMS.find((item) => item.name === itemName);
     if (!itemToBuy) {
-      Utils.showModal("errorModal", "Item não encontrado.");
+      window.Utils.showModal("errorModal", "Item não encontrado.");
       return;
     }
 
@@ -86,14 +83,14 @@ export const GameLogic = {
         window.gameState.profile.items.push(newItem);
       }
 
-      Utils.saveGame();
-      Utils.showModal(
+      window.Utils.saveGame();
+      window.Utils.showModal(
         "infoModal",
         `Você comprou 1x ${itemName} por P$${itemToBuy.cost}.`
       );
-      Renderer.showScreen("shop");
+      window.Renderer.showScreen("shop");
     } else {
-      Utils.showModal("errorModal", "Você não tem dinheiro suficiente!");
+      window.Utils.showModal("errorModal", "Você não tem dinheiro suficiente!");
     }
   },
 
@@ -104,7 +101,7 @@ export const GameLogic = {
     );
     if (!item || item.quantity <= 0) {
       if (window.gameState.currentScreen !== "battle") {
-        Utils.showModal("errorModal", `Você não tem mais ${itemName}!`);
+        window.Utils.showModal("errorModal", `Você não tem mais ${itemName}!`);
       }
       return;
     }
@@ -112,7 +109,7 @@ export const GameLogic = {
     // --- Lógica FORA de Batalha (Cura na Mochila/Lista) ---
     if (window.gameState.currentScreen !== "battle") {
       if (!item.healAmount) {
-        Utils.showModal(
+        window.Utils.showModal(
           "errorModal",
           `O item ${itemName} não pode ser usado fora da batalha.`
         );
@@ -124,7 +121,7 @@ export const GameLogic = {
       if (!targetPokemon) return;
 
       if (targetPokemon.currentHp >= targetPokemon.maxHp) {
-        Utils.showModal(
+        window.Utils.showModal(
           "infoModal",
           `${targetPokemon.name} já está com HP máximo.`
         );
@@ -138,19 +135,19 @@ export const GameLogic = {
       targetPokemon.currentHp += actualHeal;
       item.quantity--;
 
-      Utils.showModal(
+      window.Utils.showModal(
         "infoModal",
         `Você usou ${itemName}. ${targetPokemon.name} curou ${actualHeal} HP. Restam x${item.quantity}.`
       );
-      Utils.saveGame();
-      Renderer.showScreen("pokemonList");
+      window.Utils.saveGame();
+      window.Renderer.showScreen("pokemonList");
       return;
     }
 
     // --- Lógica DENTRO de Batalha ---
     if (item.healAmount) {
       item.quantity--;
-      const playerPokemon = Utils.getActivePokemon();
+      const playerPokemon = window.Utils.getActivePokemon();
 
       if (playerPokemon.currentHp >= playerPokemon.maxHp) {
         window.BattleCore.addBattleLog(`${playerPokemon.name} já está com HP máximo!`);
@@ -187,12 +184,12 @@ export const GameLogic = {
     });
 
     if (healedCount === 0) {
-      Utils.showModal("infoModal", "Todos os seus Pokémons já estão saudáveis!");
+      window.Utils.showModal("infoModal", "Todos os seus Pokémons já estão saudáveis!");
       return;
     }
 
     if (profile.money < totalCost) {
-      Utils.showModal(
+      window.Utils.showModal(
         "errorModal",
         `Você não tem dinheiro suficiente! Custo total: P$${totalCost}.`
       );
@@ -201,12 +198,12 @@ export const GameLogic = {
 
     profile.money -= totalCost;
 
-    Utils.showModal(
+    window.Utils.showModal(
       "infoModal",
       `Obrigado por esperar! ${healedCount} Pokémons curados por P$${totalCost}.`
     );
-    Utils.saveGame();
-    Renderer.showScreen("healCenter");
+    window.Utils.saveGame();
+    window.Renderer.showScreen("healCenter");
   },
 
   /** Executa a lógica de evolução de um Pokémon. */
@@ -216,12 +213,12 @@ export const GameLogic = {
     const GameConfig = window.GameConfig;
 
     if (!nextEvolutionName || pokemon.level < 1) {
-      Utils.showModal("errorModal", `${pokemon.name} ainda não pode evoluir.`);
+      window.Utils.showModal("errorModal", `${pokemon.name} ainda não pode evoluir.`);
       return;
     }
 
     if (window.gameState.profile.money < GameConfig.EVOLUTION_COST) {
-      Utils.showModal(
+      window.Utils.showModal(
         "errorModal",
         `Você precisa de P$${GameConfig.EVOLUTION_COST} para evoluir ${pokemon.name}.`
       );
@@ -229,7 +226,7 @@ export const GameLogic = {
     }
 
     window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
-    Utils.showModal("infoModal", `Evoluindo ${pokemon.name}...`);
+    window.Utils.showModal("infoModal", `Evoluindo ${pokemon.name}...`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const newPokemonData = await window.PokeAPI.fetchPokemonData(nextEvolutionName);
@@ -240,15 +237,15 @@ export const GameLogic = {
       newPokemonData.currentHp = newPokemonData.maxHp;
 
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
-      Utils.saveGame();
-      Utils.showModal(
+      window.Utils.saveGame();
+      window.Utils.showModal(
         "infoModal",
         `Parabéns! Seu ${pokemon.name} evoluiu para ${newPokemonData.name}!`
       );
-      Renderer.showScreen("pokemonList");
+      window.Renderer.showScreen("pokemonList");
     } else {
       window.gameState.profile.money += GameConfig.EVOLUTION_COST;
-      Utils.showModal(
+      window.Utils.showModal(
         "errorModal",
         `Falha ao buscar dados de ${nextEvolutionName}. Evolução cancelada.`
       );
@@ -263,7 +260,7 @@ export const GameLogic = {
     );
 
     if (!newNameInput || !newGenderInput) {
-      Utils.showModal("errorModal", "Erro ao encontrar campos de perfil.");
+      window.Utils.showModal("errorModal", "Erro ao encontrar campos de perfil.");
       return;
     }
 
@@ -271,21 +268,21 @@ export const GameLogic = {
     const newGender = newGenderInput.value;
 
     if (newName.length < 3) {
-      Utils.showModal("errorModal", "O nome deve ter no mínimo 3 caracteres.");
+      window.Utils.showModal("errorModal", "O nome deve ter no mínimo 3 caracteres.");
       return;
     }
 
     window.gameState.profile.trainerName = newName.toUpperCase();
     window.gameState.profile.trainerGender = newGender;
-    Utils.saveGame();
-    Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
-    Renderer.showScreen("profile");
+    window.Utils.saveGame();
+    window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
+    window.Renderer.showScreen("profile");
   },
   
   /** Solta (deleta) um Pokémon do time, se houver mais de um. */
   releasePokemon: function (index) {
     if (window.gameState.profile.pokemon.length <= 1) {
-      Utils.showModal("errorModal", "Você não pode soltar o seu último Pokémon!");
+      window.Utils.showModal("errorModal", "Você não pode soltar o seu último Pokémon!");
       return;
     }
 
@@ -293,9 +290,9 @@ export const GameLogic = {
       index,
       1
     )[0];
-    Utils.saveGame();
-    Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name}.`);
-    Renderer.showScreen("managePokemon");
+    window.Utils.saveGame();
+    window.Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name}.`);
+    window.Renderer.showScreen("managePokemon");
   },
   
   /**
@@ -311,9 +308,9 @@ export const GameLogic = {
     const [activePokemon] = pokemonArray.splice(index, 1);
     pokemonArray.unshift(activePokemon); // Move para o topo (posição 0)
 
-    Utils.saveGame();
-    Utils.showModal("infoModal", `${activePokemon.name} é agora seu Pokémon ativo!`);
-    Renderer.showScreen("managePokemon");
+    window.Utils.saveGame();
+    window.Utils.showModal("infoModal", `${activePokemon.name} é agora seu Pokémon ativo!`);
+    window.Renderer.showScreen("managePokemon");
   },
   
   // --- Drag and Drop Logic ---
@@ -368,10 +365,10 @@ export const GameLogic = {
     const [removed] = pokemonArray.splice(draggedIndex, 1);
     pokemonArray.splice(droppedOnIndex, 0, removed);
 
-    Utils.saveGame();
+    window.Utils.saveGame();
     
     // Re-renderiza a lista para refletir a nova ordem em tempo real
-    Renderer.showScreen("pokemonList"); 
+    window.Renderer.showScreen("pokemonList"); 
   },
   
   /** Adiciona feedback visual de arrasto sobre. */
@@ -400,7 +397,7 @@ export const GameLogic = {
       const saveLog = localStorage.getItem("pokemonGameExploreLog");
 
       if (!saveProfile) {
-        Utils.showModal("errorModal", "Nenhum jogo salvo para exportar!");
+        window.Utils.showModal("errorModal", "Nenhum jogo salvo para exportar!");
         return;
       }
 
@@ -419,10 +416,10 @@ export const GameLogic = {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      Utils.showModal("infoModal", "Seu save foi exportado com sucesso!");
+      window.Utils.showModal("infoModal", "Seu save foi exportado com sucesso!");
     } catch (e) {
       console.error("Erro ao exportar save:", e);
-      Utils.showModal("errorModal", "Falha ao exportar o save. Tente novamente.");
+      window.Utils.showModal("errorModal", "Falha ao exportar o save. Tente novamente.");
     }
   },
 
@@ -449,7 +446,7 @@ export const GameLogic = {
           window.gameState.profile = data.profile;
           window.gameState.exploreLog = data.exploreLog || [];
 
-          Utils.showModal(
+          window.Utils.showModal(
             "infoModal",
             "Save importado com sucesso! Recarregando..."
           );
@@ -459,7 +456,7 @@ export const GameLogic = {
         }
       } catch (e) {
         console.error("Erro ao importar save:", e);
-        Utils.showModal(
+        window.Utils.showModal(
           "errorModal",
           "Falha ao importar o save. O arquivo pode estar corrompido ou ser inválido."
         );

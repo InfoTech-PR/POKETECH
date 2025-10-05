@@ -1,10 +1,10 @@
+// REMOVIDO: importações estáticas locais para evitar problemas de cache. 
+// As dependências locais (Utils, PvpCore, Renderer, etc.) agora são acessadas através do 
+// objeto 'window' (exposto pelo app.js), que garante o cache-busting.
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-import { initializeGameState, Utils } from './config_utils.js';
-import { PvpCore } from './pvp_core.js';
-import { Renderer } from './renderer.js';
 
 export const AuthSetup = {
   /** Adiciona listener de música na primeira interação, e ativa tela cheia. */
@@ -28,6 +28,7 @@ export const AuthSetup = {
           
           backgroundMusic = new Audio(tracks[currentTrack]);
           backgroundMusic.volume = volume; // Aplica o volume lido
+          backgroundMusic.loop = true; // Garante o loop do novo Audio
           backgroundMusic.addEventListener("ended", () => {
               // Só muda de faixa se a música atual não for a de batalha (que deve ser em loop)
               if (window.backgroundMusic === backgroundMusic) {
@@ -86,13 +87,13 @@ export const AuthSetup = {
     let gameLoaded = false;
     
     // Antes de chamar setupInitialInteractions, garantimos que o gameState foi inicializado ou carregado
-    if (Utils.loadGame()) {
+    if (window.Utils.loadGame()) {
       gameLoaded = true;
       // LÓGICA DE RETROCOMPATIBILIDADE ATUALIZADA:
       // Chama a função centralizada que garante que Utils.registerPokemon esteja disponível.
       window.registerExistingPokemonOnLoad();
     } else {
-      initializeGameState(); 
+      window.initializeGameState(); 
     }
     
     // Agora que o gameState está pronto, podemos configurar a música.
@@ -126,13 +127,13 @@ export const AuthSetup = {
               const urlParams = new URLSearchParams(window.location.search);
               const roomId = urlParams.get("pvp");
               if (roomId) {
-                  PvpCore.joinPvpBattle(roomId);
+                  window.PvpCore.joinPvpBattle(roomId);
               } else if (window.gameState.currentScreen !== "battle") {
-                    Renderer.showScreen("mainMenu");
+                    window.Renderer.showScreen("mainMenu");
               }
           } else {
               // Já inicializado acima, só exibe a tela
-              Renderer.showScreen("initialMenu");
+              window.Renderer.showScreen("initialMenu");
           }
           unsubscribe();
         });
@@ -147,10 +148,10 @@ export const AuthSetup = {
 
         window.userId = "anonymous-" + crypto.randomUUID();
         if (!gameLoaded) {
-            initializeGameState();
-            Renderer.showScreen("initialMenu");
+            window.initializeGameState();
+            window.Renderer.showScreen("initialMenu");
         }
-        Utils.showModal(
+        window.Utils.showModal(
           "errorModal",
           "Erro na autenticação do Firebase. O PvP não funcionará. Jogue o modo Exploração."
         );
@@ -164,9 +165,9 @@ export const AuthSetup = {
       window.userId = "anonymous-" + crypto.randomUUID();
       // O jogo já está carregado ou inicializado, apenas renderiza.
       if (!gameLoaded) {
-          initializeGameState();
+          window.initializeGameState();
       }
-      Renderer.showScreen("initialMenu");
+      window.Renderer.showScreen("initialMenu");
     }
   }
 };

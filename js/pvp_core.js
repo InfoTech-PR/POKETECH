@@ -3,10 +3,8 @@
  * MÓDULO 4: CORE PVP
  * Gerencia a lógica PvP em tempo real com Firebase Firestore.
  */
-import { Utils } from './config_utils.js';
-import { GameLogic } from './game_logic.js';
-import { BattleCore } from './battle_core.js';
-import { Renderer } from './renderer.js';
+// REMOVIDO: importações estáticas para evitar problemas de cache. 
+// As dependências agora são acessadas através do objeto 'window' (exposto pelo app.js).
 
 // Firebase Imports (Necessário para Firestore e OnSnapshot)
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -42,7 +40,7 @@ export const PvpCore = {
 
     const roomId = Math.random().toString(36).substring(2, 8).toUpperCase();
     const roomRef = PvpCore.getPvpRoomRef(roomId);
-    const playerPokemon = Utils.getActivePokemon();
+    const playerPokemon = window.Utils.getActivePokemon(); // Usa window.Utils
 
     try {
       const roomData = {
@@ -71,7 +69,7 @@ export const PvpCore = {
                 <button onclick="PvpCore.copyPvpLink()" class="gba-button bg-green-500 hover:bg-green-600 w-full mt-2">Copiar Link</button>
                 Aguardando oponente...`);
 
-      Renderer.renderPvpWaiting(roomId);
+      window.Renderer.renderPvpWaiting(roomId); // Usa window.Renderer
       PvpCore.listenForPvpChanges(roomId, true);
     } catch (error) {
       console.error("Erro ao criar sala PvP:", error);
@@ -85,7 +83,7 @@ export const PvpCore = {
       if (copyText) {
           copyText.select();
           document.execCommand('copy');
-          Utils.showModal("infoModal", "Link copiado para a área de transferência!");
+          window.Utils.showModal("infoModal", "Link copiado para a área de transferência!"); // Usa window.Utils
       }
   },
 
@@ -116,7 +114,7 @@ export const PvpCore = {
     if (roomData.player1.userId === window.userId) {
       window.gameState.pvpRoomId = roomId;
       PvpCore.updatePvpMessage("Você é o criador da sala. Restaurando sessão...");
-      Renderer.renderPvpWaiting(roomId);
+      window.Renderer.renderPvpWaiting(roomId); // Usa window.Renderer
       PvpCore.listenForPvpChanges(roomId, true);
       return;
     }
@@ -126,7 +124,7 @@ export const PvpCore = {
       return;
     }
 
-    const playerPokemon = Utils.getActivePokemon();
+    const playerPokemon = window.Utils.getActivePokemon(); // Usa window.Utils
     const player2Data = {
       userId: window.userId,
       trainerName: window.gameState.profile.trainerName,
@@ -161,9 +159,9 @@ export const PvpCore = {
 
     window.unsubscribePvp = onSnapshot(roomRef, (docSnap) => {
       if (!docSnap.exists()) {
-        Utils.showModal("pvpModal", "A sala de batalha foi encerrada!");
+        window.Utils.showModal("pvpModal", "A sala de batalha foi encerrada!"); // Usa window.Utils
         if (window.unsubscribePvp) window.unsubscribePvp();
-        Renderer.showScreen("mainMenu");
+        window.Renderer.showScreen("mainMenu"); // Usa window.Renderer
         return;
       }
 
@@ -188,7 +186,7 @@ export const PvpCore = {
           pvpRoomId: roomId,
           roomData: roomData,
         };
-        Renderer.showScreen("battle");
+        window.Renderer.showScreen("battle"); // Usa window.Renderer
       } else if (window.gameState.currentScreen === "battle") {
         // Atualiza o estado da batalha
         window.gameState.battle.log = roomData.log;
@@ -216,7 +214,7 @@ export const PvpCore = {
           PvpCore.processPvpTurn(roomId, roomData, isPlayer1);
         }
 
-        BattleCore.updateBattleScreen();
+        window.BattleCore.updateBattleScreen(); // Usa window.BattleCore
       } else if (window.gameState.currentScreen === "pvpWaiting") {
         PvpCore.updatePvpMessage(roomData.log.slice(-1)[0] || "Aguardando...");
       }
@@ -229,7 +227,7 @@ export const PvpCore = {
 
     const battle = window.gameState.battle;
     if (!battle || battle.type !== "pvp" || !battle.pvpRoomId) {
-      Utils.showModal("errorModal", "Erro no estado da batalha PvP.");
+      window.Utils.showModal("errorModal", "Erro no estado da batalha PvP."); // Usa window.Utils
       return;
     }
 
@@ -239,9 +237,9 @@ export const PvpCore = {
     // Se for uma cura, aplica localmente e envia o estado atualizado
     if (action === "item" && moveName === "Poção") {
         const item = window.gameState.profile.items.find(i => i.name === "Poção");
-        GameLogic.useItem("Poção");
+        window.GameLogic.useItem("Poção"); // Usa window.GameLogic
         
-        const updatedPokemon = Utils.getActivePokemon();
+        const updatedPokemon = window.Utils.getActivePokemon(); // Usa window.Utils
         
         const updateData = {};
         updateData[`${myRole}.pokemon`] = updatedPokemon;
@@ -252,18 +250,18 @@ export const PvpCore = {
         
         try {
             await updateDoc(roomRef, updateData);
-            BattleCore.addBattleLog(`Poção usada. Aguardando ação do oponente...`);
-            BattleCore.setBattleMenu("disabled");
+            window.BattleCore.addBattleLog(`Poção usada. Aguardando ação do oponente...`); // Usa window.BattleCore
+            window.BattleCore.setBattleMenu("disabled"); // Usa window.BattleCore
         } catch(e) {
             console.error("Erro ao enviar cura PvP:", e);
-            BattleCore.addBattleLog("Erro ao enviar sua cura. Tente novamente.");
+            window.BattleCore.addBattleLog("Erro ao enviar sua cura. Tente novamente."); // Usa window.BattleCore
         }
         return;
     }
     
     // Troca de Pokémon
     if (action === "switch") {
-      const updatedPokemon = Utils.getActivePokemon(); 
+      const updatedPokemon = window.Utils.getActivePokemon(); // Usa window.Utils
       
       const updateData = {};
       updateData[`${myRole}.action`] = { action: action, move: moveName };
@@ -276,11 +274,11 @@ export const PvpCore = {
 
       try {
           await updateDoc(roomRef, updateData);
-          BattleCore.addBattleLog(`Troca concluída. Aguardando ação do oponente...`);
-          BattleCore.setBattleMenu("disabled");
+          window.BattleCore.addBattleLog(`Troca concluída. Aguardando ação do oponente...`); // Usa window.BattleCore
+          window.BattleCore.setBattleMenu("disabled"); // Usa window.BattleCore
       } catch (e) {
           console.error("Erro ao enviar troca PvP:", e);
-          BattleCore.addBattleLog("Erro ao enviar sua troca. Tente novamente.");
+          window.BattleCore.addBattleLog("Erro ao enviar sua troca. Tente novamente."); // Usa window.BattleCore
       }
       return;
     }
@@ -296,11 +294,11 @@ export const PvpCore = {
 
     try {
       await updateDoc(roomRef, updateData);
-      BattleCore.addBattleLog(`Aguardando ação do oponente...`);
-      BattleCore.setBattleMenu("disabled");
+      window.BattleCore.addBattleLog(`Aguardando ação do oponente...`); // Usa window.BattleCore
+      window.BattleCore.setBattleMenu("disabled"); // Usa window.BattleCore
     } catch (e) {
       console.error("Erro ao enviar ação PvP:", e);
-      BattleCore.addBattleLog("Erro ao enviar sua ação. Tente novamente.");
+      window.BattleCore.addBattleLog("Erro ao enviar sua ação. Tente novamente."); // Usa window.BattleCore
     }
   },
 
@@ -339,7 +337,7 @@ export const PvpCore = {
     // Processa ações de Ataque (moves)
     for (const { role, action, pokemon, target, targetRole } of actions) {
       if (action.action === "move") {
-        const damageResult = BattleCore.calculateDamage(pokemon, action.move, target);
+        const damageResult = window.BattleCore.calculateDamage(pokemon, action.move, target); // Usa window.BattleCore
         target.currentHp = Math.max(
           0,
           target.currentHp - damageResult.damage
@@ -347,7 +345,7 @@ export const PvpCore = {
 
         let logMessage = `${roomData[role].trainerName}'s ${
           pokemon.name
-        } usou ${Utils.formatName(action.move)}! Causou ${
+        } usou ${window.Utils.formatName(action.move)}! Causou ${ // Usa window.Utils
           damageResult.damage
         } de dano.`;
         if (damageResult.isCritical) {
@@ -379,10 +377,10 @@ export const PvpCore = {
       });
 
       const winnerName = log.slice(-1)[0].split(' ')[0];
-      Utils.showModal("pvpModal", `${winnerName} venceu o PvP!`);
+      window.Utils.showModal("pvpModal", `${winnerName} venceu o PvP!`); // Usa window.Utils
       if (window.unsubscribePvp) window.unsubscribePvp();
       window.gameState.battle = null;
-      setTimeout(() => Renderer.showScreen("mainMenu"), 500);
+      setTimeout(() => window.Renderer.showScreen("mainMenu"), 500); // Usa window.Renderer
       return;
     }
 
@@ -396,6 +394,6 @@ export const PvpCore = {
     };
 
     await updateDoc(roomRef, newRoomData);
-    BattleCore.setBattleMenu("main");
+    window.BattleCore.setBattleMenu("main"); // Usa window.BattleCore
   }
 };

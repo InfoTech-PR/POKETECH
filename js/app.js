@@ -102,11 +102,8 @@ export async function init(cacheBuster) {
 
 
     try {
-        // === PONTO DE INJEÇÃO DE ERRO ===
-        // ALTERAÇÃO: Refatorado para usar desestruturação direta, que é mais robusta
+        // 1. Carrega Módulos com Cache-Busting
         const configModule = await import(`./config_utils.js${v}`); 
-        // ================================
-        
         ({ GameConfig, initializeGameState, Utils, PokeAPI, registerExistingPokemonOnLoad } = configModule);
 
         const logicModule = await import(`./game_logic.js${v}`);
@@ -125,7 +122,7 @@ export async function init(cacheBuster) {
         AuthSetup = authModule.AuthSetup;
 
         // 2. Exportações Globais (Para o escopo do HTML e comunicação inter-módulos)
-        // Módulos Completos
+        // ESSENCIAL: Permite que todos os módulos acessem suas dependências via 'window.'
         window.GameConfig = GameConfig;
         window.PokeAPI = PokeAPI;
         window.GameLogic = GameLogic;
@@ -133,8 +130,8 @@ export async function init(cacheBuster) {
         window.PvpCore = PvpCore;
         window.Renderer = Renderer;
         window.Utils = Utils;
-        window.initializeGameState = initializeGameState; // Exporta a função para uso global
-        window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad; // NOVO: Exporta a nova função
+        window.initializeGameState = initializeGameState; 
+        window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad; 
 
         // Exportações diretas para compatibilidade com o HTML (facilitando 'onclick')
         window.showScreen = Renderer.showScreen;
@@ -161,6 +158,8 @@ export async function init(cacheBuster) {
         window.dragStart = GameLogic.dragStart;
         window.allowDrop = GameLogic.allowDrop;
         window.drop = GameLogic.drop;
+        window.dragEnter = GameLogic.dragEnter;
+        window.dragLeave = GameLogic.dragLeave;
         window.releasePokemon = GameLogic.releasePokemon;
         window.setPokemonAsActive = GameLogic.setPokemonAsActive; 
 

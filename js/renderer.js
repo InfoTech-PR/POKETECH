@@ -4,8 +4,8 @@
  * Gerencia toda a Geração de UI e Navegação de Tela.
  */
 
-// Importações (assumindo que GameLogic, BattleCore, etc. estão no escopo global ou em outros módulos)
-import { Utils } from './config_utils.js';
+// REMOVIDO: importação estática para evitar problemas de cache. 
+// A dependência 'Utils' agora é acessada através do objeto 'window' (exposto pelo app.js).
 
 /**
  * Módulo para gerenciar toda a Geração de UI e Navegação de Tela.
@@ -184,7 +184,7 @@ export const Renderer = {
                                       name
                                     )}.png" alt="${name}" 
                                         class="mx-auto w-20 h-20 sm:w-24 sm:h-24 transition-transform duration-200 hover:scale-125">
-                                    <div class="text-xs gba-font text-gray-800 mt-2 text-center">${Utils.formatName(
+                                    <div class="text-xs gba-font text-gray-800 mt-2 text-center">${window.Utils.formatName(
                                       name
                                     )}</div>
                                 </div>
@@ -222,7 +222,7 @@ export const Renderer = {
     const trainerName = input.value.trim();
 
     if (!trainerName || trainerName.length < 3) {
-      Utils.showModal(
+      window.Utils.showModal(
         "errorModal",
         "Por favor, digite um nome de treinador válido (mínimo 3 caracteres)."
       );
@@ -235,18 +235,18 @@ export const Renderer = {
         const starterData = await window.PokeAPI.fetchPokemonData(name);
         if (starterData) {
           window.gameState.profile.pokemon.push(starterData);
-          Utils.saveGame();
+          window.Utils.saveGame();
           Renderer.showScreen("mainMenu");
         } else {
           // Garante que se a função retornar null por erro, ele avisa
-          Utils.showModal(
+          window.Utils.showModal(
             "errorModal",
-            `Falha ao carregar dados de ${Utils.formatName(name)} da PokéAPI. Tente novamente.`
+            `Falha ao carregar dados de ${window.Utils.formatName(name)} da PokéAPI. Tente novamente.`
           );
         }
     } catch (error) {
         // Captura qualquer erro de execução, incluindo o que causou o problema original
-        Utils.showModal(
+        window.Utils.showModal(
             "errorModal",
             `Erro ao iniciar jogo: ${error.message.substring(0, 100)}`
         );
@@ -605,7 +605,7 @@ export const Renderer = {
   showPokemonStats: async function (pokemonName, index) {
     const pokemon = window.gameState.profile.pokemon[index];
     if (!pokemon) {
-      Utils.showModal("errorModal", "Pokémon não encontrado!");
+      window.Utils.showModal("errorModal", "Pokémon não encontrado!");
       return;
     }
 
@@ -613,7 +613,7 @@ export const Renderer = {
     const isHealItemAvailable = healItem && healItem.quantity > 0;
     
     const movesHtml = pokemon.moves
-      .map((move) => `<li class="text-sm">${Utils.formatName(move)}</li>`)
+      .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
       .join("");
     const typesHtml = pokemon.types
       .map(
@@ -626,7 +626,7 @@ export const Renderer = {
       .map(
         ([stat, value]) => `
             <div class="flex justify-between items-center mb-1">
-                <span class="text-xs gba-font">${Utils.formatName(stat)}:</span>
+                <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
                 <span class="text-xs gba-font">${value}</span>
             </div>
         `
@@ -658,13 +658,13 @@ export const Renderer = {
             
             ${isHealItemAvailable && healItem
             ? `
-                <button onclick="Utils.hideModal('pokemonStatsModal'); window.GameLogic.useItem('${healItem.name}', ${index})" class="gba-button bg-green-500 hover:bg-green-600 mt-4 w-full mb-2 flex-shrink-0">
+                <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.GameLogic.useItem('${healItem.name}', ${index})" class="gba-button bg-green-500 hover:bg-green-600 mt-4 w-full mb-2 flex-shrink-0">
                     Usar ${healItem.name} (x${healItem.quantity})
                 </button>
                 `
             : ''}
             
-            <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+            <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
 
     const modal = document.getElementById("pokemonStatsModal");
@@ -692,7 +692,7 @@ export const Renderer = {
                 <p class="mt-2">Continue explorando para encontrá-lo!</p>
                 <p class="mt-2 text-sm">#${pokemonId.toString().padStart(3, '0')}</p>
             </div>
-            <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+            <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
         
         const modal = document.getElementById("pokemonStatsModal");
@@ -711,12 +711,12 @@ export const Renderer = {
     const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId, true);
     
     if (!pokemonData) {
-        Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
+        window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
         return;
     }
 
     const movesHtml = pokemonData.moves
-      .map((move) => `<li class="text-sm">${Utils.formatName(move)}</li>`)
+      .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
       .join("");
     const typesHtml = pokemonData.types
       .map(
@@ -729,7 +729,7 @@ export const Renderer = {
       .map(
         ([stat, value]) => `
             <div class="flex justify-between items-center mb-1">
-                <span class="text-xs gba-font">${Utils.formatName(stat)}:</span>
+                <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
                 <span class="text-xs gba-font">${value}</span>
             </div>
         `
@@ -756,7 +756,7 @@ export const Renderer = {
                     ${movesHtml}
                 </ul>
             </div>
-            <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+            <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
 
     const modal = document.getElementById("pokemonStatsModal");
@@ -802,7 +802,7 @@ export const Renderer = {
                 
                 <!-- Nome/ID e Nível/HP (Placeholder para escala de grade) -->
                 <div class="text-center w-full truncate">
-                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${isCaught ? Utils.formatName(window.gameState.profile.pokemon.find(p => p.id === id)?.name || `POKE #${displayId}`) : '???' }</span>
+                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${isCaught ? window.Utils.formatName(window.gameState.profile.pokemon.find(p => p.id === id)?.name || `POKE #${displayId}`) : '???' }</span>
                     <div class="text-[6px] gba-font text-gray-600 mt-1 truncate">
                        ${isCaught ? `(Nv. ${window.gameState.profile.pokemon.find(p => p.id === id)?.level || '?'})` : '(DESCONHECIDO)'}
                     </div>
@@ -1062,7 +1062,7 @@ export const Renderer = {
         gbaScreen.innerHTML = `<div id="battle-area" class="flex flex-col h-full"></div>`;
     }
     // O BattleCore.updateBattleScreen preenche o #battle-area
-    BattleCore.updateBattleScreen();
+    window.BattleCore.updateBattleScreen();
   },
   
   /** Renderiza a tela para troca de Pokémon durante a batalha. */

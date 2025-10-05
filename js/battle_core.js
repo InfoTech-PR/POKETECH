@@ -34,6 +34,7 @@ export const BattleCore = {
     );
     
     // REVISÃO: Recalcula Max HP para o Pokémon Selvagem com base no seu nível aleatório
+    // Linha 37 (onde o erro foi reportado):
     wildPokemonData.maxHp = Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
     wildPokemonData.currentHp = wildPokemonData.maxHp;
 

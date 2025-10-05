@@ -167,6 +167,8 @@ export async function init(cacheBuster) {
         // --- NOVAS EXPORTAÇÕES DE PREFERÊNCIAS ---
         window.updateVolume = Utils.updateVolume;
         window.toggleMute = Utils.toggleMute;
+        // --- NOVO: Função de Reset ---
+        window.resetGameData = Utils.resetGameData;
         // -----------------------------------------
 
         // 3. Início da Aplicação (usando o AuthSetup carregado dinamicamente)

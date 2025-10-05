@@ -120,6 +120,21 @@ export const Utils = {
     return false;
   },
   
+  /** Zera todos os dados locais do jogo e recarrega a página. */
+  resetGameData: function () {
+    try {
+      localStorage.removeItem("pokemonGameProfile");
+      localStorage.removeItem("pokemonGameExploreLog");
+      console.log("Dados do jogo resetados.");
+      
+      Utils.showModal("infoModal", "Dados apagados com sucesso! Recarregando...");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      console.error("Erro ao resetar dados:", e);
+      Utils.showModal("errorModal", "Falha ao resetar os dados.");
+    }
+  },
+
   /** Adiciona um Pokémon à Pokédex pelo seu ID. */
   registerPokemon: function (pokemonId) {
       // Garante que pokemonId é um número inteiro, pois o Set armazena números

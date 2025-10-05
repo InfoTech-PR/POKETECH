@@ -238,12 +238,28 @@
         window.gameState = {}; 
         window.unsubscribePvp = null; 
 
-        // --- Importação do Módulo de Entrada (app.js) ---
-        // Assumindo que todos os módulos estão no mesmo nível
-        import { AuthSetup } from './js/app.js';
-        
-        // A função de inicialização é chamada no onload, garantindo que o DOM está pronto.
-        window.onload = AuthSetup.initAuth;
+        // --- NOVO: Importação Dinâmica com Cache-Busting ---
+        // Um timestamp dinâmico é adicionado ao caminho do arquivo para forçar o navegador
+        // a baixar a versão mais recente em vez de usar o cache.
+        const cacheBuster = Date.now();
+        const appModulePath = `./js/app.js?v=${cacheBuster}`;
+
+        window.onload = async () => {
+            try {
+                // Importação dinâmica: isso garante que o app.js e todos os seus módulos dependentes 
+                // (config_utils.js, battle_core.js, etc.) sejam recarregados.
+                const { AuthSetup } = await import(appModulePath);
+                
+                // Inicia a autenticação/jogo
+                AuthSetup.initAuth();
+            } catch (error) {
+                console.error("Falha ao carregar o módulo principal (app.js):", error);
+                const gbaScreen = document.querySelector(".gba-screen");
+                if (gbaScreen) {
+                    gbaScreen.innerHTML = '<div class="text-xl font-bold text-red-600 gba-font">ERRO DE CARREGAMENTO</div><div class="mt-4 text-sm text-gray-600 gba-font">Verifique o console para detalhes.</div>';
+                }
+            }
+        };
 
     </script>
   </body>

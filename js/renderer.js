@@ -5,7 +5,7 @@
  */
 
 // Importações (assumindo que GameLogic, BattleCore, etc. estão no escopo global ou em outros módulos)
-import { Utils, GameConfig } from './config_utils.js'; // Importa GameConfig
+import { Utils } from './config_utils.js';
 
 /**
  * Módulo para gerenciar toda a Geração de UI e Navegação de Tela.
@@ -133,40 +133,6 @@ export const Renderer = {
             
             <!-- Conteúdo da lista de iniciais que pode rolar se for muito grande -->
             <div class="mb-6 overflow-y-auto flex-grow">
-                <p class="text-xs font-bold gba-font mb-3 text-center">Escolha seu Personagem:</p>
-                <div class="flex justify-center gap-6 sm:gap-10">
-                    <!-- Personagem Masculino -->
-                    <div onclick="Renderer.selectGender('MALE')" 
-                        class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                        ${
-                          window.gameState.profile.trainerGender === "MALE"
-                            ? "border-blue-600 bg-blue-200 shadow-lg"
-                            : "border-gray-300 bg-white hover:bg-gray-200"
-                        }">
-                        <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
-                            alt="Treinador Masculino" 
-                            class="h-24 object-contain" 
-                            onerror="this.src='https://placehold.co/150x150/38bdf8/fff?text=M'">
-                        <div class="text-xs gba-font mt-1">Homem</div>
-                    </div>
-                    
-                    <!-- Personagem Feminino -->
-                    <div onclick="Renderer.selectGender('FEMALE')" 
-                        class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                        ${
-                          window.gameState.profile.trainerGender ===
-                          "FEMALE"
-                            ? "border-pink-600 bg-pink-200 shadow-lg"
-                            : "border-gray-300 bg-white hover:bg-gray-200"
-                        }">
-                        <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
-                            alt="Treinadora Feminina" 
-                            class="h-24 object-contain" 
-                            onerror="this.src='https://placehold.co/150x150/f87171/fff?text=F'">
-                        <div class="text-xs gba-font mt-1">Mulher</div>
-                    </div>
-                </div>
-                
                 <p class="text-xs font-bold gba-font mb-3 mt-6 text-center">Escolha seu Inicial:</p>
                 <div class="flex flex-col sm:flex-row justify-around gap-4"> 
                     ${window.GameConfig.STARTERS.map(
@@ -387,7 +353,7 @@ export const Renderer = {
           
           <button onclick="Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
       `;
-      Renderer.renderGbaCard(content);
+    Renderer.renderGbaCard(content);
   },
 
   /** Renderiza a lista de Pokémons do jogador. */
@@ -397,20 +363,22 @@ export const Renderer = {
     const pokemonHtml = pokemonArray
       .map(
         (p, index) => `
+        <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
         <div id="pokemon-list-item-${index}" 
              data-pokemon-index="${index}"
-             draggable="true"
-             ondragstart="window.GameLogic.dragStart(event)"
              ondragover="window.GameLogic.allowDrop(event)"
              ondrop="window.GameLogic.drop(event)"
              ondragenter="window.GameLogic.dragEnter(event)"
              ondragleave="window.GameLogic.dragLeave(event)"
-             class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 cursor-pointer hover:bg-gray-200 ${
+             class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
               p.currentHp <= 0 ? "opacity-50" : ""
             }">
             
-            <!-- Área de Drag Handle -->
-            <div data-pokemon-index="${index}"
+            <!-- ÁREA 1: DRAG HANDLE (PONTINHOS) - ÚNICO ELEMENTO ARRASTÁVEL -->
+            <div data-drag-handle="true"
+                 data-pokemon-index="${index}"
+                 draggable="true"
+                 ondragstart="window.GameLogic.dragStart(event)"
                  class="p-2 cursor-grab text-gray-500 hover:text-gray-800 active:text-blue-600 flex-shrink-0"
                  title="Arrastar para reordenar">
                 <!-- Ícone de handle (Três barras verticais) -->
@@ -419,18 +387,19 @@ export const Renderer = {
                 </svg>
             </div>
 
-            <!-- Informações do Pokémon (Clicável) -->
-            <div class="flex items-center flex-grow" onclick="Renderer.showPokemonStats('${p.name}', ${index})">
+            <!-- ÁREA 2: INFORMAÇÕES DO POKÉMON (CLICÁVEL) - OCUPA O ESPAÇO RESTANTE -->
+            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="Renderer.showPokemonStats('${p.name}', ${index})">
                 <img src="${p.sprite}" alt="${
           p.name
-        }" class="w-20 h-20 mr-2">
-                <div>
-                    <div class="font-bold gba-font">${p.name} (Nv. ${
-          p.level
-        })</div>
-                    <div class="text-xs gba-font">HP: ${p.currentHp}/${
-          p.maxHp
-        } | EXP: ${p.exp}</div>
+        }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
+                <!-- Ajuste de Layout: flex-col para empilhar HP e EXP, e text-xs para caber em telas pequenas -->
+                <div class="flex flex-col min-w-0">
+                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${p.name} </div>
+                    <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
+                      <span>(Nv. ${p.level})</span>
+                      <span>HP: ${p.currentHp}/${p.maxHp}</span>
+                      <span>EXP: ${p.exp}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -452,7 +421,7 @@ export const Renderer = {
     `;
     Renderer.renderGbaCard(content);
   },
-
+  
   /** Renderiza a tela de gerenciamento (soltar e evoluir Pokémons). */
   renderManagePokemon: function (app) {
     const pokemonArray = window.gameState.profile.pokemon;
@@ -470,7 +439,7 @@ export const Renderer = {
         'electabuzz', 'magmar', 'pinsir', 'tauros', 'gyarados', 
         'lapras', 'ditto', 'eevee', 'vaporeon', 'jolteon', 'flareon', 
         'porygon', 'omastar', 'kabutops', 'snorlax', 'dragonite', 'mewtwo', 'mew',
-        'porygon-z','arcanine', 
+        'porygon-z', 
     ].map(name => name.toLowerCase());
 
 
@@ -518,9 +487,9 @@ export const Renderer = {
         }" class="w-10 h-10 mr-2 flex-shrink-0">
                         <!-- Ajuste de texto para garantir que o nome seja exibido e não cortado -->
                         <div class="flex-grow min-w-0">
-                            <div class="font-bold gba-font break-words">${
+                            <div class="font-bold gba-font break-words text-xs">${
                               p.name
-                            } (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-xs text-green-600">(Ativo)</span>' : ''}</div>
+                            } (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-[8px] text-green-600">(Ativo)</span>' : ''}</div>
                             <div class="text-[8px] gba-font">HP: ${
                               p.currentHp
                             }/${p.maxHp} | EXP: ${p.exp}/${requiredExp}</div>
@@ -531,13 +500,13 @@ export const Renderer = {
                     <div class="flex space-x-2 w-full sm:w-1/2 justify-end">
                         <!-- NOVO BOTÃO 'USAR' / 'ATIVO' -->
                         <button onclick="${isCurrentlyActive ? '' : `window.GameLogic.setPokemonAsActive(${index})`}"
-                            class="gba-button w-1/4 h-8 ${isCurrentlyActive ? 'bg-green-600 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}"
+                            class="gba-button text-xs w-1/4 h-12 ${isCurrentlyActive ? 'bg-green-600 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}"
                             ${isCurrentlyActive ? "disabled" : ""}>
                             ${isCurrentlyActive ? 'ATIVO' : 'USAR'}
                         </button>
                         
                         <button onclick="${canEvolve ? `window.GameLogic.evolvePokemon(${index})` : ""}"
-                            class="gba-button h-8 ${evolveButtonClass}"
+                            class="gba-button text-xs h-12 ${evolveButtonClass}"
                             ${isDisabledEvolve ? "disabled" : ""}>
                             ${evolveButtonText}
                         </button>
@@ -545,7 +514,7 @@ export const Renderer = {
                         <button onclick="${
                           canRelease ? `window.GameLogic.releasePokemon(${index})` : ""
                         }"
-                            class="gba-button w-1/4 h-8 ${
+                            class="gba-button text-xs w-1/4 h-12 ${
                               canRelease
                                 ? "bg-red-500 hover:bg-red-600"
                                 : "bg-gray-400 cursor-not-allowed"
@@ -568,7 +537,7 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Exibe o modal de estatísticas detalhadas do Pokémon (para o TIME). */
+  /** Exibe o modal de estatísticas detalhadas do Pokémon. */
   showPokemonStats: async function (pokemonName, index) {
     const pokemon = window.gameState.profile.pokemon[index];
     if (!pokemon) {
@@ -646,112 +615,154 @@ export const Renderer = {
     }
   },
 
-  /** NOVO: Exibe o modal de estatísticas detalhadas do Pokémon (para POKÉDEX). */
-  showPokedexStats: async function (pokemonId) {
-      const pokemon = await window.PokeAPI.fetchPokemonData(pokemonId, true); // O 'true' indica que é apenas para visualização
-      if (!pokemon) {
-          Utils.showModal("errorModal", "Dados da Pokédex indisponíveis!");
-          return;
-      }
-      
-      const movesHtml = pokemon.moves
-          .map((move) => `<li class="text-sm">${Utils.formatName(move)}</li>`)
-          .join("");
-      const typesHtml = pokemon.types
-          .map(
-              (type) =>
-                  `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`
-          )
-          .join("");
-
-      const statsHtml = Object.entries(pokemon.stats)
-          .map(
-              ([stat, value]) => `
-              <div class="flex justify-between items-center mb-1">
-                  <span class="text-xs gba-font">${Utils.formatName(stat)}:</span>
-                  <span class="text-xs gba-font">${value}</span>
-              </div>
-          `
-          )
-          .join("");
-
-      // O Pokémon da Pokédex não tem nível, HP, ou EXP real (exceto o HP base, que é maxHp)
-      const modalContent = `
-              <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
-                  ${pokemon.name} (#${pokemon.id})
-              </div>
-              <img src="${pokemon.sprite}" alt="${pokemon.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
-              
-              <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
-              
-              <div class="text-left gba-font text-xs flex-shrink-0">
-                  <p><strong>HP Base:</strong> ${pokemon.maxHp}</p>
-                  <p><strong>Tipo(s):</strong> ${pokemon.types.map(t => Utils.formatName(t)).join(', ')}</p>
-              </div>
-              
-              <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
-                  <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
-                  ${statsHtml}
-                  <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques Conhecidos:</h3>
-                  <ul class="list-disc list-inside gba-font text-xs">
-                      ${movesHtml || '<li class="text-sm">Nenhum ataque registrado.</li>'}
-                  </ul>
-              </div>
-              
-              <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
-          `;
-
-      const modal = document.getElementById("pokemonStatsModal");
-      if (modal) {
-          const modalBody = modal.querySelector(".modal-body");
-          if (modalBody) {
-              modalBody.classList.add("flex", "flex-col", "h-full");
-              modalBody.innerHTML = modalContent;
-              modal.classList.remove("hidden");
-          }
-      }
-  },
-
-  /** Renderiza a tela de Pokedex. (NOVA LÓGICA) */
-  renderPokedex: function (app) {
-    const registeredIds = window.gameState.profile.pokedex;
-    const totalCaught = registeredIds.size;
-    const totalAvailable = GameConfig.POKEDEX_LIMIT;
-    const pokedexItems = [];
-
-    // Loop de 1 a 151 para incluir todos os Pokémon da Geração 1
-    for (let id = 1; id <= totalAvailable; id++) {
-        const isCaught = registeredIds.has(id);
-        const namePlaceholder = `??? (#${String(id).padStart(3, '0')})`;
-        const nameDisplay = isCaught ? `${Utils.formatName(String(id))} (#${id})` : namePlaceholder;
-        const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-        
-        // Estilo de sombra (silhueta)
-        const shadowStyle = "filter: grayscale(100%) brightness(0);";
-        
-        const itemHtml = `
-            <div onclick="${isCaught ? `Renderer.showPokedexStats(${id})` : ''}"
-                 class="flex flex-col items-center justify-start p-2 border border-gray-200 rounded-lg bg-white transition-shadow duration-150 hover:shadow-lg flex-shrink-0 ${isCaught ? 'cursor-pointer hover:bg-gray-100' : 'cursor-default'}">
-                <img src="${spriteUrl}" 
-                     alt="${isCaught ? Utils.formatName(String(id)) : namePlaceholder}" 
-                     class="w-20 h-20 ${isCaught ? '' : 'opacity-70'}"
-                     style="${isCaught ? '' : shadowStyle}">
-                <div class="gba-font text-[10px] text-center mt-1 w-full truncate ${isCaught ? 'text-gray-800 font-bold' : 'text-gray-500'}">
-                    ${nameDisplay}
-                </div>
+  /** Exibe o modal de estatísticas detalhadas do Pokémon (apenas visualização). */
+  showPokedexStats: async function (pokemonId, isSilhouette = false) {
+    if (isSilhouette) {
+        const modalContent = `
+            <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
+                ???
             </div>
+            <img src="https://placehold.co/128x128/000000/fff?text=?" alt="Desconhecido" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
+            <div class="text-left gba-font text-xs flex-shrink-0 p-4">
+                <p>Este Pokémon ainda não foi capturado.</p>
+                <p class="mt-2">Continue explorando para encontrá-lo!</p>
+                <p class="mt-2 text-sm">#${pokemonId.toString().padStart(3, '0')}</p>
+            </div>
+            <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
-        pokedexItems.push(itemHtml);
+        
+        const modal = document.getElementById("pokemonStatsModal");
+        if (modal) {
+            const modalBody = modal.querySelector(".modal-body");
+            if (modalBody) {
+                modalBody.classList.add("flex", "flex-col", "h-full");
+                modalBody.innerHTML = modalContent;
+                modal.classList.remove("hidden");
+            }
+        }
+        return;
+    }
+    
+    // Busca os dados do Pokémon APENAS para visualização (isPokedexView=true)
+    const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId, true);
+    
+    if (!pokemonData) {
+        Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
+        return;
     }
 
-    const pokedexHtml = pokedexItems.join("");
+    const movesHtml = pokemonData.moves
+      .map((move) => `<li class="text-sm">${Utils.formatName(move)}</li>`)
+      .join("");
+    const typesHtml = pokemonData.types
+      .map(
+        (type) =>
+          `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`
+      )
+      .join("");
+
+    const statsHtml = Object.entries(pokemonData.stats)
+      .map(
+        ([stat, value]) => `
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-xs gba-font">${Utils.formatName(stat)}:</span>
+                <span class="text-xs gba-font">${value}</span>
+            </div>
+        `
+      )
+      .join("");
+
+    const modalContent = `
+            <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
+                #${pokemonData.id.toString().padStart(3, '0')} - ${pokemonData.name}
+            </div>
+            <img src="${pokemonData.sprite}" alt="${pokemonData.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
+            
+            <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
+            
+            <div class="text-left gba-font text-xs flex-shrink-0">
+                <p><strong>HP Base:</strong> ${pokemonData.maxHp}</p>
+            </div>
+            
+            <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
+                <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
+                ${statsHtml}
+                <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques Conhecidos:</h3>
+                <ul class="list-disc list-inside gba-font text-xs">
+                    ${movesHtml}
+                </ul>
+            </div>
+            <button onclick="Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+        `;
+
+    const modal = document.getElementById("pokemonStatsModal");
+    if (modal) {
+      const modalBody = modal.querySelector(".modal-body");
+      if (modalBody) {
+        modalBody.classList.add("flex", "flex-col", "h-full");
+        modalBody.innerHTML = modalContent;
+        modal.classList.remove("hidden");
+      }
+    }
+  },
+
+  /** Renderiza a tela de Pokedex. */
+  renderPokedex: function (app) {
+    const pokedexSet = window.gameState.profile.pokedex;
+    const pokedexHtml = [];
+    const totalCaught = pokedexSet.size;
+    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+
+    for (let id = 1; id <= totalAvailable; id++) {
+        const isCaught = pokedexSet.has(id);
+        const displayId = id.toString().padStart(3, '0');
+        
+        let displayUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        let displayName = `???`;
+        let filterStyle = 'filter: grayscale(100%) brightness(0);';
+        
+        // Se capturado, exibe o sprite colorido e o nome.
+        if (isCaught) {
+            filterStyle = '';
+            // Tenta obter o nome se estiver no time, senão usa o ID para formatação
+            // Nota: Para a visualização de grade, usamos o ID e um nome temporário/abreviado para economizar espaço
+            displayName = `ID #${displayId}`; 
+            // Para mostrar o nome de verdade, a API teria que ser chamada, mas isso pode ser muito lento para a grade inteira.
+            // Por enquanto, usamos ID para o título do bloco.
+        }
+
+        pokedexHtml.push(`
+            <div onclick="Renderer.showPokedexStats(${id}, ${!isCaught})" 
+                 class="flex flex-col items-center p-1 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors duration-100 bg-white">
+                <img src="${displayUrl}" alt="Pokemon #${id}" class="w-12 h-12 mb-1" style="${filterStyle}">
+                
+                <!-- Nome/ID e Nível/HP (Placeholder para escala de grade) -->
+                <div class="text-center w-full truncate">
+                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${isCaught ? Utils.formatName(window.gameState.profile.pokemon.find(p => p.id === id)?.name || `POKE #${displayId}`) : '???' }</span>
+                    <div class="text-[6px] gba-font text-gray-600 mt-1 truncate">
+                       ${isCaught ? `(Nv. ${window.gameState.profile.pokemon.find(p => p.id === id)?.level || '?'})` : '(DESCONHECIDO)'}
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+    
+    // Converte o array de HTML para uma string única
+    const gridHtml = pokedexHtml.join('');
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX</div>
-            <p class="text-center text-sm gba-font mb-4 flex-shrink-0">Registrados: ${totalCaught} / ${totalAvailable}</p>
-            <!-- flex-grow e overflow-y-auto para a lista da Pokédex -->
-            <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                ${pokedexHtml}
+            
+            <!-- Contador de Registros -->
+            <div class="text-center text-sm gba-font mb-4 flex-shrink-0">
+                REGISTRADOS: ${totalCaught} / ${totalAvailable}
+            </div>
+            
+            <!-- Grid de Pokémons (3 Colunas, responsivo) -->
+            <div class="flex-grow overflow-y-auto border border-gray-400 p-0 mb-4 bg-gray-100">
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 p-1">
+                    ${gridHtml}
+                </div>
             </div>
             <button onclick="Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
@@ -771,7 +782,7 @@ export const Renderer = {
         }
 
         return `
-                <div class="flex justify-between items-center p-2 border-b border-gray-300 flex-shrink-0">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 border-b border-gray-300 flex-shrink-0">
                     <span class="gba-font">${item.name}</span>
                     <span class="gba-font">x${item.quantity} ${actionText}</span>
                 </div>
@@ -897,10 +908,10 @@ export const Renderer = {
     const GameConfig = window.GameConfig;
     const shopItemsHtml = GameConfig.SHOP_ITEMS.map(
       (item) => `
-            <div class="flex justify-between items-center p-2 border-b border-gray-300 flex-shrink-0">
-                <span class="gba-font">${item.name}</span>
-                <span class="gba-font">P$${item.cost}</span>
-                <button onclick="window.GameLogic.buyItem('${item.name}')" class="text-xs text-green-600 hover:underline gba-font">Comprar</button>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 border-b border-gray-300 flex-shrink-0">
+              <span class="gba-font">${item.name}</span>
+              <span class="gba-font">P$${item.cost}</span>
+              <button onclick="window.GameLogic.buyItem('${item.name}')" class="text-xs text-green-600 hover:underline gba-font">Comprar</button>
             </div>
         `
     ).join("");
@@ -1030,8 +1041,10 @@ export const Renderer = {
                         <div>
                             <div class="font-bold gba-font">${
                               p.name
-                            } (Nv. ${p.level})</div>
-                            <div class="text-xs gba-font">HP: ${
+                            } </div>
+                            <div class="text-xs gba-font">
+                            (Nv. ${p.level})
+                            HP: ${
                               p.currentHp
                             }/${p.maxHp}</div>
                         </div>

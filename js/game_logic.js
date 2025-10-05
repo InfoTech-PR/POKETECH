@@ -327,8 +327,16 @@ export const GameLogic = {
 
   /** Inicia o arrasto e armazena o índice do Pokémon. */
   dragStart: function (event) {
-    // Certifica-se de que estamos no elemento clicado ou em um pai
-    const targetElement = event.target.closest('[data-pokemon-index]');
+    // Adicionado: Verifica se o elemento arrastado é o handle real (o SVG dos pontinhos)
+    const handleElement = event.target.closest('[data-drag-handle="true"]');
+    if (!handleElement) {
+        // Se não for o handle, previne o drag para permitir a rolagem normal
+        event.preventDefault();
+        return;
+    }
+
+    // O target real para o índice é o item pai
+    const targetElement = handleElement.closest('[data-pokemon-index]');
     if (!targetElement) return;
 
     GameLogic.draggedPokemonIndex = parseInt(targetElement.dataset.pokemonIndex);
@@ -352,10 +360,13 @@ export const GameLogic = {
     const droppedOnIndex = parseInt(droppedOnElement.dataset.pokemonIndex);
     const draggedIndex = GameLogic.draggedPokemonIndex;
 
+    // Remove a classe de opacidade do elemento arrastado
+    const draggedElement = document.querySelector(`[data-pokemon-index="${draggedIndex}"]`);
+    if (draggedElement) {
+        draggedElement.classList.remove("opacity-50");
+    }
+
     if (draggedIndex === null || draggedIndex === droppedOnIndex) {
-        if (draggedIndex !== null) {
-             document.querySelector(`#pokemon-list-item-${draggedIndex}`).classList.remove("opacity-50");
-        }
         return;
     }
 
@@ -365,9 +376,6 @@ export const GameLogic = {
 
     Utils.saveGame();
     
-    // Remove a classe de opacidade do elemento arrastado (precisa ser feito no Renderer)
-    document.querySelector(`#pokemon-list-item-${droppedOnIndex}`).classList.remove("opacity-50");
-
     // Re-renderiza a lista para refletir a nova ordem em tempo real
     Renderer.showScreen("pokemonList"); 
   },

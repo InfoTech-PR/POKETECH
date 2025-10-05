@@ -5,7 +5,7 @@
  */
 
 // Variáveis de escopo do módulo para armazenar as referências importadas
-let GameConfig, initializeGameState, Utils, PokeAPI, GameLogic, BattleCore, PvpCore, Renderer, AuthSetup;
+let GameConfig, initializeGameState, Utils, PokeAPI, GameLogic, BattleCore, PvpCore, Renderer, AuthSetup, registerExistingPokemonOnLoad;
 
 /**
  * Função principal de inicialização que carrega todos os submódulos de forma dinâmica
@@ -24,6 +24,7 @@ export async function init(cacheBuster) {
         initializeGameState = configModule.initializeGameState;
         Utils = configModule.Utils;
         PokeAPI = configModule.PokeAPI;
+        registerExistingPokemonOnLoad = configModule.registerExistingPokemonOnLoad; // NOVO: Importa a nova função
 
         const logicModule = await import(`./game_logic.js${v}`);
         GameLogic = logicModule.GameLogic;
@@ -50,6 +51,7 @@ export async function init(cacheBuster) {
         window.Renderer = Renderer;
         window.Utils = Utils;
         window.initializeGameState = initializeGameState; // Exporta a função para uso global
+        window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad; // NOVO: Exporta a nova função
 
         // Exportações diretas para compatibilidade com o HTML (facilitando 'onclick')
         window.showScreen = Renderer.showScreen;

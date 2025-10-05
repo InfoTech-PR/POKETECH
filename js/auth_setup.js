@@ -7,7 +7,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-import { initializeGameState, Utils } from './config_utils.js';
+// IMPORTAÇÃO ATUALIZADA: Incluindo a nova função de registro
+import { initializeGameState, Utils, registerExistingPokemonOnLoad } from './config_utils.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
 
@@ -66,11 +67,9 @@ export const AuthSetup = {
     // Antes de chamar setupInitialInteractions, garantimos que o gameState foi inicializado ou carregado
     if (Utils.loadGame()) {
       gameLoaded = true;
-      // Lógica de retrocompatibilidade: Registra todos os Pokémons do time na Pokédex (se o save for antigo)
-      // O 'Utils.loadGame()' já garante que o 'window.gameState.profile.pokedex' é um Set.
-      window.gameState.profile.pokemon.forEach(p => {
-        Utils.registerPokemon(p.id);
-      });
+      // LÓGICA DE RETROCOMPATIBILIDADE ATUALIZADA:
+      // Chama a função centralizada que garante que Utils.registerPokemon esteja disponível.
+      registerExistingPokemonOnLoad();
     } else {
       initializeGameState(); 
     }

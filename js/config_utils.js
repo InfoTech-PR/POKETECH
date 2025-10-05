@@ -219,6 +219,7 @@ export const Utils = {
    */
   async fetchPokemonData(nameOrId, isPokedexView = false) {
     try {
+      // Usando Axios que foi importado no index.html
       const response = await axios.get(`${GameConfig.POKEAPI_BASE}${nameOrId}`);
       const data = response.data;
       const moves = data.moves.slice(0, 4).map((m) => m.move.name);
@@ -262,6 +263,23 @@ export const Utils = {
     }
   }
 };
+
+/**
+ * Função para lidar com a retrocompatibilidade durante o carregamento do jogo.
+ * Ela registra todos os Pokémons do time na Pokédex caso o save seja antigo e não tenha o Set 'pokedex'.
+ */
+export function registerExistingPokemonOnLoad() {
+    // É seguro chamar aqui, pois esta função só é chamada APÓS o módulo Utils ser completamente definido.
+    if (window.gameState && window.gameState.profile && window.gameState.profile.pokemon) {
+        window.gameState.profile.pokemon.forEach(p => {
+            // Verifica se o Pokémon tem um ID antes de tentar registrar.
+            if (p.id) { 
+                Utils.registerPokemon(p.id);
+            }
+        });
+    }
+}
+
 
 /** Lógica de API Externa (PokeAPI) */
 export const PokeAPI = {

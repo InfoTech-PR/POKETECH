@@ -16,6 +16,21 @@
  * incluindo turnos PvE, cálculos e captura.
  */
 export const BattleCore = {
+  
+  /** Retorna a URL da sprite do item de captura com base no nome. */
+  _getBallSpriteUrl: function(ballName) {
+      switch (ballName.toLowerCase()) {
+          case 'pokébola':
+              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+          case 'great ball':
+              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png';
+          case 'ultra ball':
+              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png';
+          default:
+              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; // Fallback
+      }
+  },
+
   /** Inicia uma batalha selvagem. */
   startWildBattle: async function () {
     const randomId = Math.floor(Math.random() * 151) + 1;
@@ -185,12 +200,21 @@ export const BattleCore = {
       const roll = Math.floor(Math.random() * 100) + 1;
       const opponentSpriteElement =
         document.querySelector(".opponent-sprite");
+      
+      // NOVO: Obtém a sprite correta para a bola
+      const ballSpriteUrl = BattleCore._getBallSpriteUrl(ballName);
 
       if (opponentSpriteElement) {
-        opponentSpriteElement.src =
-          "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
-        opponentSpriteElement.style.transform = "scale(1.5)";
+        // Altera a sprite do Pokémon inimigo para a sprite da Pokébola.
+        opponentSpriteElement.src = ballSpriteUrl;
+        
+        // Remove as classes de posicionamento original 
+        opponentSpriteElement.classList.remove("top-2", "right-0", "md:right-24", "transform", "-translate-y-1/2");
+        
+        // Adiciona a classe temporária e de shake
+        opponentSpriteElement.classList.add("capture-shake-position");
         opponentSpriteElement.classList.add("animate-spin-slow");
+        opponentSpriteElement.style.transform = "scale(1.5)";
       }
 
       let shakes = 0;
@@ -210,6 +234,9 @@ export const BattleCore = {
 
           if (opponentSpriteElement) {
             opponentSpriteElement.classList.remove("animate-spin-slow");
+            opponentSpriteElement.classList.remove("capture-shake-position"); // Remove a classe de posicionamento temporária
+            // Restaura as classes originais de posicionamento (serão atualizadas pelo updateBattleScreen)
+            opponentSpriteElement.classList.add("top-2", "right-0", "md:right-24", "transform", "-translate-y-1/2"); 
           }
 
           if (isCaptured) {
@@ -227,6 +254,7 @@ export const BattleCore = {
             BattleCore.addBattleLog(`Oh não! ${wildPokemon.name} escapou!`);
 
             if (opponentSpriteElement) {
+              // Volta para a sprite original do Pokémon
               opponentSpriteElement.src = wildPokemon.sprite;
               opponentSpriteElement.style.transform = "scale(1.5)";
             }
@@ -554,7 +582,6 @@ export const BattleCore = {
     }
 
     // --- Renderização da Tela de Batalha ---
-    // NOTA: Ajustei as classes de posicionamento dos sprites para serem responsivas
     battleArea.innerHTML = `
             <div class="relative h-48 mb-4 flex-shrink-0">
                 <!-- OPPONENT HP BOX -->
@@ -582,10 +609,29 @@ export const BattleCore = {
                 
                 <!-- SPRITES: Posições atualizadas para flexibilidade -->
                 <div class="relative w-full h-64">
-                    <!-- Opponent Sprite: Centrado na parte superior direita para telas pequenas, move-se para a direita em telas maiores -->
+                    <!-- Opponent Sprite: Ajustado de top-4 para top-2 para subir mais a sprite -->
                     <img src="${opponent.sprite}" alt="${
       opponent.name
-    }" class="opponent-sprite w-28 h-28 absolute top-8 right-0 md:right-24 transform -translate-y-1/2 scale-150">
+    }" class="opponent-sprite w-28 h-28 absolute top-2 right-0 md:right-24 transform -translate-y-1/2 scale-150 z-10">
+                    
+                    <style>
+                        /* Estilo para centralizar a Pokébola onde o Pokémon inimigo estava */
+                        .capture-shake-position {
+                            /* Ajustado de 1rem (16px) para 0.5rem (8px), que é top-2.
+                                Isso deve mover a sprite uns 8px para cima, ou seja, quase 20px no total se somado ao ajuste anterior.
+                            */
+                            top: -0.8rem; /* top-2 */
+                            right: 0; 
+                            transform: translateY(-50%) scale(1.5); /* -translate-y-1/2 scale-150 */
+                            z-index: 10; /* Garante que a bola fique por cima do painel de HP */
+                        }
+
+                        @media (min-width: 768px) {
+                            .capture-shake-position {
+                                right: 6rem; /* md:right-24 (96px = 6rem) */
+                            }
+                        }
+                    </style>
                 </div>
                 
                 <!-- PLAYER HP BOX -->

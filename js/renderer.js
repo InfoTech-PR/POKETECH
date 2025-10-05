@@ -231,16 +231,26 @@ export const Renderer = {
 
     window.gameState.profile.trainerName = trainerName.toUpperCase();
 
-    const starterData = await window.PokeAPI.fetchPokemonData(name);
-    if (starterData) {
-      window.gameState.profile.pokemon.push(starterData);
-      Utils.saveGame();
-      Renderer.showScreen("mainMenu");
-    } else {
-      Utils.showModal(
-        "errorModal",
-        "Falha ao carregar dados do Pokémon. Tente novamente."
-      );
+    try {
+        const starterData = await window.PokeAPI.fetchPokemonData(name);
+        if (starterData) {
+          window.gameState.profile.pokemon.push(starterData);
+          Utils.saveGame();
+          Renderer.showScreen("mainMenu");
+        } else {
+          // Garante que se a função retornar null por erro, ele avisa
+          Utils.showModal(
+            "errorModal",
+            `Falha ao carregar dados de ${Utils.formatName(name)} da PokéAPI. Tente novamente.`
+          );
+        }
+    } catch (error) {
+        // Captura qualquer erro de execução, incluindo o que causou o problema original
+        Utils.showModal(
+            "errorModal",
+            `Erro ao iniciar jogo: ${error.message.substring(0, 100)}`
+        );
+        console.error("Erro ao selecionar inicial:", error);
     }
   },
 

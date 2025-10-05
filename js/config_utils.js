@@ -99,7 +99,7 @@ export const Utils = {
         if (window.gameState.profile.pokedex) {
             window.gameState.profile.pokedex = new Set(window.gameState.profile.pokedex);
         } else {
-            // Se o save antigo não tiver 'pokedex', inicializa
+            // Se o save antigo não tiver 'pokedex', inicializa com Set vazio
             window.gameState.profile.pokedex = new Set();
         }
 
@@ -137,7 +137,13 @@ export const Utils = {
 
   /** Adiciona um Pokémon à Pokédex pelo seu ID. */
   registerPokemon: function (pokemonId) {
-      // Garante que pokemonId é um número inteiro, pois o Set armazena números
+      // VERIFICAÇÃO DE SEGURANÇA: Garante que 'pokedex' é um Set antes de usá-lo.
+      if (!window.gameState || !window.gameState.profile) return;
+      if (!(window.gameState.profile.pokedex instanceof Set)) {
+          // Se não for um Set (e o estado já existe), inicializa-o para evitar o erro.
+          window.gameState.profile.pokedex = new Set(window.gameState.profile.pokedex || []);
+      }
+      
       const id = parseInt(pokemonId);
       if (!window.gameState.profile.pokedex.has(id)) {
           window.gameState.profile.pokedex.add(id);
@@ -300,6 +306,8 @@ export const Utils = {
         `Erro ao buscar dados de ${nameOrId} na PokéAPI:`,
         error
       );
+      // O erro original indica que o problema é no 'has', não na API.
+      // Retornar null aqui é o comportamento esperado em caso de falha de API.
       return null;
     }
   }

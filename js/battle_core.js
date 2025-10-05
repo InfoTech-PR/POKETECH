@@ -3,10 +3,12 @@
  * MÓDULO 3: CORE DE BATALHA
  * Gerencia a lógica central de combate, incluindo turnos PvE, cálculos e captura.
  */
-import { GameConfig, Utils, PokeAPI } from './config_utils.js';
-import { GameLogic } from './game_logic.js';
-import { PvpCore } from './pvp_core.js';
-import { Renderer } from './renderer.js';
+// REMOVIDO: importações estáticas para evitar problemas de cache e garantir
+// que os módulos acessem as dependências via 'window' (definidas no app.js).
+// import { GameConfig, Utils, PokeAPI } from './config_utils.js';
+// import { GameLogic } from './game_logic.js';
+// import { PvpCore } from './pvp_core.js';
+// import { Renderer } from './renderer.js';
 // REMOVIDO: import { AuthSetup } from './auth_setup.js'; 
 
 /**
@@ -17,9 +19,10 @@ export const BattleCore = {
   /** Inicia uma batalha selvagem. */
   startWildBattle: async function () {
     const randomId = Math.floor(Math.random() * 151) + 1;
-    const wildPokemonData = await PokeAPI.fetchPokemonData(randomId);
+    // Acessando PokeAPI e GameLogic via window.
+    const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
-      GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
+      window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
       window.AuthSetup?.handleBattleMusic(false); // 🔊 Garante que a música de fundo volte em caso de erro
       return;
     }
@@ -33,9 +36,8 @@ export const BattleCore = {
       playerMaxLevel + (Math.random() > 0.5 ? 1 : -1)
     );
     
-    // REVISÃO: Recalcula Max HP para o Pokémon Selvagem com base no seu nível aleatório
-    // Linha 37 (onde o erro foi reportado):
-    wildPokemonData.maxHp = Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
+    // CORREÇÃO APLICADA: Utiliza window.Utils para acessar a função calculateMaxHp
+    wildPokemonData.maxHp = window.Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
     wildPokemonData.currentHp = wildPokemonData.maxHp;
 
     window.gameState.battle = {
@@ -48,8 +50,8 @@ export const BattleCore = {
       currentMenu: "main", // Garante que o menu principal seja exibido ao iniciar
     };
 
-    // Chama o Renderer para mostrar a tela de batalha
-    Renderer.showScreen("battle");
+    // Acessando Renderer via window.
+    window.Renderer.showScreen("battle");
   },
 
   /** * Calcula o dano simplificado entre dois Pokémons (Fórmula revisada para balanceamento).
@@ -94,19 +96,19 @@ export const BattleCore = {
     const expGain = Math.floor((defeatedLevel * 50) / 5); 
     winner.exp += expGain;
 
-    // A EXP necessária para o próximo nível agora usa a função revisada
-    let expToNextLevel = Utils.calculateExpToNextLevel(winner.level);
+    // Acessando calculateExpToNextLevel via window.Utils
+    let expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
 
     while (winner.exp >= expToNextLevel) {
       winner.level++;
       
-      // NOVO: Aumento de HP é recalculado usando a nova fórmula para garantir a progressão
-      winner.maxHp = Utils.calculateMaxHp(winner.stats.hp, winner.level);
+      // Acessando calculateMaxHp via window.Utils
+      winner.maxHp = window.Utils.calculateMaxHp(winner.stats.hp, winner.level);
       winner.currentHp = winner.maxHp;
       BattleCore.addBattleLog(`${winner.name} subiu para o Nível ${winner.level}!`);
 
-      // Calcula o próximo limite de EXP
-      expToNextLevel = Utils.calculateExpToNextLevel(winner.level);
+      // Acessando calculateExpToNextLevel via window.Utils
+      expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
       
       // Se o Pokémon atingiu o nível máximo, quebra o loop
       if (winner.level >= 100) break;
@@ -215,10 +217,10 @@ export const BattleCore = {
 
             setTimeout(() => {
               window.gameState.profile.pokemon.push(wildPokemon);
-              Utils.saveGame();
+              window.Utils.saveGame();
               // Acessa a função via window.AuthSetup, usando optional chaining (?)
               window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
-              Renderer.showScreen("mainMenu");
+              window.Renderer.showScreen("mainMenu");
               resolve(true);
             }, 1000);
           } else {
@@ -234,7 +236,7 @@ export const BattleCore = {
               setTimeout(() => {
                 // Acessa a função via window.AuthSetup, usando optional chaining (?)
                 window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
-                Renderer.showScreen("mainMenu");
+                window.Renderer.showScreen("mainMenu");
                 resolve(true);
               }, 1500);
             } else {
@@ -264,7 +266,7 @@ export const BattleCore = {
     
     // Decrementa o item após a tentativa, independentemente do resultado
     ballItem.quantity--;
-    Utils.saveGame();
+    window.Utils.saveGame();
 
     if (!battleEnded) {
       // Se a captura falhou e a batalha não terminou, o oponente ataca
@@ -282,7 +284,8 @@ export const BattleCore = {
   /** Simula o turno de ação na batalha (PvE e encaminha PvP). */
   playerTurn: async function (action, moveName = null) {
     const battle = window.gameState.battle;
-    const playerPokemon = Utils.getActivePokemon();
+    // Acessando getActivePokemon via window.Utils
+    const playerPokemon = window.Utils.getActivePokemon();
     const opponent = battle.opponent;
     let ended = false;
     
@@ -299,7 +302,7 @@ export const BattleCore = {
           BattleCore.setBattleMenu("main");
           return;
       }
-      // Encaminha para o core PvP e espera pelo listener
+      // Acessando sendPvpAction via window.PvpCore
       window.PvpCore.sendPvpAction(action, moveName);
       return;
     }
@@ -330,7 +333,8 @@ export const BattleCore = {
         opponent.currentHp - damageResult.damage
       );
 
-      let logMessage = `${playerPokemon.name} usou ${Utils.formatName(
+      // Acessando formatName via window.Utils
+      let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
         moveName
       )}! Causou ${damageResult.damage} de dano.`;
       if (damageResult.isCritical) {
@@ -346,6 +350,7 @@ export const BattleCore = {
       }
       
       const isHealing = item.healAmount;
+      // Acessando useItem via window.GameLogic
       window.GameLogic.useItem(moveName); // Usa o item de cura (aplica localmente)
       
       if (isHealing) {
@@ -383,7 +388,8 @@ export const BattleCore = {
         playerPokemon.currentHp - damageResult.damage
       );
 
-      let logMessage = `${opponent.name} usou ${Utils.formatName(
+      // Acessando formatName via window.Utils
+      let logMessage = `${opponent.name} usou ${window.Utils.formatName(
         randomOpponentMove
       )}! Recebeu ${damageResult.damage} de dano.`;
       if (damageResult.isCritical) {
@@ -414,8 +420,9 @@ export const BattleCore = {
       setTimeout(() => {
         window.gameState.battle = null;
         window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
-        Renderer.showScreen("mainMenu");
-        Utils.saveGame();
+        // Acessando showScreen e saveGame via window.
+        window.Renderer.showScreen("mainMenu");
+        window.Utils.saveGame();
       }, 2000);
     }
 
@@ -428,7 +435,8 @@ export const BattleCore = {
   /** Troca o Pokémon ativo na batalha. */
   switchPokemon: async function (newIndex) {
     const battle = window.gameState.battle;
-    const currentPokemon = Utils.getActivePokemon();
+    // Acessando getActivePokemon via window.Utils
+    const currentPokemon = window.Utils.getActivePokemon();
     const newPokemon = window.gameState.profile.pokemon[newIndex];
 
     if (
@@ -444,6 +452,7 @@ export const BattleCore = {
     BattleCore.addBattleLog(`Volte, ${currentPokemon.name}! Vá, ${newPokemon.name}!`);
 
     if (battle.type === "pvp") {
+      // Acessando sendPvpAction via window.PvpCore
       window.PvpCore.sendPvpAction("switch", null);
     } else {
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -452,7 +461,8 @@ export const BattleCore = {
     }
     
     // O playerTurn (no caso PvE) ou o listener PvP (no caso PvP) irá reativar o menu para "main"
-    Renderer.showScreen("battle");
+    // Acessando showScreen via window.Renderer
+    window.Renderer.showScreen("battle");
   },
 
   /** Define o menu de batalha atual. */
@@ -471,8 +481,8 @@ export const BattleCore = {
     if (!battleArea || !window.gameState.battle) return;
 
     const battle = window.gameState.battle;
-    // Garante que o Pokémon ativo está sempre atualizado
-    const playerPokemon = Utils.getActivePokemon();
+    // Acessando getActivePokemon via window.Utils
+    const playerPokemon = window.Utils.getActivePokemon();
     const opponent = battle.opponent;
 
     // Garante que o Pokémon do jogador está no time
@@ -503,14 +513,14 @@ export const BattleCore = {
                     <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button bg-red-500 hover:bg-red-600">Lutar</button>
                     <button onclick="BattleCore.playerTurn('run')" class="gba-button bg-green-500 hover:bg-green-600" ${battle.type === 'pvp' ? 'disabled' : ''}>Fugir</button>
                     <button onclick="BattleCore.setBattleMenu('item')" class="gba-button bg-yellow-500 hover:bg-yellow-600">Item</button>
-                    <button onclick="Renderer.showScreen('switchPokemon')" class="gba-button bg-blue-500 hover:bg-blue-600">Pokémon</button>
+                    <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button bg-blue-500 hover:bg-blue-600">Pokémon</button>
                 </div>
             `;
     } else if (battle.currentMenu === "fight") {
       optionsHtml = playerPokemon.moves
         .map(
           (move) =>
-            `<button onclick="BattleCore.playerTurn('move', '${move}')" class="flex-1 gba-button bg-red-400 hover:bg-red-500">${Utils.formatName(
+            `<button onclick="BattleCore.playerTurn('move', '${move}')" class="flex-1 gba-button bg-red-400 hover:bg-red-500">${window.Utils.formatName(
               move
             )}</button>`
         )

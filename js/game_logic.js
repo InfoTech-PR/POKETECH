@@ -33,11 +33,12 @@ export const GameLogic = {
     let resultMessage = "";
     let startedBattle = false;
 
-    if (roll < 0.6) {
+    console.log(roll);
+    if (roll < 0.1) {
       const money = Math.floor(Math.random() * 200) + 100;
       window.gameState.profile.money += money;
       resultMessage = `Você encontrou P$${money} no chão!`;
-    } else if (roll < 0.5) {
+    } else if (roll < 0.2) {
       const possibleItems = window.gameState.profile.items.filter(
         (i) => i.name !== "Great Ball" && i.name !== "Ultra Ball"
       );

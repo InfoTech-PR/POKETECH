@@ -970,14 +970,98 @@ export const Renderer = {
   /** Renderiza a tela de Loja. */
   renderShop: function (app) {
     const GameConfig = window.GameConfig;
+
+    /**
+     * Atualiza o subtotal de um item na loja
+     * @param {string} inputId ID do campo de input de quantidade
+     * @param {number} itemCost Custo unitário do item
+     */
+    function updateSubtotal(inputId, itemCost) {
+        const input = document.getElementById(inputId);
+        const subtotalElement = document.getElementById(`subtotal-${inputId}`);
+        
+        if (input && subtotalElement) {
+            let qty = parseInt(input.value);
+            
+            // Garante que a quantidade está entre 1 e 99
+            if (isNaN(qty) || qty < 1) {
+                qty = 1;
+                input.value = 1;
+            } else if (qty > 99) {
+                qty = 99;
+                input.value = 99;
+            }
+            
+            const total = qty * itemCost;
+            subtotalElement.textContent = `Subtotal: P$${total}`;
+
+            // Oculta/Exibe botão de Compra se o jogador tiver dinheiro
+            const buyButton = document.getElementById(`buy-btn-${inputId}`);
+            if (buyButton) {
+                if (window.gameState.profile.money < total) {
+                    buyButton.disabled = true;
+                    buyButton.classList.add('bg-gray-400');
+                    buyButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                } else {
+                    buyButton.disabled = false;
+                    buyButton.classList.remove('bg-gray-400');
+                    buyButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                }
+            }
+        }
+    }
+    
+    // Exporta a função para o escopo global para que os botões possam acessá-la
+    window.updateSubtotal = updateSubtotal;
+
     const shopItemsHtml = GameConfig.SHOP_ITEMS.map(
-      (item) => `
+      (item) => {
+        // ID único para o campo de quantidade (remove espaços para ser um ID HTML válido)
+        const inputId = `qty-${item.name.replace(/\s/g, "")}`;
+        const buyBtnId = `buy-btn-${inputId}`;
+        const initialSubtotal = item.cost * 1;
+        
+        const isAffordable = window.gameState.profile.money >= initialSubtotal;
+        
+        return `
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 border-b border-gray-300 flex-shrink-0">
-              <span class="gba-font">${item.name}</span>
-              <span class="gba-font">P$${item.cost}</span>
-              <button onclick="window.GameLogic.buyItem('${item.name}')" class="text-xs text-green-600 hover:underline gba-font">Comprar</button>
+              <!-- Item Name and Cost -->
+              <div class="flex-grow min-w-0">
+                <span class="gba-font text-xs sm:text-sm">${item.name}</span>
+                <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${item.cost} cada)</span>
+                <!-- Subtotal dinâmico -->
+                <div id="subtotal-${inputId}" class="gba-font text-xs text-yellow-700 font-bold mt-1">
+                    Subtotal: P$${initialSubtotal}
+                </div>
+              </div>
+
+              <!-- Quantity Input and Button Group -->
+              <div class="flex items-center space-x-1 flex-shrink-0 w-full sm:w-auto">
+                
+                <!-- Botão Decrementar -->
+                <button onclick="document.getElementById('${inputId}').value = Math.max(1, parseInt(document.getElementById('${inputId}').value) - 1); window.updateSubtotal('${inputId}', ${item.cost});"
+                        class="w-8 h-8 gba-button bg-red-400 hover:bg-red-500 p-0 text-xl leading-none">-</button>
+                
+                <!-- Input de Quantidade -->
+                <input id="${inputId}" type="number" value="1" min="1" max="99"
+                    oninput="window.updateSubtotal('${inputId}', ${item.cost})"
+                    class="w-16 p-1 border-2 border-gray-400 rounded gba-font text-sm text-center bg-white shadow-inner">
+                
+                <!-- Botão Incrementar -->
+                <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${item.cost});"
+                        class="w-8 h-8 gba-button bg-blue-400 hover:bg-blue-500 p-0 text-xl leading-none">+</button>
+
+                <!-- Botão Comprar -->
+                <button id="${buyBtnId}"
+                        onclick="window.GameLogic.buyItem('${item.name}', document.getElementById('${inputId}').value)" 
+                        class="gba-button text-xs w-24 h-8 ${isAffordable ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400'}"
+                        ${isAffordable ? '' : 'disabled'}>
+                    Comprar
+                </button>
+              </div>
             </div>
-        `
+        `;
+      }
     ).join("");
 
     const content = `

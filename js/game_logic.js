@@ -36,6 +36,7 @@ export const GameLogic = {
       window.gameState.profile.money += money;
       resultMessage = `Você encontrou P$${money} no chão!`;
     } else if (roll < 0.5) {
+      // Nota: Agora inclui Ultra Ball na lista de itens, mas mantém a lógica de itens fracos para drop.
       const possibleItems = window.gameState.profile.items.filter(
         (i) => i.name !== "Great Ball" && i.name !== "Ultra Ball"
       );
@@ -62,35 +63,49 @@ export const GameLogic = {
     }
   },
 
-  /** Realiza a compra de um item na loja. */
-  buyItem: function (itemName) {
+  /** * Realiza a compra de um item na loja com a quantidade especificada. 
+   * @param {string} itemName O nome do item.
+   * @param {number|string} quantity A quantidade a comprar.
+   */
+  buyItem: function (itemName, quantity) {
+    let qty = parseInt(quantity);
+    if (isNaN(qty) || qty < 1) {
+      window.Utils.showModal("errorModal", "Quantidade inválida.");
+      return;
+    }
+    
+    // Limita a quantidade para evitar overflow de UI ou save
+    qty = Math.min(99, qty);
+
     const itemToBuy = window.GameConfig.SHOP_ITEMS.find((item) => item.name === itemName);
     if (!itemToBuy) {
       window.Utils.showModal("errorModal", "Item não encontrado.");
       return;
     }
+    
+    const totalCost = itemToBuy.cost * qty;
 
-    if (window.gameState.profile.money >= itemToBuy.cost) {
-      window.gameState.profile.money -= itemToBuy.cost;
+    if (window.gameState.profile.money >= totalCost) {
+      window.gameState.profile.money -= totalCost;
       let existingItem = window.gameState.profile.items.find(
         (i) => i.name === itemName
       );
 
       if (existingItem) {
-        existingItem.quantity++;
+        existingItem.quantity += qty;
       } else {
-        const newItem = { ...itemToBuy, quantity: 1 };
+        const newItem = { ...itemToBuy, quantity: qty };
         window.gameState.profile.items.push(newItem);
       }
 
       window.Utils.saveGame();
       window.Utils.showModal(
         "infoModal",
-        `Você comprou 1x ${itemName} por P$${itemToBuy.cost}.`
+        `Você comprou ${qty}x ${itemName} por P$${totalCost}.`
       );
       window.Renderer.showScreen("shop");
     } else {
-      window.Utils.showModal("errorModal", "Você não tem dinheiro suficiente!");
+      window.Utils.showModal("errorModal", `Você não tem P$${totalCost} suficiente para comprar ${qty}x ${itemName}!`);
     }
   },
 

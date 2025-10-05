@@ -20,6 +20,8 @@ export const GameConfig = {
   SHOP_ITEMS: [
     { name: "Pokébola", quantity: 0, catchRate: 1.0, cost: 200 },
     { name: "Great Ball", quantity: 0, catchRate: 1.5, cost: 600 },
+    // NOVO: Ultra Ball adicionada
+    { name: "Ultra Ball", quantity: 0, catchRate: 2.0, cost: 1200 },
     { name: "Poção", quantity: 0, healAmount: 20, cost: 300 },
   ],
   // Novo: Define o limite de Pokémons para a Pokédex (Geração 1)

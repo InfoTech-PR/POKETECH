@@ -97,6 +97,14 @@ export const Utils = {
         
         // Converte o Array (pokedex salvo) de volta para Set
         if (window.gameState.profile.pokedex) {
+            // CORREÇÃO: Usar Array.isArray para garantir que o Set seja criado a partir de um iterável (Array)
+            // Caso contrário, usa um novo Set vazio.
+            if (!Array.isArray(window.gameState.profile.pokedex)) {
+                 // Se o valor salvo não for um Array (e.g., é um objeto simples {} de um save corrompido), 
+                 // inicializa como um Array vazio para evitar que new Set(object) quebre.
+                 console.warn("Pokedex carregada com formato inválido. Inicializando como array vazio.");
+                 window.gameState.profile.pokedex = []; 
+            }
             window.gameState.profile.pokedex = new Set(window.gameState.profile.pokedex);
         } else {
             // Se o save antigo não tiver 'pokedex', inicializa com Set vazio
@@ -139,9 +147,22 @@ export const Utils = {
   registerPokemon: function (pokemonId) {
       // VERIFICAÇÃO DE SEGURANÇA: Garante que 'pokedex' é um Set antes de usá-lo.
       if (!window.gameState || !window.gameState.profile) return;
+      
+      // CORREÇÃO APLICADA: Esta é a linha que estava causando o erro.
+      // Agora, verificamos se é um Set. Se não for, tentamos converter o valor existente
+      // para um Array se for iterável, ou usamos um Array vazio.
       if (!(window.gameState.profile.pokedex instanceof Set)) {
-          // Se não for um Set (e o estado já existe), inicializa-o para evitar o erro.
-          window.gameState.profile.pokedex = new Set(window.gameState.profile.pokedex || []);
+          let iterablePokedex = [];
+          
+          // Se for um Array (caso de saves antigos), podemos usá-lo.
+          if (Array.isArray(window.gameState.profile.pokedex)) {
+              iterablePokedex = window.gameState.profile.pokedex;
+          } 
+          // Se for null/undefined/objeto vazio, new Set(iterablePokedex) funcionará.
+          
+          // Re-inicializa o Pokedex como um Set
+          window.gameState.profile.pokedex = new Set(iterablePokedex); 
+          console.warn("Pokedex re-inicializada como Set.");
       }
       
       const id = parseInt(pokemonId);

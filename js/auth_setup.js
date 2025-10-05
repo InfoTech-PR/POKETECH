@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-import { initializeGameState, Utils, registerExistingPokemonOnLoad } from './config_utils.js';
+import { initializeGameState, Utils } from './config_utils.js';
 import { PvpCore } from './pvp_core.js';
 import { Renderer } from './renderer.js';
 
@@ -90,7 +90,7 @@ export const AuthSetup = {
       gameLoaded = true;
       // LÓGICA DE RETROCOMPATIBILIDADE ATUALIZADA:
       // Chama a função centralizada que garante que Utils.registerPokemon esteja disponível.
-      registerExistingPokemonOnLoad();
+      window.registerExistingPokemonOnLoad();
     } else {
       initializeGameState(); 
     }

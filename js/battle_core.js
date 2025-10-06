@@ -23,46 +23,8 @@ export const BattleCore = {
       }
   },
 
-  /**
-   * NOVO: Anima o ataque trocando a sprite do atacante (apenas para o jogador)
-   * e aplicando a animação de movimento.
-   * @param {string} attackerSelector - Seletor da sprite do atacante.
-   * @param {string} targetSelector - Seletor da sprite do alvo (para dano).
-   * @param {object} attackerPokemon - Dados do Pokémon atacante.
-   * @param {string} animationClass - Classe de animação de movimento (e.g., 'animate-attack').
-   */
-  _animateAttackSprite: async function(attackerSelector, targetSelector, attackerPokemon, animationClass) {
-      const attackerElement = document.querySelector(attackerSelector);
-      const isPlayer = attackerSelector === '.player-sprite';
-      const originalSprite = attackerElement.src;
-      
-      // 1. Troca a sprite do jogador (de Back para Front) para simular o avanço do ataque
-      if (isPlayer) {
-          // A sprite frontal é a de ID sem o '/back/'
-          const frontSpriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${attackerPokemon.id}.png`;
-          attackerElement.src = frontSpriteUrl;
-      }
-      
-      // 2. Aplica a animação de movimento (empurrão)
-      attackerElement.classList.add(animationClass);
-      
-      // Espera o tempo da animação de movimento
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      
-      // 3. Remove a animação de movimento
-      attackerElement.classList.remove(animationClass);
-      
-      // 4. Volta para a sprite original (de Back)
-      if (isPlayer) {
-          attackerElement.src = originalSprite;
-      }
-      
-      // Nota: A animação de dano no alvo é feita separadamente na função playerTurn/processPvpTurn.
-  },
-
   startWildBattle: async function () {
     const randomId = Math.floor(Math.random() * 151) + 1;
-// ... (restante da função startWildBattle) ...
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
@@ -105,7 +67,6 @@ export const BattleCore = {
   },
 
   calculateDamage: function (attacker, move, defender) {
-// ... (restante da função calculateDamage) ...
     // COEFICIENTES AJUSTADOS PARA BALANCEAMENTO DE DANO
     // REDUÇÃO: Diminui o poder do ataque base (0.6) e aumenta a resistência da defesa (1.4)
     const ATTACK_MODIFIER = 0.6; // Reduz o efeito do Base Attack
@@ -146,7 +107,6 @@ export const BattleCore = {
   
   
   gainExp: function (defeatedLevel, participatingIndices) {
-// ... (restante da função gainExp) ...
     // Calcula o XP total ganho
     const totalExpGain = Math.floor((defeatedLevel * 50) / 5); 
     
@@ -180,7 +140,6 @@ export const BattleCore = {
   },
   
   battleWin: function (winner, loser) {
-// ... (restante da função battleWin) ...
     BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
 
     const moneyGain = Math.floor(Math.random() * 500) + 200;
@@ -196,7 +155,6 @@ export const BattleCore = {
   },
   
   addBattleLog: function (message) {
-// ... (restante da função addBattleLog) ...
     if (window.gameState.battle) {
       window.gameState.battle.lastMessage = message;
       if (window.gameState.battle.log) {
@@ -209,7 +167,6 @@ export const BattleCore = {
   },
   
   calculateCatchRate: function (pokemonHp, maxHp, ballCatchRate) {
-// ... (restante da função calculateCatchRate) ...
     const CATCH_BASE = 85;        // força geral
     const HP_OFFSET = 0.30;       // amortecimento do HP baixo
     const LEVEL_K = 0.022;        // penalidade de nível (sublinear)
@@ -230,7 +187,6 @@ export const BattleCore = {
   },
 
   animateCapture: function (ballName, ballCatchRate) {
-// ... (restante da função animateCapture) ...
     return new Promise((resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
       const chance = BattleCore.calculateCatchRate(
@@ -319,7 +275,6 @@ export const BattleCore = {
   },
   
   tryCapture: async function (ballName, ballCatchRate) {
-// ... (restante da função tryCapture) ...
     const ballItem = window.gameState.profile.items.find(
       (i) => i.name === ballName
     );
@@ -386,7 +341,6 @@ export const BattleCore = {
 
     // 1. Ação do Jogador
     if (action === "run") {
-// ... (restante da lógica de run) ...
       if (Math.random() < 0.5) {
         BattleCore.addBattleLog(`Você fugiu com sucesso!`);
         ended = true;
@@ -401,17 +355,9 @@ export const BattleCore = {
         return;
       }
       
-      // ANIMAÇÃO: Ataque do Jogador (AGORA USANDO A NOVA FUNÇÃO)
-      await BattleCore._animateAttackSprite(
-          '.player-sprite', 
-          '.opponent-sprite', 
-          playerPokemon, 
-          'animate-attack'
-      );
-      
-      // ANTES:
-      // BattleCore._animateBattleAction('.player-sprite', 'animate-attack', 300);
-      // await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
+      // ANIMAÇÃO: Ataque do Jogador
+      BattleCore._animateBattleAction('.player-sprite', 'animate-attack', 300);
+      await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
 
       const damageResult = BattleCore.calculateDamage(
         playerPokemon,
@@ -445,7 +391,6 @@ export const BattleCore = {
       }
       
     } else if (action === "item" && item) {
-// ... (restante da lógica de item) ...
       // Itens de Cura/Pokébola
       if (item.catchRate) {
         // CORREÇÃO: Usa moveName (nome da pokébola) em vez da variável indefinida 'ballName'
@@ -491,7 +436,7 @@ export const BattleCore = {
     if (!ended && (action === "move" || action === "opponent_attack" || (action === "item" && item?.healAmount))) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // ANIMAÇÃO: Ataque do Oponente (NÃO PRECISA TROCAR SPRITE)
+      // ANIMAÇÃO: Ataque do Oponente
       BattleCore._animateBattleAction('.opponent-sprite', 'animate-opponent-attack', 300);
       await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
 
@@ -546,7 +491,6 @@ export const BattleCore = {
     }
 
     // 3. Fim do Turno / Batalha
-// ... (restante da função playerTurn) ...
     BattleCore.updateBattleScreen(); // Última atualização de tela
 
     if (ended) {
@@ -567,7 +511,6 @@ export const BattleCore = {
   },
 
   switchPokemon: async function (newIndex) {
-// ... (restante da função switchPokemon) ...
     const battle = window.gameState.battle;
     // Acessando getActivePokemon via window.Utils
     const currentPokemon = window.Utils.getActivePokemon();
@@ -608,7 +551,6 @@ export const BattleCore = {
   },
 
   setBattleMenu: function (menu) {
-// ... (restante da função setBattleMenu) ...
     if(window.gameState.battle.type === 'pvp' && window.gameState.battle.currentMenu === 'disabled' && menu !== 'main') {
         return; 
     }
@@ -617,7 +559,6 @@ export const BattleCore = {
   },
   
   updateBattleScreen: function () {
-// ... (restante da função updateBattleScreen) ...
     const battleArea = document.getElementById("battle-area");
     if (!battleArea || !window.gameState.battle) return;
 
@@ -651,7 +592,6 @@ export const BattleCore = {
 
     // --- Geração do Menu de Opções ---
     if (isMainMenu) {
-// ... (restante da lógica de menu) ...
       optionsHtml = `
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button bg-red-500 hover:bg-red-600">Lutar</button>
@@ -661,7 +601,6 @@ export const BattleCore = {
                 </div>
             `;
     } else if (battle.currentMenu === "fight") {
-// ... (restante da lógica de menu) ...
       optionsHtml = playerPokemon.moves
         .map(
           (move) =>
@@ -672,7 +611,6 @@ export const BattleCore = {
         .join("");
       optionsHtml = `<div class="grid grid-cols-2 gap-2">${optionsHtml}</div>`;
     } else if (battle.currentMenu === "item") {
-// ... (restante da lógica de menu) ...
       const items = window.gameState.profile.items;
       // Itens que podem ser usados em batalha (Pokébolas em wild, Poções em qualquer)
       const battleItems = items.filter((i) => (i.catchRate && battle.type === 'wild') || i.healAmount);

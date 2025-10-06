@@ -79,7 +79,6 @@ def find_pt_description(flavor_text_entries):
         
     return "Descrição não encontrada."
 
-
 def parse_evolution_chain(chain_data):
     """Analisa recursivamente a estrutura aninhada da cadeia de evolução."""
     
@@ -103,7 +102,6 @@ def parse_evolution_chain(chain_data):
     # Mapeia a cadeia para o ID do Pokémon base (primeiro da lista)
     if chain:
         EVOLUTION_CHAINS[chain[0]['id']] = chain
-
 
 def download_sprite(url, filename):
     """Baixa um sprite e salva-o localmente."""
@@ -227,6 +225,7 @@ def generate_data():
 # ==============================================================================
 # 4. EXPORTAÇÃO
 # ==============================================================================
+
 def export_js_file():
     """Gera o arquivo local_poke_data.js com os dados formatados."""
     
@@ -255,7 +254,6 @@ export const EVOLUTION_CHAINS = {json.dumps(EVOLUTION_CHAINS, indent=4, ensure_a
     except Exception as e:
         print(f"\nERRO FATAL ao escrever no arquivo JS: {e}")
         print("Certifique-se de que o script tem permissão para escrever em 'local_poke_data.js'.")
-
 
 if __name__ == "__main__":
     generate_data()

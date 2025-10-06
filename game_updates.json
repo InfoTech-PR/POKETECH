@@ -45,6 +45,12 @@
     "Balancear Dano (Ataque/Defesa) para batalhas PvE (Concluído, precisa de testes).",
     "Balancear HP e Nível dos Pokémons selvagens (diminuindo Pokémons evoluídos no explorar) (Concluído, precisa de testes).",
     "Implementar tela de Amizades (Friendship) e PvP com suporte a Firestore.",
-    "Adicionar mais itens e efeitos de itens (Status/Boosts)."
+    "Adicionar mais itens e efeitos de itens (Status/Boosts).",
+    "Reduzir spawns de evoluídos, priorizar formas básicas.",
+    "Balancear nível dos selvagens; criar eventos raros com Pokémon fortes.",
+    "Musica deve se manter e nao reiniciar ao sair e entrar nas telas",
+    "Cada Pokémon deve ter 2 ataques (comum e tipo). Golpes extras são achados e atribuídos.",
+    "Ataques especiais têm 10 usos; recarrega com poção ou no Centro Pokémon.",
+    ""
   ]
 }

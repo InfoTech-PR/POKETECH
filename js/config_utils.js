@@ -412,6 +412,8 @@ export const PokeAPI = {
           : "Descrição não encontrada.",
         height: pokemonData.height,
         weight: pokemonData.weight,
+        isLegendary: speciesData.is_legendary, 
+        isMythical: speciesData.is_mythical, 
       };
 
       PokeAPI.speciesDataCache[pokemonId] = data;

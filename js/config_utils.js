@@ -4,6 +4,7 @@
 
 export async function createConfigAndUtils(v) {
   // Importação dinâmica com cache-busting (V = "?v=123456789")
+  // O módulo local_poke_data.js é carregado aqui para garantir que esteja atualizado.
   const localDataModule = await import(`./local_poke_data.js${v}`);
   const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS } = localDataModule;
 
@@ -73,7 +74,7 @@ export async function createConfigAndUtils(v) {
           isMuted: false,
         },
       },
-      pokedexCache: {},
+      pokedexCache: {}, // Garante que o cache é inicializado como objeto vazio
       currentScreen: "mainMenu",
       battle: null,
       pvpRoomId: null,
@@ -358,17 +359,28 @@ export async function createConfigAndUtils(v) {
         types: data.types,
       };
 
-      if (result.id) {
-        window.gameState.pokedexCache[result.id] = {
-          name: result.name,
-          types: result.types,
-        };
-      }
+      // === CORREÇÃO DE SEGURANÇA AQUI ===
+      // Garante que o estado do jogo e o cache existam antes de tentar escrever.
+      if (window.gameState && window.gameState.pokedexCache) { 
+        if (result.id) {
+          // Preenche o cache para a Pokédex (para que o filtro funcione)
+          window.gameState.pokedexCache[result.id] = {
+            name: result.name,
+            types: result.types,
+            spriteUrl: result.sprite // Adiciona o sprite (front) para uso no grid da Pokédex
+          };
+        }
 
-      if (!isPokedexView) {
-        Utils.registerPokemon(result.id);
+        if (!isPokedexView) {
+          Utils.registerPokemon(result.id);
+        }
+      } else {
+         // Ocorre apenas na primeira chamada de explore, antes de inicializar a UI.
+         console.warn("Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem.");
       }
+      // === FIM DA CORREÇÃO DE SEGURANÇA ===
       
+      // O sprite na tela de batalha é sempre o front_sprite, a menos que seja um backSprite (que é tratado no battle_core)
       if (window.gameState.currentScreen === 'battle' && !isPokedexView) {
           result.sprite = data.front_sprite;
       }

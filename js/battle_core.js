@@ -702,7 +702,6 @@ export const BattleCore = {
     // --- Renderização da Tela de Batalha ---
     battleArea.innerHTML = `
             <div class="relative h-48 mb-4 flex-shrink-0">
-// ... (restante do HTML) ...
                 <!-- OPPONENT HP BOX -->
                 <div class="absolute top-0 left-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
                     <div class="gba-font text-sm font-bold">${

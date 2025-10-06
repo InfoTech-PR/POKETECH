@@ -209,7 +209,7 @@ export const BattleCore = {
 
             setTimeout(() => {
               window.gameState.profile.pokemon.push(wildPokemon);
-              window.Utils.saveGame();
+              window.GameLogic.saveGameData();
               // Acessa a função via window.AuthSetup, usando optional chaining (?)
               window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
               window.Renderer.showScreen("mainMenu");
@@ -258,7 +258,7 @@ export const BattleCore = {
     
     // Decrementa o item após a tentativa, independentemente do resultado
     ballItem.quantity--;
-    window.Utils.saveGame();
+    window.GameLogic.saveGameData();
     
     // ATUALIZAÇÃO MANUAL da tela aqui, pois animateCapture não faz.
     BattleCore.updateBattleScreen();
@@ -466,7 +466,7 @@ export const BattleCore = {
         window.AuthSetup?.handleBattleMusic(false); // 🔊 VOLTA PARA MÚSICA DE FUNDO
         // Acessando showScreen e saveGame via window.
         window.Renderer.showScreen("mainMenu");
-        window.Utils.saveGame();
+        window.GameLogic.saveGameData();
       }, 2000);
     }
 

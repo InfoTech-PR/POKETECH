@@ -1,36 +1,25 @@
-/**
- * js/renderer.js
- * MÓDULO 5: RENDERER
- * Gerencia toda a Geração de UI e Navegação de Tela.
- */
-
-// REMOVIDO: importação estática para evitar problemas de cache. 
-// A dependência 'Utils' agora é acessada através do objeto 'window' (exposto pelo app.js).
-
-/**
- * Módulo para gerenciar toda a Geração de UI e Navegação de Tela.
- */
 export const Renderer = {
-  /** Função de navegação principal. */
   showScreen: function (screenId, extraData = null) {
     window.gameState.currentScreen = screenId;
     const app = document.getElementById("app-container");
-    
+
     // O wrapper do card GBA que existe no index.html (class="gba-screen")
     const gbaScreen = document.querySelector(".gba-screen");
     if (gbaScreen) {
-        // Limpa o conteúdo antes de renderizar a nova tela
-        gbaScreen.innerHTML = "";
+      // Limpa o conteúdo antes de renderizar a nova tela
+      gbaScreen.innerHTML = "";
     } else {
-        // Fallback (nunca deve acontecer se o index.html estiver correto)
-        console.error("Elemento .gba-screen não encontrado.");
-        return;
+      // Fallback (nunca deve acontecer se o index.html estiver correto)
+      console.error("Elemento .gba-screen não encontrado.");
+      return;
     }
-
 
     switch (screenId) {
       case "initialMenu":
         Renderer.renderInitialMenu(app);
+        break;
+      case "starterSelection":
+        Renderer.renderStarterSelection(app);
         break;
       case "friendshipMenu":
         Renderer.renderFriendshipMenu(app);
@@ -90,103 +79,104 @@ export const Renderer = {
     }
   },
 
-  /** Template HTML para o card estilo GBA. (Agora apenas injeta o conteúdo no gba-screen existente) */
   renderGbaCard: function (contentHtml) {
     // Encontra o elemento gba-screen que já existe no DOM (graças ao index.html)
     const gbaScreen = document.querySelector(".gba-screen");
     if (gbaScreen) {
-        gbaScreen.innerHTML = contentHtml;
+      gbaScreen.innerHTML = contentHtml;
     } else {
-        console.error("Elemento .gba-screen não encontrado para renderizar card.");
+      console.error(
+        "Elemento .gba-screen não encontrado para renderizar card."
+      );
     }
   },
 
   renderInitialMenu: function (app) {
-    const trainerName =
-      window.gameState.profile.trainerName === "NOVO TREINADOR"
-        ? ""
-        : window.gameState.profile.trainerName;
-
-    const currentGender = window.gameState.profile.trainerGender;
-
-    const getStarterSpriteKey = (name) => {
-      switch (name) {
-        case "bulbasaur":
-          return "1";
-        case "charmander":
-        case "charizard": // Adicionado para carregar imagens corretas
-          return "4";
-        case "squirtle":
-          return "7";
-        default:
-          return name;
-      }
-    };
-
+    // Esta tela só terá a opção de login
     const content = `
-            <!-- Adiciona a classe 'relative' ao container principal para que o botão 'reset' posicione-se corretamente -->
             <div class="h-full w-full flex flex-col justify-between relative">
-            
-                <!-- Conteúdo Principal do Menu -->
                 <div class="flex-grow flex flex-col items-center p-4 overflow-y-auto">
-                    <!-- Título como Imagem -->
                     <div class="flex justify-center mb-4 flex-shrink-0">
                         <img id="titleImage" src="https://64.media.tumblr.com/a1e87d2030a73aee16661e8807da6c1d/tumblr_mkhnmmFwaA1rxvkeso1_500.gif" alt="Título do Jogo" class="w-full max-w-sm" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                         <h1 class="text-3xl font-bold text-gray-800 gba-font" style="display:none;">POKÉMON RPG</h1>
                     </div>
                     
+                    <div class="mt-8 flex flex-col space-y-4 w-full max-w-xs mx-auto">
+                        <button
+                            onclick="window.signInWithGoogle()"
+                            class="gba-button bg-blue-500 hover:bg-blue-600 flex items-center justify-center space-x-2"
+                        >
+                            <i class="fa-brands fa-google"></i>
+                            <span>LOGIN COM GOOGLE</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    Renderer.renderGbaCard(content);
+  },
+
+  renderStarterSelection: function (app) {
+    const trainerName = window.gameState.profile.trainerName;
+    const currentGender = window.gameState.profile.trainerGender;
+
+    // NOVO: Mapeamento dos nomes para os IDs das sprites
+    const starterSpriteIds = {
+      bulbasaur: 1,
+      charmander: 4,
+      squirtle: 7,
+    };
+
+    const content = `
+            <div class="h-full w-full flex flex-col justify-between relative">
+                <div class="flex-grow flex flex-col items-center p-4 overflow-y-auto">
                     <div class="mb-4 flex-shrink-0 w-full max-w-xs">
                         <label for="trainerNameInput" class="text-xs font-bold gba-font block mb-1">Nome do Treinador:</label>
                         <input id="trainerNameInput" type="text" placeholder="Ash, Misty, etc." 
                             value="${trainerName}"
                             class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner">
                     </div>
-                     <div class="mb-6 w-full max-w-xs">
-                            <p class="text-xs font-bold gba-font mb-3 text-center">Escolha seu Personagem:</p>
-                            <div class="flex justify-center gap-6 sm:gap-10">
-                                <!-- Personagem Masculino -->
-                                <div onclick="window.selectGender('MALE')" 
-                                    class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                    ${
-                                      currentGender === "MALE"
-                                        ? "border-blue-600 bg-blue-200 shadow-lg"
-                                        : "border-gray-300 bg-white hover:bg-gray-200"
-                                    }">
-                                    <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
-                                        alt="Treinador Masculino" 
-                                        class="h-24 object-contain" 
-                                        onerror="this.src='https://placehold.co/150x150/38bdf8/fff?text=M'">
-                                    <div class="text-xs gba-font mt-1">Homem</div>
-                                </div>
-                                
-                                <!-- Personagem Feminino -->
-                                <div onclick="window.selectGender('FEMALE')" 
-                                    class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                    ${
-                                      currentGender ===
-                                      "FEMALE"
-                                        ? "border-pink-600 bg-pink-200 shadow-lg"
-                                        : "border-gray-300 bg-white hover:bg-gray-200"
-                                    }">
-                                    <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
-                                        alt="Treinadora Feminina" 
-                                        class="h-24 object-contain" 
-                                        onerror="this.src='https://placehold.co/150x150/f87171/fff?text=F'">
-                                    <div class="text-xs gba-font mt-1">Mulher</div>
-                                </div>
+                    <div class="mb-6 w-full max-w-xs">
+                        <p class="text-xs font-bold gba-font mb-3 text-center">Escolha seu Personagem:</p>
+                        <div class="flex justify-center gap-6 sm:gap-10">
+                            <div onclick="Renderer.selectGender('MALE')" 
+                                class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
+                                ${
+                                  currentGender === "MALE"
+                                    ? "border-blue-600 bg-blue-200 shadow-lg"
+                                    : "border-gray-300 bg-white hover:bg-gray-200"
+                                }">
+                                <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
+                                    alt="Treinador Masculino" 
+                                    class="h-24 object-contain" 
+                                    onerror="this.src='https://placehold.co/150x150/38bdf8/fff?text=M'">
+                                <div class="text-xs gba-font mt-1">Homem</div>
+                            </div>
+                            <div onclick="Renderer.selectGender('FEMALE')" 
+                                class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
+                                ${
+                                  currentGender === "FEMALE"
+                                    ? "border-pink-600 bg-pink-200 shadow-lg"
+                                    : "border-gray-300 bg-white hover:bg-gray-200"
+                                }">
+                                <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
+                                    alt="Treinadora Feminina" 
+                                    class="h-24 object-contain" 
+                                    onerror="this.src='https://placehold.co/150x150/f87171/fff?text=F'">
+                                <div class="text-xs gba-font mt-1">Mulher</div>
                             </div>
                         </div>
+                    </div>
 
-                    <!-- Conteúdo da lista de iniciais que pode rolar se for muito grande -->
                     <div class="mb-6 w-full max-w-sm flex-grow">
                         <p class="text-xs font-bold gba-font mb-3 mt-6 text-center">Escolha seu Inicial:</p>
                         <div class="flex flex-col sm:flex-row justify-around gap-4"> 
                             ${window.GameConfig.STARTERS.map(
                               (name) => `
                                 <div onclick="Renderer.selectStarter('${name}')" class="flex flex-col items-center flex-1 cursor-pointer">
-                                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${getStarterSpriteKey(
-                                      name
-                                    )}.png" alt="${name}" 
+                                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
+                                      starterSpriteIds[name]
+                                    }.png" alt="${name}" 
                                         class="mx-auto w-20 h-20 sm:w-24 sm:h-24 transition-transform duration-200 hover:scale-125">
                                     <div class="text-xs gba-font text-gray-800 mt-2 text-center">${window.Utils.formatName(
                                       name
@@ -197,30 +187,17 @@ export const Renderer = {
                         </div>
                     </div>
                 </div>
-                <!-- Fim da seção de conteúdo principal -->
-
-                <!-- BOTÃO ESCONDIDO PARA RESETAR DADOS (Canto inferior esquerdo) -->
-                <!-- Utiliza confirmação de duplo clique para evitar resets acidentais. -->
-                <button 
-                    onclick="this.textContent === 'CONFIRMA?' ? window.resetGameData() : (this.textContent = 'CONFIRMA?')"
-                    onmouseout="this.textContent = 'RESET';"
-                    class="absolute bottom-1 left-1 gba-font text-[8px] text-red-700 bg-red-200 opacity-20 hover:opacity-100 transition-opacity p-1 rounded-sm border border-red-800 shadow-sm"
-                    title="Cuidado: Isso apagará TODO o seu progresso!">
-                    RESET
-                </button>
             </div>
         `;
     Renderer.renderGbaCard(content);
   },
 
-  /** Define o gênero do treinador e recarrega a tela de Initial Menu. */
   selectGender: function (gender) {
     window.gameState.profile.trainerGender = gender;
     // Não precisa de app-container, injeta direto no gba-screen
-    Renderer.renderInitialMenu(document.getElementById("app-container")); 
+    Renderer.renderInitialMenu(document.getElementById("app-container"));
   },
 
-  /** Seleciona o Pokémon inicial, define o nome e inicia o jogo. */
   selectStarter: async function (name) {
     const input = document.getElementById("trainerNameInput");
     const trainerName = input.value.trim();
@@ -236,29 +213,30 @@ export const Renderer = {
     window.gameState.profile.trainerName = trainerName.toUpperCase();
 
     try {
-        const starterData = await window.PokeAPI.fetchPokemonData(name);
-        if (starterData) {
-          window.gameState.profile.pokemon.push(starterData);
-          window.Utils.saveGame();
-          Renderer.showScreen("mainMenu");
-        } else {
-          // Garante que se a função retornar null por erro, ele avisa
-          window.Utils.showModal(
-            "errorModal",
-            `Falha ao carregar dados de ${window.Utils.formatName(name)} da PokéAPI. Tente novamente.`
-          );
-        }
-    } catch (error) {
-        // Captura qualquer erro de execução, incluindo o que causou o problema original
+      const starterData = await window.PokeAPI.fetchPokemonData(name);
+      if (starterData) {
+        window.gameState.profile.pokemon.push(starterData);
+
+        // NOVO: Salva o novo perfil no Firestore e redireciona.
+        window.GameLogic.saveProfile();
+        window.Renderer.showScreen("mainMenu");
+      } else {
         window.Utils.showModal(
-            "errorModal",
-            `Erro ao iniciar jogo: ${error.message.substring(0, 100)}`
+          "errorModal",
+          `Falha ao carregar dados de ${window.Utils.formatName(
+            name
+          )} da PokéAPI. Tente novamente.`
         );
-        console.error("Erro ao selecionar inicial:", error);
+      }
+    } catch (error) {
+      window.Utils.showModal(
+        "errorModal",
+        `Erro ao iniciar jogo: ${error.message.substring(0, 100)}`
+      );
+      console.error("Erro ao selecionar inicial:", error);
     }
   },
 
-  /** Renderiza a tela principal do jogo (Main Menu). */
   renderMainMenu: function (app) {
     const profile = window.gameState.profile;
 
@@ -290,7 +268,6 @@ export const Renderer = {
             </div>
         `;
 
-    // NOVO MENU PRINCIPAL COM SUBGRUPOS
     const menuHtml = `
             <div class="space-y-2 p-2 h-full flex flex-col justify-start">
                 <button onclick="Renderer.showScreen('pokemonMenu')" class="gba-button bg-red-500 hover:bg-red-600">MEU TIME</button>
@@ -301,14 +278,19 @@ export const Renderer = {
         `;
 
     const exploreDisabled = allFainted ? "disabled" : "";
+
+    // CORREÇÃO AQUI: Define uma mensagem padrão se o exploreLog estiver vazio.
+    const exploreLog = window.gameState.exploreLog || [];
     const exploreMsg = allFainted
       ? '<span class="text-red-500">TODOS DESMAIADOS! Vá para o Centro Pokémon.</span>'
-      : window.gameState.exploreLog.slice(-1)[0];
+      : // Se o log não estiver vazio, pega o último item. Se estiver, usa a mensagem padrão.
+      exploreLog.length > 0
+      ? exploreLog.slice(-1)[0]
+      : "O que você fará?";
 
     const exploreHtml = `
             <div class="p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner flex-shrink-0">
                 <div class="text-sm font-bold text-gray-800 gba-font border-b border-gray-300 pb-1 mb-2">EXPLORAÇÃO RÁPIDA</div>
-                <!-- Aumentando a altura mínima do h-10 para h-16 para dar mais espaço ao log -->
                 <div id="explore-result" class="h-16 text-xs gba-font mb-2 overflow-y-auto">
                     ${exploreMsg}
                 </div>
@@ -317,10 +299,7 @@ export const Renderer = {
         `;
 
     const combinedHtml = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MENU PRINCIPAL</div>
-            
-            <!-- Top Section: Stats (Left) & Menu (Right) -->
-            <!-- Esta seção usa flex-grow para usar o espaço no meio da tela -->
+            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MENU POKÉTECH</div>
             <div class="flex flex-col sm:flex-row gap-4 mb-4 flex-grow">
                 <div class="sm:w-2/5 w-full flex-shrink-0">
                     ${statsHtml}
@@ -329,8 +308,6 @@ export const Renderer = {
                     ${menuHtml}
                 </div>
             </div>
-
-            <!-- Bottom Section: Quick Explore -->
             <div class="flex-shrink-0">
                 ${exploreHtml}
             </div>
@@ -354,7 +331,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza o submenu de amizades. */
   renderFriendshipMenu: function (app) {
     const content = `
     <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>
@@ -370,8 +346,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  // --- NOVAS FUNÇÕES DE SUBMENU ---
-  /** Renderiza o submenu de Pokémons (Time, Mochila, Pokédex). */
   renderPokemonMenu: function (app) {
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MEU TIME</div>
@@ -387,7 +361,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza o submenu de Serviços (Centro, Loja). */
   renderServiceMenu: function (app) {
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SERVIÇOS</div>
@@ -402,14 +375,12 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  // --- FIM DAS NOVAS FUNÇÕES DE SUBMENU ---
-  /** Renderiza o novo menu de preferências. */
   renderPreferences: function (app) {
-      const prefs = window.gameState.profile.preferences;
-      const volumePercent = Math.round(prefs.volume * 100);
-      const isMuted = prefs.isMuted;
-      
-      const content = `
+    const prefs = window.gameState.profile.preferences;
+    const volumePercent = Math.round(prefs.volume * 100);
+    const isMuted = prefs.isMuted;
+
+    const content = `
           <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font flex-shrink-0">PREFERÊNCIAS</div>
           
           <div class="p-4 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-6 flex-grow overflow-y-auto">
@@ -420,17 +391,29 @@ export const Renderer = {
                   <label for="volumeSlider" class="block text-xs font-bold gba-font mb-2">
                       Volume da Música: ${volumePercent}%
                   </label>
-                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${prefs.volume}" 
+                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${
+                    prefs.volume
+                  }" 
                          oninput="window.Utils.updateVolume(this.value)"
                          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
               </div>
 
               <!-- Botão Mute -->
               <button onclick="window.Utils.toggleMute()" 
-                      class="gba-button w-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}">
-                  ${isMuted ? 'SOM MUDO (CLIQUE PARA LIGAR)' : 'SOM LIGADO (CLIQUE PARA MUTAR)'}
+                      class="gba-button w-full ${
+                        isMuted
+                          ? "bg-red-500 hover:bg-red-600"
+                          : "bg-green-500 hover:bg-green-600"
+                      }">
+                  ${
+                    isMuted
+                      ? "SOM MUDO (CLIQUE PARA LIGAR)"
+                      : "SOM LIGADO (CLIQUE PARA MUTAR)"
+                  }
               </button>
-              <p class="text-xs gba-font text-gray-500 mt-2 text-center">(O volume atual do jogo é ${isMuted ? 'MUDO' : 'LIGADO'})</p>
+              <p class="text-xs gba-font text-gray-500 mt-2 text-center">(O volume atual do jogo é ${
+                isMuted ? "MUDO" : "LIGADO"
+              })</p>
 
           </div>
           
@@ -439,19 +422,15 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a lista de Pokémons do jogador. */
   renderPokemonList: function (app) {
     const pokemonArray = window.gameState.profile.pokemon;
 
-    
-
     const pokemonHtml = pokemonArray
-      .map(
-        (p, index) => { 
-          const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
-          const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
-          
-          return `
+      .map((p, index) => {
+        const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+        const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+
+        return `
         <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
         <div id="pokemon-list-item-${index}" 
              data-pokemon-index="${index}"
@@ -460,8 +439,8 @@ export const Renderer = {
              ondragenter="window.GameLogic.dragEnter(event)"
              ondragleave="window.GameLogic.dragLeave(event)"
              class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
-              p.currentHp <= 0 ? "opacity-50" : ""
-            }">
+               p.currentHp <= 0 ? "opacity-50" : ""
+             }">
             
             <!-- ÁREA 1: DRAG HANDLE (PONTINHOS) - ÚNICO ELEMENTO ARRASTÁVEL -->
             <div data-drag-handle="true"
@@ -477,13 +456,17 @@ export const Renderer = {
             </div>
 
             <!-- ÁREA 2: INFORMAÇÕES DO POKÉMON (CLICÁVEL) - OCUPA O ESPAÇO RESTANTE -->
-            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="Renderer.showPokemonStats('${p.name}', ${index})">
+            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="Renderer.showPokemonStats('${
+              p.name
+            }', ${index})">
                 <img src="${p.sprite}" alt="${
           p.name
         }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <!-- Ajuste de Layout: flex-col para empilhar HP e EXP, e text-xs para caber em telas pequenas -->
                 <div class="flex flex-col min-w-0">
-                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${p.name} </div>
+                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${
+                      p.name
+                    } </div>
                     <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
@@ -493,15 +476,16 @@ export const Renderer = {
                             <div class="h-1.5 rounded-full bg-blue-500 transition-all duration-500" 
                                  style="width: ${expPercent}%;"></div>
                         </div>
-                        <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(expPercent)}%</span>
+                        <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(
+                          expPercent
+                        )}%</span>
                     </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
-  }
-      )
+      })
       .join("");
 
     const content = `
@@ -518,61 +502,100 @@ export const Renderer = {
     `;
     Renderer.renderGbaCard(content);
   },
-  
-  /** Renderiza a tela de gerenciamento (soltar e evoluir Pokémons). */
+
   renderManagePokemon: function (app) {
     const pokemonArray = window.gameState.profile.pokemon;
     const evolutionCost = window.GameConfig.EVOLUTION_COST;
     const requiredExp = 1000; // Nova regra: 1000 EXP
-    
+
     // Lista SIMULADA de Pokémons de estágio final que não podem evoluir.
     const FINAL_EVOLUTIONS = [
-        'venusaur', 'charizard', 'blastoise', 'butterfree', 'beedrill', 
-        'pidgeot', 'raticate', 'fearow', 'arbok', 'raichu', 'sandslash', 
-        'nidoking', 'nidoqueen', 'clefable', 'ninetales', 'wigglytuff',
-        'vileplume', 'poliwrath', 'alakazam', 'machamp', 'golem', 
-        'slowbro', 'gengar', 'onix', 'hypno', 'kingler', 'hitmonlee', 
-        'hitmonchan', 'chansey', 'tangela', 'scyther', 'jynx', 
-        'electabuzz', 'magmar', 'pinsir', 'tauros', 'gyarados', 
-        'lapras', 'ditto', 'eevee', 'vaporeon', 'jolteon', 'flareon', 
-        'porygon', 'omastar', 'kabutops', 'snorlax', 'dragonite', 'mewtwo', 'mew',
-        'porygon-z', 
-    ].map(name => name.toLowerCase());
-
+      "venusaur",
+      "charizard",
+      "blastoise",
+      "butterfree",
+      "beedrill",
+      "pidgeot",
+      "raticate",
+      "fearow",
+      "arbok",
+      "raichu",
+      "sandslash",
+      "nidoking",
+      "nidoqueen",
+      "clefable",
+      "ninetales",
+      "wigglytuff",
+      "vileplume",
+      "poliwrath",
+      "alakazam",
+      "machamp",
+      "golem",
+      "slowbro",
+      "gengar",
+      "onix",
+      "hypno",
+      "kingler",
+      "hitmonlee",
+      "hitmonchan",
+      "chansey",
+      "tangela",
+      "scyther",
+      "jynx",
+      "electabuzz",
+      "magmar",
+      "pinsir",
+      "tauros",
+      "gyarados",
+      "lapras",
+      "ditto",
+      "eevee",
+      "vaporeon",
+      "jolteon",
+      "flareon",
+      "porygon",
+      "omastar",
+      "kabutops",
+      "snorlax",
+      "dragonite",
+      "mewtwo",
+      "mew",
+      "porygon-z",
+    ].map((name) => name.toLowerCase());
 
     const pokemonHtml = pokemonArray
       .map((p, index) => {
         const isCurrentlyActive = index === 0;
         const canRelease = pokemonArray.length > 1;
         const pokemonNameLower = p.name.toLowerCase();
-        
+
         // 1. Checagem de Estágio Final
         const isMaxEvolution = FINAL_EVOLUTIONS.includes(pokemonNameLower);
-        
+
         // 2. Checagem de Custos e EXP
         const hasMoney = window.gameState.profile.money >= evolutionCost;
         const hasExp = p.exp >= requiredExp;
 
         // 3. Pode evoluir se: NÃO é estágio final E tem dinheiro E tem EXP
         const canEvolve = !isMaxEvolution && hasMoney && hasExp;
-        
+
         // Define a classe e o texto do botão de Evoluir
         let evolveButtonText = "Evoluir";
         let evolveButtonClass = "bg-blue-500 hover:bg-blue-600";
 
         if (isMaxEvolution) {
-            evolveButtonText = "Evolução Máxima";
-            evolveButtonClass = "bg-gray-400 cursor-not-allowed";
+          evolveButtonText = "Evolução Máxima";
+          evolveButtonClass = "bg-gray-400 cursor-not-allowed";
         } else if (!hasMoney) {
-            evolveButtonText = `Falta P$ (${evolutionCost}P$)`;
-            evolveButtonClass = "bg-gray-400 cursor-not-allowed";
+          evolveButtonText = `Falta P$ (${evolutionCost}P$)`;
+          evolveButtonClass = "bg-gray-400 cursor-not-allowed";
         } else if (!hasExp) {
-            evolveButtonText = `Falta EXP (${requiredExp}xp)`;
-            evolveButtonClass = "bg-gray-400 cursor-not-allowed";
+          evolveButtonText = `Falta EXP (${requiredExp}xp)`;
+          evolveButtonClass = "bg-gray-400 cursor-not-allowed";
         }
 
         const isDisabledEvolve = !canEvolve && !isMaxEvolution;
-        
+
         // Ajuste no layout para mobile:
         return `
                 <!-- flex-col no mobile, sm:flex-row no desktop/tablet -->
@@ -586,7 +609,11 @@ export const Renderer = {
                         <div class="flex-grow min-w-0">
                             <div class="font-bold gba-font break-words text-xs">${
                               p.name
-                            } (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-[8px] text-green-600">(Ativo)</span>' : ''}</div>
+                            } (Nv. ${p.level}) ${
+          isCurrentlyActive
+            ? '<span class="text-[8px] text-green-600">(Ativo)</span>'
+            : ""
+        }</div>
                             <div class="text-[8px] gba-font">HP: ${
                               p.currentHp
                             }/${p.maxHp} | EXP: ${p.exp}/${requiredExp}</div>
@@ -596,20 +623,34 @@ export const Renderer = {
                     <!-- Contêiner dos Botões (Empilha verticalmente em mobile, fica lado a lado em desktop) -->
                     <div class="flex space-x-2 w-full sm:w-1/2 justify-end">
                         <!-- NOVO BOTÃO 'USAR' / 'ATIVO' -->
-                        <button onclick="${isCurrentlyActive ? '' : `window.GameLogic.setPokemonAsActive(${index})`}"
-                            class="gba-button text-xs w-1/4 h-12 ${isCurrentlyActive ? 'bg-green-600 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}"
+                        <button onclick="${
+                          isCurrentlyActive
+                            ? ""
+                            : `window.GameLogic.setPokemonAsActive(${index})`
+                        }"
+                            class="gba-button text-xs w-1/4 h-12 ${
+                              isCurrentlyActive
+                                ? "bg-green-600 cursor-not-allowed"
+                                : "bg-green-500 hover:bg-green-600"
+                            }"
                             ${isCurrentlyActive ? "disabled" : ""}>
-                            ${isCurrentlyActive ? 'ATIVO' : 'USAR'}
+                            ${isCurrentlyActive ? "ATIVO" : "USAR"}
                         </button>
                         
-                        <button onclick="${canEvolve ? `window.GameLogic.evolvePokemon(${index})` : ""}"
+                        <button onclick="${
+                          canEvolve
+                            ? `window.GameLogic.evolvePokemon(${index})`
+                            : ""
+                        }"
                             class="gba-button text-xs h-12 ${evolveButtonClass}"
                             ${isDisabledEvolve ? "disabled" : ""}>
                             ${evolveButtonText}
                         </button>
                         
                         <button onclick="${
-                          canRelease ? `window.GameLogic.releasePokemon(${index})` : ""
+                          canRelease
+                            ? `window.GameLogic.releasePokemon(${index})`
+                            : ""
                         }"
                             class="gba-button text-xs w-1/4 h-12 ${
                               canRelease
@@ -634,7 +675,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Exibe o modal de estatísticas detalhadas do Pokémon. */
   showPokemonStats: async function (pokemonName, index) {
     const pokemon = window.gameState.profile.pokemon[index];
     if (!pokemon) {
@@ -642,12 +682,14 @@ export const Renderer = {
       return;
     }
 
-    const healItem = window.gameState.profile.items.find(i => i.healAmount);
+    const healItem = window.gameState.profile.items.find((i) => i.healAmount);
     const isHealItemAvailable = healItem && healItem.quantity > 0;
     const expToNextLevel = window.Utils.calculateExpToNextLevel(pokemon.level);
     const expPercent = Math.min(100, (pokemon.exp / expToNextLevel) * 100);
     const movesHtml = pokemon.moves
-      .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
+      .map(
+        (move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`
+      )
       .join("");
     const typesHtml = pokemon.types
       .map(
@@ -660,7 +702,9 @@ export const Renderer = {
       .map(
         ([stat, value]) => `
             <div class="flex justify-between items-center mb-1">
-                <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
+                <span class="text-xs gba-font">${window.Utils.formatName(
+                  stat
+                )}:</span>
                 <span class="text-xs gba-font">${value}</span>
             </div>
         `
@@ -671,13 +715,17 @@ export const Renderer = {
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
                 ${pokemon.name}
             </div>
-            <img src="${pokemon.sprite}" alt="${pokemon.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
+            <img src="${pokemon.sprite}" alt="${
+      pokemon.name
+    }" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
             
             <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
             
             <div class="text-left gba-font text-xs flex-shrink-0">
                 <p><strong>Nível:</strong> ${pokemon.level}</p>
-                <p><strong>HP:</strong> ${pokemon.currentHp}/${pokemon.maxHp}</p>
+                <p><strong>HP:</strong> ${pokemon.currentHp}/${
+      pokemon.maxHp
+    }</p>
                 <div class="mt-2 flex items-center">
                     <span class="gba-font text-[10px] mr-2">EXP</span>
                     <div class="w-full bg-gray-300 h-2 rounded-full border border-gray-500">
@@ -685,7 +733,9 @@ export const Renderer = {
                              style="width: ${expPercent}%;"></div>
                     </div>
                 </div>
-                 <p class="text-[8px] text-gray-700 mt-1">Progresso: ${pokemon.exp} / ${expToNextLevel}</p>
+                 <p class="text-[8px] text-gray-700 mt-1">Progresso: ${
+                   pokemon.exp
+                 } / ${expToNextLevel}</p>
             </div>
             
             <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
@@ -697,13 +747,15 @@ export const Renderer = {
                 </ul>
             </div>
             
-            ${isHealItemAvailable && healItem
-            ? `
+            ${
+              isHealItemAvailable && healItem
+                ? `
                 <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.GameLogic.useItem('${healItem.name}', ${index})" class="gba-button bg-green-500 hover:bg-green-600 mt-4 w-full mb-2 flex-shrink-0">
                     Usar ${healItem.name} (x${healItem.quantity})
                 </button>
                 `
-            : ''}
+                : ""
+            }
             
             <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
@@ -720,10 +772,9 @@ export const Renderer = {
     }
   },
 
-  /** Exibe o modal de estatísticas detalhadas do Pokémon (apenas visualização). */
   showPokedexStats: async function (pokemonId, isSilhouette = false) {
     if (isSilhouette) {
-        const modalContent = `
+      const modalContent = `
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
                 ???
             </div>
@@ -731,36 +782,40 @@ export const Renderer = {
             <div class="text-left gba-font text-xs flex-shrink-0 p-4">
                 <p>Este Pokémon ainda não foi capturado.</p>
                 <p class="mt-2">Continue explorando para encontrá-lo!</p>
-                <p class="mt-2 text-sm">#${pokemonId.toString().padStart(3, '0')}</p>
+                <p class="mt-2 text-sm">#${pokemonId
+                  .toString()
+                  .padStart(3, "0")}</p>
             </div>
             <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
         `;
-        
-        const modal = document.getElementById("pokemonStatsModal");
-        if (modal) {
-            const modalBody = modal.querySelector(".modal-body");
-            if (modalBody) {
-                modalBody.classList.add("flex", "flex-col", "h-full");
-                modalBody.innerHTML = modalContent;
-                modal.classList.remove("hidden");
-            }
+
+      const modal = document.getElementById("pokemonStatsModal");
+      if (modal) {
+        const modalBody = modal.querySelector(".modal-body");
+        if (modalBody) {
+          modalBody.classList.add("flex", "flex-col", "h-full");
+          modalBody.innerHTML = modalContent;
+          modal.classList.remove("hidden");
         }
-        return;
+      }
+      return;
     }
-    
+
     // Busca os dados do Pokémon APENAS para visualização (isPokedexView=true)
     const [pokemonData, speciesData] = await Promise.all([
-        window.PokeAPI.fetchPokemonData(pokemonId, true),
-        window.PokeAPI.fetchSpeciesData(pokemonId) // NOVO: Busca dados de espécie
+      window.PokeAPI.fetchPokemonData(pokemonId, true),
+      window.PokeAPI.fetchSpeciesData(pokemonId), // NOVO: Busca dados de espécie
     ]);
-    
+
     if (!pokemonData || !speciesData) {
-        window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
-        return;
+      window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
+      return;
     }
 
     const movesHtml = pokemonData.moves
-      .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
+      .map(
+        (move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`
+      )
       .join("");
     const typesHtml = pokemonData.types
       .map(
@@ -773,14 +828,16 @@ export const Renderer = {
       .map(
         ([stat, value]) => `
             <div class="flex justify-between items-center mb-1">
-                <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
+                <span class="text-xs gba-font">${window.Utils.formatName(
+                  stat
+                )}:</span>
                 <span class="text-xs gba-font">${value}</span>
             </div>
         `
       )
       .join("");
-      
-    // Conversão de unidades: 
+
+    // Conversão de unidades:
     // Altura: dm para m (divide por 10)
     const heightMeters = (speciesData.height / 10).toFixed(1);
     // Peso: hg para kg (divide por 10)
@@ -788,15 +845,21 @@ export const Renderer = {
 
     const modalContent = `
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
-                #${pokemonData.id.toString().padStart(3, '0')} - ${pokemonData.name}
+                #${pokemonData.id.toString().padStart(3, "0")} - ${
+      pokemonData.name
+    }
             </div>
-            <img src="${pokemonData.sprite}" alt="${pokemonData.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
+            <img src="${pokemonData.sprite}" alt="${
+      pokemonData.name
+    }" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
             
             <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
             
             <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
                 <p class="text-[8px] sm:text-xs"><strong>Altura:</strong> ${heightMeters} m | <strong>Peso:</strong> ${weightKg} kg</p>
-                <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${speciesData.description}</p>
+                <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${
+                  speciesData.description
+                }</p>
             </div>
             
             <div class="p-2 flex-grow overflow-y-auto">
@@ -821,112 +884,134 @@ export const Renderer = {
     }
   },
 
-  /** Renderiza a tela de Pokedex. */
   renderPokedex: function (app, filters = null) {
     // CORREÇÃO: Força filters a ser um objeto vazio se for null.
-    filters = filters ?? {}; 
+    filters = filters ?? {};
 
     const pokedexSet = window.gameState.profile.pokedex;
-    const allTypes = ['grass', 'fire', 'water', 'bug', 'normal', 'poison', 'electric', 'ground', 'fairy', 'fighting', 'psychic', 'rock', 'ghost', 'ice', 'dragon', 'steel', 'dark', 'flying'];
-    
+    const allTypes = [
+      "grass",
+      "fire",
+      "water",
+      "bug",
+      "normal",
+      "poison",
+      "electric",
+      "ground",
+      "fairy",
+      "fighting",
+      "psychic",
+      "rock",
+      "ghost",
+      "ice",
+      "dragon",
+      "steel",
+      "dark",
+      "flying",
+    ];
+
     // Filtros atuais
     // Agora que filters é garantido ser um objeto, podemos acessar suas propriedades.
-    const searchQuery = (filters.search || '').toLowerCase();
-    const typeFilter = filters.type || 'all';
+    const searchQuery = (filters.search || "").toLowerCase();
+    const typeFilter = filters.type || "all";
 
     // Exporta a função de re-renderização com filtros para uso no HTML
     window.filterPokedex = (newSearch, newType) => {
-        Renderer.showScreen('pokedex', { 
-            search: newSearch !== undefined ? newSearch : searchQuery, 
-            type: newType !== undefined ? newType : typeFilter 
-        });
+      Renderer.showScreen("pokedex", {
+        search: newSearch !== undefined ? newSearch : searchQuery,
+        type: newType !== undefined ? newType : typeFilter,
+      });
     };
-    
-    // Lógica de filtragem: 
+
+    // Lógica de filtragem:
     // 1. Cria uma lista de Pokémons (1 a 151)
     let filteredPokedex = [];
-    
+
     // NOVA CORREÇÃO: Inicializa pokedexCache se ainda não existir (caso de saves antigos)
     if (!window.gameState.pokedexCache) {
-        window.gameState.pokedexCache = {};
+      window.gameState.pokedexCache = {};
     }
-    
+
     // NOVO: Adiciona uma chamada para carregar os dados de Pokédex assincronamente
     // e redesenhar a tela quando concluído.
     Renderer._ensurePokedexCacheLoaded();
 
-
     for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
-        // Verifica se o Pokémon está no cache (para obter o nome e tipos)
-        const cachedData = window.gameState.pokedexCache[id];
-        
-        // CORREÇÃO 1: Pega o nome REAL do Pokémon no cache, se ele existir.
-        // Se não houver nome no cache, assume que é o ID para fins de filtro de nome.
-        const pokemonNameRaw = cachedData?.name ? cachedData.name.toLowerCase() : `poke-${id}`;
-        const pokemonNameFormatted = window.Utils.formatName(pokemonNameRaw);
+      // Verifica se o Pokémon está no cache (para obter o nome e tipos)
+      const cachedData = window.gameState.pokedexCache[id];
 
-        // CORREÇÃO 2: A lógica de exibição do nome
-        let displayName;
-        let isKnown = pokedexSet.has(id);
+      // CORREÇÃO 1: Pega o nome REAL do Pokémon no cache, se ele existir.
+      // Se não houver nome no cache, assume que é o ID para fins de filtro de nome.
+      const pokemonNameRaw = cachedData?.name
+        ? cachedData.name.toLowerCase()
+        : `poke-${id}`;
+      const pokemonNameFormatted = window.Utils.formatName(pokemonNameRaw);
 
-        if (isKnown) {
-            // Se o nome real estiver no cache, use-o
-            displayName = cachedData?.name ? pokemonNameFormatted : `POKÉMON #${id.toString().padStart(3, '0')}`;
-        } else {
-            // Se não for capturado, mostra "???"
-            displayName = `???`;
-        }
-        
-        // CORREÇÃO 3 (Filtro de Tipo):
-        // Só ignora se o tipo for diferente de 'all' E
-        // o Pokémon está no cache (tem tipos definidos) E o tipo não corresponde.
-        // Se o Pokémon não estiver no cache (e, portanto, não tem tipo definido) ele DEVE ser exibido,
-        // a menos que o filtro não seja 'all'.
+      // CORREÇÃO 2: A lógica de exibição do nome
+      let displayName;
+      let isKnown = pokedexSet.has(id);
 
-        const hasTypeMatch = cachedData?.types?.includes(typeFilter) ?? false;
-        
-        // A lógica do filtro:
-        // Se o filtro for 'all', sempre mostra.
-        // Se o filtro for por um tipo específico:
-        //    - Se o Pokémon for conhecido (cache existe) E tiver o tipo: mostra.
-        //    - Se o Pokémon NÃO for conhecido (cache não existe), ele não tem tipo, então não mostra.
-        
-        if (typeFilter !== 'all') {
-             // Se o Pokémon estiver na Pokédex (visto/capturado) mas não tem o tipo filtrado, ou
-             // Se o Pokémon não foi visto e não tem o tipo filtrado,
-             // E o tipo filtrado é diferente de 'all', então continue (pula).
-             if (!hasTypeMatch) {
-                 continue;
-             }
+      if (isKnown) {
+        // Se o nome real estiver no cache, use-o
+        displayName = cachedData?.name
+          ? pokemonNameFormatted
+          : `POKÉMON #${id.toString().padStart(3, "0")}`;
+      } else {
+        // Se não for capturado, mostra "???"
+        displayName = `???`;
+      }
+
+      // CORREÇÃO 3 (Filtro de Tipo):
+      // Só ignora se o tipo for diferente de 'all' E
+      // o Pokémon está no cache (tem tipos definidos) E o tipo não corresponde.
+      // Se o Pokémon não estiver no cache (e, portanto, não tem tipo definido) ele DEVE ser exibido,
+      // a menos que o filtro não seja 'all'.
+
+      const hasTypeMatch = cachedData?.types?.includes(typeFilter) ?? false;
+
+      // A lógica do filtro:
+      // Se o filtro for 'all', sempre mostra.
+      // Se o filtro for por um tipo específico:
+      //    - Se o Pokémon for conhecido (cache existe) E tiver o tipo: mostra.
+      //    - Se o Pokémon NÃO for conhecido (cache não existe), ele não tem tipo, então não mostra.
+
+      if (typeFilter !== "all") {
+        // Se o Pokémon estiver na Pokédex (visto/capturado) mas não tem o tipo filtrado, ou
+        // Se o Pokémon não foi visto e não tem o tipo filtrado,
+        // E o tipo filtrado é diferente de 'all', então continue (pula).
+        if (!hasTypeMatch) {
+          continue;
         }
-        
-        // Filtra por busca (nome ou ID)
-        if (searchQuery) {
-            const isMatchByName = pokemonNameRaw.includes(searchQuery);
-            const isMatchById = id.toString().includes(searchQuery);
-            
-            // O nome do Pokémon (raw, em minúsculas) deve bater OU o ID deve bater
-            if (!isMatchByName && !isMatchById) {
-                continue;
-            }
+      }
+
+      // Filtra por busca (nome ou ID)
+      if (searchQuery) {
+        const isMatchByName = pokemonNameRaw.includes(searchQuery);
+        const isMatchById = id.toString().includes(searchQuery);
+
+        // O nome do Pokémon (raw, em minúsculas) deve bater OU o ID deve bater
+        if (!isMatchByName && !isMatchById) {
+          continue;
         }
-        
-        // Adiciona à lista filtrada
-        filteredPokedex.push({ id: id, isCaught: isKnown, name: displayName });
+      }
+
+      // Adiciona à lista filtrada
+      filteredPokedex.push({ id: id, isCaught: isKnown, name: displayName });
     }
-    
-    const pokedexHtml = filteredPokedex.map(p => {
+
+    const pokedexHtml = filteredPokedex
+      .map((p) => {
         const id = p.id;
         const isCaught = p.isCaught;
-        const displayId = id.toString().padStart(3, '0');
-        
+        const displayId = id.toString().padStart(3, "0");
+
         const displayUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
         let displayName = p.name;
-        let filterStyle = 'filter: grayscale(100%) brightness(0.1);';
-        
+        let filterStyle = "filter: grayscale(100%) brightness(0.1);";
+
         // Se capturado, exibe o sprite colorido.
         if (isCaught) {
-            filterStyle = '';
+          filterStyle = "";
         }
 
         return `
@@ -936,18 +1021,20 @@ export const Renderer = {
                 
                 <!-- Nome/ID (Placeholder para escala de grade) -->
                 <div class="text-center w-full truncate">
-                    <span class="gba-font text-[7px] font-bold ${isCaught ? 'text-gray-800' : 'text-gray-400'}">${displayName}</span>
+                    <span class="gba-font text-[7px] font-bold ${
+                      isCaught ? "text-gray-800" : "text-gray-400"
+                    }">${displayName}</span>
                     <div class="text-[6px] gba-font text-gray-600 mt-1 truncate">
                        #${displayId}
                     </div>
                 </div>
             </div>
         `;
-    }).join('');
-    
+      })
+      .join("");
+
     const totalCaught = pokedexSet.size;
     const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
-
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX</div>
@@ -969,92 +1056,107 @@ export const Renderer = {
                 <select id="pokedexFilterType" onchange="window.filterPokedex(undefined, this.value)"
                         class="w-full sm:w-1/3 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
                     <option value="all">TODOS OS TIPOS</option>
-                    ${allTypes.map(type => 
-                        `<option value="${type}" ${type === typeFilter ? 'selected' : ''}>${window.Utils.formatName(type)}</option>`
-                    ).join('')}
+                    ${allTypes
+                      .map(
+                        (type) =>
+                          `<option value="${type}" ${
+                            type === typeFilter ? "selected" : ""
+                          }>${window.Utils.formatName(type)}</option>`
+                      )
+                      .join("")}
                 </select>
             </div>
             
             <!-- Grid de Pokémons (3 Colunas, responsivo) -->
             <div class="flex-grow overflow-y-auto border border-gray-400 p-0 mb-4 bg-gray-100 pokemon-list-container">
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 p-1">
-                    ${pokedexHtml || '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon encontrado com o filtro atual.</p>'}
+                    ${
+                      pokedexHtml ||
+                      '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon encontrado com o filtro atual.</p>'
+                    }
                 </div>
             </div>
             <button onclick="Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     Renderer.renderGbaCard(content);
   },
-  
-  // NOVO: Função auxiliar para preencher o cache de Pokédex
-  _ensurePokedexCacheLoaded: async function() {
+
+  _ensurePokedexCacheLoaded: async function () {
     const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
     const cache = window.gameState.pokedexCache;
     let cacheUpdated = false;
 
     // Se o cache já tiver sido preenchido para o limite total, saia.
     if (Object.keys(cache).length >= totalAvailable) {
-        return;
+      return;
     }
 
     // Cria um array de promessas para buscar todos os dados de Pokémons de 1 a 151
     const fetchPromises = [];
     for (let id = 1; id <= totalAvailable; id++) {
-        // Se o Pokémon não estiver no cache, adicione uma promessa de busca
-        if (!cache[id] && window.gameState.profile.pokedex.has(id)) {
-            fetchPromises.push(
-                window.PokeAPI.fetchPokemonData(id, true).then(data => {
-                    // Se a busca for bem-sucedida, o fetchPokemonData já deve ter preenchido o cache.
-                    if (data && data.id) {
-                         // Apenas para garantir que o cache seja preenchido com nome e tipos
-                         // (fetchPokemonData já faz isso, mas replicamos para clareza)
-                         if (!cache[data.id]) {
-                             cache[data.id] = { name: data.name, types: data.types };
-                         }
-                         cacheUpdated = true;
-                    }
-                }).catch(e => console.error(`Falha ao buscar ID ${id} para cache:`, e))
-            );
-        }
+      // Se o Pokémon não estiver no cache, adicione uma promessa de busca
+      if (!cache[id] && window.gameState.profile.pokedex.has(id)) {
+        fetchPromises.push(
+          window.PokeAPI.fetchPokemonData(id, true)
+            .then((data) => {
+              // Se a busca for bem-sucedida, o fetchPokemonData já deve ter preenchido o cache.
+              if (data && data.id) {
+                // Apenas para garantir que o cache seja preenchido com nome e tipos
+                // (fetchPokemonData já faz isso, mas replicamos para clareza)
+                if (!cache[data.id]) {
+                  cache[data.id] = { name: data.name, types: data.types };
+                }
+                cacheUpdated = true;
+              }
+            })
+            .catch((e) =>
+              console.error(`Falha ao buscar ID ${id} para cache:`, e)
+            )
+        );
+      }
     }
-    
+
     // Se ainda faltar Pokémons não capturados para completar o cache, buscamos apenas os dados mais essenciais:
     if (Object.keys(cache).length < totalAvailable) {
-        for (let id = 1; id <= totalAvailable; id++) {
-             if (!cache[id]) {
-                 fetchPromises.push(
-                     // Usamos um endpoint mais simples, se existir, ou fazemos uma busca leve
-                     window.PokeAPI.fetchPokemonData(id, true).then(data => {
-                         if (data && data.id) {
-                            cacheUpdated = true;
-                         }
-                     }).catch(e => {
-                         // Ignoramos o erro se o Pokémon for desconhecido, apenas marcamos o ID no cache
-                         // para não tentar buscar novamente no futuro, mas sem nome/tipo.
-                         if (!cache[id]) {
-                            cache[id] = { name: null, types: [] }; 
-                            cacheUpdated = true;
-                         }
-                     })
-                 );
-             }
+      for (let id = 1; id <= totalAvailable; id++) {
+        if (!cache[id]) {
+          fetchPromises.push(
+            // Usamos um endpoint mais simples, se existir, ou fazemos uma busca leve
+            window.PokeAPI.fetchPokemonData(id, true)
+              .then((data) => {
+                if (data && data.id) {
+                  cacheUpdated = true;
+                }
+              })
+              .catch((e) => {
+                // Ignoramos o erro se o Pokémon for desconhecido, apenas marcamos o ID no cache
+                // para não tentar buscar novamente no futuro, mas sem nome/tipo.
+                if (!cache[id]) {
+                  cache[id] = { name: null, types: [] };
+                  cacheUpdated = true;
+                }
+              })
+          );
         }
+      }
     }
 
     if (fetchPromises.length > 0) {
-        await Promise.allSettled(fetchPromises);
-        
-        // Se o cache foi atualizado, redesenha a Pokédex
-        if (cacheUpdated) {
-             // Preserva o filtro de pesquisa atual
-             const currentFilters = { search: document.getElementById('pokedexSearch')?.value, type: document.getElementById('pokedexFilterType')?.value };
-             window.Utils.saveGame(); // Salva o cache atualizado
-             Renderer.showScreen('pokedex', currentFilters);
-        }
+      await Promise.allSettled(fetchPromises);
+
+      // Se o cache foi atualizado, redesenha a Pokédex
+      if (cacheUpdated) {
+        // Preserva o filtro de pesquisa atual
+        const currentFilters = {
+          search: document.getElementById("pokedexSearch")?.value,
+          type: document.getElementById("pokedexFilterType")?.value,
+        };
+        window.Utils.saveGame(); // Salva o cache atualizado
+        Renderer.showScreen("pokedex", currentFilters);
+      }
     }
   },
 
-  /** Renderiza a tela de Mochila (Bag). */
   renderBag: function (app, extraData = {}) {
     let itemsHtml = window.gameState.profile.items
       .map((item) => {
@@ -1088,7 +1190,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a tela de Perfil do Treinador. */
   renderProfile: function (app) {
     const profile = window.gameState.profile;
     const trainerImage =
@@ -1096,64 +1197,99 @@ export const Renderer = {
         ? "https://placehold.co/100x100/38bdf8/fff?text=TREINADOR"
         : "https://placehold.co/100x100/f87171/fff?text=TREINADORA";
 
+    // Verifica se o usuário é anônimo para mostrar o botão de login
+    const isAnonymous = window.userId.startsWith("anonymous-");
+
     const content = `
-        <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL DO TREINADOR</div>
-        <div class="flex flex-col items-center justify-center mb-4 flex-shrink-0">
-        <img src="${trainerImage}" alt="Imagem do Treinador" class="w-20 h-20 rounded-full border-4 border-gray-800">
-        </div>
-        <!-- Esta seção usa flex-grow e overflow-y-auto para permitir rolagem no meio da tela -->
-        <div class="space-y-3 text-sm gba-font flex-grow overflow-y-auto p-2">
-        <div>
-            <label for="newTrainerName" class="block text-xs font-bold mb-1">Nome:</label>
-            <input id="newTrainerName" type="text" value="${
-              profile.trainerName
-            }"
-            class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner uppercase">
-        </div>
-        <div>
-            <p class="text-xs font-bold mb-1">Gênero:</p>
-            <div class="flex justify-center space-x-4 text-xs">
-            <label class="flex items-center space-x-1">
-                <input type="radio" name="newTrainerGender" value="MALE" ${
-                  profile.trainerGender === "MALE" ? "checked" : ""
-                } onclick="Renderer.selectGender('MALE')">
-                <span>Homem</span>
-            </label>
-            <label class="flex items-center space-x-1">
-                <input type="radio" name="newTrainerGender" value="FEMALE" ${
-                  profile.trainerGender === "FEMALE" ? "checked" : ""
-                } onclick="Renderer.selectGender('FEMALE')">
-                <span>Mulher</span>
-            </label>
+            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL DO TREINADOR</div>
+            <div class="flex flex-col items-center justify-center mb-4 flex-shrink-0">
+                <img src="${trainerImage}" alt="Imagem do Treinador" class="w-20 h-20 rounded-full border-4 border-gray-800">
             </div>
-        </div>
-        <p><strong>Dinheiro:</strong> P$${profile.money}</p>
-        <p><strong>Pokémons:</strong> ${profile.pokemon.length}</p>
-        <p><strong>ID de Jogador:</strong> ${window.userId}</p>
-        </div>
-        <div class="mt-4 flex-shrink-0">
-        <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 w-full mb-2">Salvar Perfil</button>
-        </div>
-    
-                <div class="mt-4 border-t-2 border-gray-800 pt-4 flex-shrink-0">
-        <button onclick="window.GameLogic.exportSave()" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2">Exportar Save</button>
-        <div class="relative">
-            <input type="file" id="importFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="window.GameLogic.importSave(event)">
-            <button class="gba-button bg-orange-500 hover:bg-orange-600 w-full">Importar Save</button>
-        </div>
-        </div>
-    
-        <button onclick="Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4 flex-shrink-0">Voltar</button>
-    `;
+            
+            <div class="space-y-3 text-sm gba-font flex-grow overflow-y-auto p-2">
+                <div>
+                    <label for="newTrainerName" class="block text-xs font-bold mb-1">Nome:</label>
+                    <input id="newTrainerName" type="text" value="${
+                      profile.trainerName
+                    }"
+                        class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner uppercase">
+                </div>
+                <div>
+                    <p class="text-xs font-bold mb-1">Gênero:</p>
+                    <div class="flex justify-center space-x-4 text-xs">
+                        <label class="flex items-center space-x-1">
+                            <input type="radio" name="newTrainerGender" value="MALE" ${
+                              profile.trainerGender === "MALE" ? "checked" : ""
+                            } onclick="Renderer.selectGender('MALE')">
+                            <span>Homem</span>
+                        </label>
+                        <label class="flex items-center space-x-1">
+                            <input type="radio" name="newTrainerGender" value="FEMALE" ${
+                              profile.trainerGender === "FEMALE"
+                                ? "checked"
+                                : ""
+                            } onclick="Renderer.selectGender('FEMALE')">
+                            <span>Mulher</span>
+                        </label>
+                    </div>
+                </div>
+                <p><strong>Dinheiro:</strong> P$${profile.money}</p>
+                <p><strong>Pokémons:</strong> ${profile.pokemon.length}</p>
+                <p><strong>ID de Jogador:</strong> ${window.userId}</p>
+            </div>
+            
+            <div class="mt-4 flex-shrink-0">
+                <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 w-full mb-2">Salvar Perfil</button>
+            </div>
+            
+            ${
+              isAnonymous
+                ? `
+                <div class="mt-2 text-center text-xs gba-font text-gray-600">
+                    Faça login para salvar na nuvem!
+                </div>
+                <div class="mt-1 flex-shrink-0">
+                    <button
+                        onclick="window.signInWithGoogle()"
+                        class="gba-button bg-blue-500 hover:bg-blue-600 w-full flex items-center justify-center space-x-2"
+                    >
+                        <i class="fa-brands fa-google"></i>
+                        <span>LOGIN COM GOOGLE</span>
+                    </button>
+                </div>
+            `
+                : ""
+            }
+            ${
+              !isAnonymous
+                ? `
+    <div class="mt-2 flex-shrink-0">
+        <button onclick="window.signOutUser()" class="gba-button bg-red-500 hover:bg-red-600 w-full">
+            LOGOUT
+        </button>
+    </div>
+`
+                : ""
+            }
+
+            <div class="mt-4 border-t-2 border-gray-800 pt-4 flex-shrink-0">
+                <button onclick="window.GameLogic.exportSave()" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2">Exportar Save</button>
+                <div class="relative">
+                    <input type="file" id="importFile" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="window.GameLogic.importSave(event)">
+                    <button class="gba-button bg-orange-500 hover:bg-orange-600 w-full">Importar Save</button>
+                </div>
+            </div>
+            
+            <button onclick="Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4 flex-shrink-0">Voltar</button>
+        `;
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a tela de Centro Pokémon. */
   renderHealCenter: function (app) {
     const profile = window.gameState.profile;
     // O valor de GameConfig está disponível globalmente através do módulo app.js
-    const GameConfig = window.GameConfig; 
-    
+    const GameConfig = window.GameConfig;
+
     let totalHealable = 0;
 
     profile.pokemon.forEach((p) => {
@@ -1188,7 +1324,6 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a tela de Loja. */
   renderShop: function (app) {
     const GameConfig = window.GameConfig;
 
@@ -1198,58 +1333,59 @@ export const Renderer = {
      * @param {number} itemCost Custo unitário do item
      */
     function updateSubtotal(inputId, itemCost) {
-        const input = document.getElementById(inputId);
-        const subtotalElement = document.getElementById(`subtotal-${inputId}`);
-        
-        if (input && subtotalElement) {
-            let qty = parseInt(input.value);
-            
-            // Garante que a quantidade está entre 1 e 99
-            if (isNaN(qty) || qty < 1) {
-                qty = 1;
-                input.value = 1;
-            } else if (qty > 99) {
-                qty = 99;
-                input.value = 99;
-            }
-            
-            const total = qty * itemCost;
-            subtotalElement.textContent = `Subtotal: P$${total}`;
+      const input = document.getElementById(inputId);
+      const subtotalElement = document.getElementById(`subtotal-${inputId}`);
 
-            // Oculta/Exibe botão de Compra se o jogador tiver dinheiro
-            const buyButton = document.getElementById(`buy-btn-${inputId}`);
-            if (buyButton) {
-                if (window.gameState.profile.money < total) {
-                    buyButton.disabled = true;
-                    buyButton.classList.add('bg-gray-400');
-                    buyButton.classList.remove('bg-green-500', 'hover:bg-green-600');
-                } else {
-                    buyButton.disabled = false;
-                    buyButton.classList.remove('bg-gray-400');
-                    buyButton.classList.add('bg-green-500', 'hover:bg-green-600');
-                }
-            }
+      if (input && subtotalElement) {
+        let qty = parseInt(input.value);
+
+        // Garante que a quantidade está entre 1 e 99
+        if (isNaN(qty) || qty < 1) {
+          qty = 1;
+          input.value = 1;
+        } else if (qty > 99) {
+          qty = 99;
+          input.value = 99;
         }
+
+        const total = qty * itemCost;
+        subtotalElement.textContent = `Subtotal: P$${total}`;
+
+        // Oculta/Exibe botão de Compra se o jogador tiver dinheiro
+        const buyButton = document.getElementById(`buy-btn-${inputId}`);
+        if (buyButton) {
+          if (window.gameState.profile.money < total) {
+            buyButton.disabled = true;
+            buyButton.classList.add("bg-gray-400");
+            buyButton.classList.remove("bg-green-500", "hover:bg-green-600");
+          } else {
+            buyButton.disabled = false;
+            buyButton.classList.remove("bg-gray-400");
+            buyButton.classList.add("bg-green-500", "hover:bg-green-600");
+          }
+        }
+      }
     }
-    
+
     // Exporta a função para o escopo global para que os botões possam acessá-la
     window.updateSubtotal = updateSubtotal;
 
-    const shopItemsHtml = GameConfig.SHOP_ITEMS.map(
-      (item) => {
-        // ID único para o campo de quantidade (remove espaços para ser um ID HTML válido)
-        const inputId = `qty-${item.name.replace(/\s/g, "")}`;
-        const buyBtnId = `buy-btn-${inputId}`;
-        const initialSubtotal = item.cost * 1;
-        
-        const isAffordable = window.gameState.profile.money >= initialSubtotal;
-        
-        return `
+    const shopItemsHtml = GameConfig.SHOP_ITEMS.map((item) => {
+      // ID único para o campo de quantidade (remove espaços para ser um ID HTML válido)
+      const inputId = `qty-${item.name.replace(/\s/g, "")}`;
+      const buyBtnId = `buy-btn-${inputId}`;
+      const initialSubtotal = item.cost * 1;
+
+      const isAffordable = window.gameState.profile.money >= initialSubtotal;
+
+      return `
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 border-b border-gray-300 flex-shrink-0">
               <!-- Item Name and Cost -->
               <div class="flex-grow min-w-0">
                 <span class="gba-font text-xs sm:text-sm">${item.name}</span>
-                <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${item.cost} cada)</span>
+                <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${
+                  item.cost
+                } cada)</span>
                 <!-- Subtotal dinâmico -->
                 <div id="subtotal-${inputId}" class="gba-font text-xs text-yellow-700 font-bold mt-1">
                     Subtotal: P$${initialSubtotal}
@@ -1260,7 +1396,9 @@ export const Renderer = {
               <div class="flex items-center space-x-1 flex-shrink-0 w-full sm:w-auto">
                 
                 <!-- Botão Decrementar -->
-                <button onclick="document.getElementById('${inputId}').value = Math.max(1, parseInt(document.getElementById('${inputId}').value) - 1); window.updateSubtotal('${inputId}', ${item.cost});"
+                <button onclick="document.getElementById('${inputId}').value = Math.max(1, parseInt(document.getElementById('${inputId}').value) - 1); window.updateSubtotal('${inputId}', ${
+        item.cost
+      });"
                         class="w-8 h-8 gba-button bg-red-400 hover:bg-red-500 p-0 text-xl leading-none">-</button>
                 
                 <!-- Input de Quantidade -->
@@ -1269,21 +1407,28 @@ export const Renderer = {
                     class="w-16 p-1 border-2 border-gray-400 rounded gba-font text-sm text-center bg-white shadow-inner">
                 
                 <!-- Botão Incrementar -->
-                <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${item.cost});"
+                <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${
+        item.cost
+      });"
                         class="w-8 h-8 gba-button bg-blue-400 hover:bg-blue-500 p-0 text-xl leading-none">+</button>
 
                 <!-- Botão Comprar -->
                 <button id="${buyBtnId}"
-                        onclick="window.GameLogic.buyItem('${item.name}', document.getElementById('${inputId}').value)" 
-                        class="gba-button text-xs w-24 h-8 ${isAffordable ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400'}"
-                        ${isAffordable ? '' : 'disabled'}>
+                        onclick="window.GameLogic.buyItem('${
+                          item.name
+                        }', document.getElementById('${inputId}').value)" 
+                        class="gba-button text-xs w-24 h-8 ${
+                          isAffordable
+                            ? "bg-green-500 hover:bg-green-600"
+                            : "bg-gray-400"
+                        }"
+                        ${isAffordable ? "" : "disabled"}>
                     Comprar
                 </button>
               </div>
             </div>
         `;
-      }
-    ).join("");
+    }).join("");
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">LOJA</div>
@@ -1295,11 +1440,10 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a tela de Setup PvP. */
   renderPvpSetup: function (app) {
     // O valor de PvpCore está disponível globalmente através do módulo app.js
     const PvpCore = window.PvpCore;
-    
+
     let messages = "Escolha uma opção.";
     let disabledClass = "";
 
@@ -1329,17 +1473,16 @@ export const Renderer = {
     Renderer.renderGbaCard(content);
   },
 
-  /** Renderiza a tela de espera PvP. */
   renderPvpWaiting: function (roomId) {
     // O valor de PvpCore está disponível globalmente através do módulo app.js
     const PvpCore = window.PvpCore;
 
     const app = document.getElementById("app-container");
     if (!app) return;
-    
+
     // Injeta o conteúdo no gba-screen que já existe no DOM
     const gbaScreen = document.querySelector(".gba-screen");
-    if (!gbaScreen) return; 
+    if (!gbaScreen) return;
 
     const url = `${window.location.origin}${window.location.pathname}?pvp=${roomId}`;
     const content = `
@@ -1354,7 +1497,6 @@ export const Renderer = {
     gbaScreen.innerHTML = content;
   },
 
-  /** Renderiza a tela de batalha e inicia a UI. */
   renderBattleScreen: function (app) {
     // O valor de BattleCore está disponível globalmente através do módulo app.js
     const BattleCore = window.BattleCore;
@@ -1362,15 +1504,14 @@ export const Renderer = {
     // Apenas define a estrutura básica no gba-screen (o card) e injeta o battleArea.
     const gbaScreen = document.querySelector(".gba-screen");
     if (gbaScreen) {
-        // Usa flex-col h-full no battle-area para que o conteúdo (sprites, log, botões)
-        // se ajuste verticalmente dentro do gba-screen
-        gbaScreen.innerHTML = `<div id="battle-area" class="flex flex-col h-full"></div>`;
+      // Usa flex-col h-full no battle-area para que o conteúdo (sprites, log, botões)
+      // se ajuste verticalmente dentro do gba-screen
+      gbaScreen.innerHTML = `<div id="battle-area" class="flex flex-col h-full"></div>`;
     }
     // O BattleCore.updateBattleScreen preenche o #battle-area
     window.BattleCore.updateBattleScreen();
   },
-  
-  /** Renderiza a tela para troca de Pokémon durante a batalha. */
+
   renderSwitchPokemon: function (app) {
     // O valor de BattleCore está disponível globalmente através do módulo app.js
     const BattleCore = window.BattleCore;
@@ -1408,19 +1549,17 @@ export const Renderer = {
           p.name
         }" class="w-10 h-10 mr-2">
                         <div>
-                            <div class="font-bold gba-font">${
-                              p.name
-                            } </div>
+                            <div class="font-bold gba-font">${p.name} </div>
                             <div class="text-xs gba-font">
                             (Nv. ${p.level})
-                            HP: ${
-                              p.currentHp
-                            }/${p.maxHp}</div>
+                            HP: ${p.currentHp}/${p.maxHp}</div>
                         </div>
                     </div>
                     <button 
                         onclick="${
-                          canSelect ? `window.BattleCore.switchPokemon(${index})` : ""
+                          canSelect
+                            ? `window.BattleCore.switchPokemon(${index})`
+                            : ""
                         }" 
                         class="gba-button w-24 h-8 ${buttonClass}" 
                         ${!canSelect ? "disabled" : ""}>
@@ -1438,5 +1577,5 @@ export const Renderer = {
             <button onclick="Renderer.showScreen('battle')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     Renderer.renderGbaCard(content);
-  }
+  },
 };

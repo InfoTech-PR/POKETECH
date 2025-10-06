@@ -1,0 +1,933 @@
+{
+  "profile": {
+    "trainerName": "JOSEPHER",
+    "money": 55734,
+    "items": [
+      {
+        "name": "Pokébola",
+        "quantity": 97,
+        "catchRate": 1
+      },
+      {
+        "name": "Great Ball",
+        "quantity": 17,
+        "catchRate": 1.5
+      },
+      {
+        "name": "Poção",
+        "quantity": 46,
+        "healAmount": 20
+      }
+    ],
+    "pokemon": [
+      {
+        "name": "Raichu",
+        "id": 26,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/26.png",
+        "stats": {
+          "hp": 60,
+          "attack": 90,
+          "defense": 55,
+          "specialattack": 90,
+          "specialdefense": 80,
+          "speed": 110
+        },
+        "level": 22,
+        "currentHp": 114,
+        "maxHp": 116,
+        "exp": 10142,
+        "moves": ["mega-punch", "pay-day", "thunder-punch", "slam"],
+        "types": ["electric"]
+      },
+      {
+        "name": "Porygon-z",
+        "id": 474,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/474.png",
+        "stats": {
+          "hp": 85,
+          "attack": 80,
+          "defense": 70,
+          "specialattack": 135,
+          "specialdefense": 75,
+          "speed": 90
+        },
+        "level": 20,
+        "currentHp": 85,
+        "maxHp": 85,
+        "exp": 1211,
+        "moves": ["tackle", "take-down", "double-edge", "ice-beam"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Machamp",
+        "id": 68,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png",
+        "stats": {
+          "hp": 90,
+          "attack": 130,
+          "defense": 80,
+          "specialattack": 65,
+          "specialdefense": 85,
+          "speed": 55
+        },
+        "level": 18,
+        "currentHp": 98,
+        "maxHp": 98,
+        "exp": 5599,
+        "moves": ["karate-chop", "mega-punch", "fire-punch", "ice-punch"],
+        "types": ["fighting"]
+      },
+      {
+        "name": "Pikachu",
+        "id": 25,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+        "stats": {
+          "hp": 35,
+          "attack": 55,
+          "defense": 40,
+          "specialattack": 50,
+          "specialdefense": 50,
+          "speed": 90
+        },
+        "level": 9,
+        "currentHp": 35,
+        "maxHp": 35,
+        "exp": 0,
+        "moves": ["mega-punch", "pay-day", "thunder-punch", "slam"],
+        "types": ["electric"]
+      },
+      {
+        "name": "Lapras",
+        "id": 131,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/131.png",
+        "stats": {
+          "hp": 130,
+          "attack": 85,
+          "defense": 80,
+          "specialattack": 85,
+          "specialdefense": 95,
+          "speed": 60
+        },
+        "level": 8,
+        "currentHp": 138,
+        "maxHp": 138,
+        "exp": 397,
+        "moves": ["headbutt", "horn-drill", "body-slam", "take-down"],
+        "types": ["water", "ice"]
+      },
+      {
+        "name": "Dragonite",
+        "id": 149,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png",
+        "stats": {
+          "hp": 91,
+          "attack": 134,
+          "defense": 95,
+          "specialattack": 100,
+          "specialdefense": 100,
+          "speed": 80
+        },
+        "level": 10,
+        "currentHp": 91,
+        "maxHp": 91,
+        "exp": 248,
+        "moves": ["mega-punch", "fire-punch", "ice-punch", "thunder-punch"],
+        "types": ["dragon", "flying"]
+      },
+      {
+        "name": "Weedle",
+        "id": 13,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/13.png",
+        "stats": {
+          "hp": 40,
+          "attack": 35,
+          "defense": 30,
+          "specialattack": 20,
+          "specialdefense": 20,
+          "speed": 50
+        },
+        "level": 4,
+        "currentHp": 40,
+        "maxHp": 40,
+        "exp": 0,
+        "moves": ["poison-sting", "string-shot", "bug-bite", "electroweb"],
+        "types": ["bug", "poison"]
+      },
+      {
+        "name": "Squirtle",
+        "id": 7,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png",
+        "stats": {
+          "hp": 44,
+          "attack": 48,
+          "defense": 65,
+          "specialattack": 50,
+          "specialdefense": 64,
+          "speed": 43
+        },
+        "level": 5,
+        "currentHp": 44,
+        "maxHp": 44,
+        "exp": 64,
+        "moves": ["mega-punch", "ice-punch", "mega-kick", "headbutt"],
+        "types": ["water"]
+      },
+      {
+        "name": "Growlithe",
+        "id": 58,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png",
+        "stats": {
+          "hp": 55,
+          "attack": 70,
+          "defense": 45,
+          "specialattack": 70,
+          "specialdefense": 50,
+          "speed": 60
+        },
+        "level": 4,
+        "currentHp": 55,
+        "maxHp": 55,
+        "exp": 0,
+        "moves": ["double-kick", "headbutt", "body-slam", "take-down"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Flareon",
+        "id": 136,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/136.png",
+        "stats": {
+          "hp": 65,
+          "attack": 130,
+          "defense": 60,
+          "specialattack": 95,
+          "specialdefense": 110,
+          "speed": 65
+        },
+        "level": 4,
+        "currentHp": 65,
+        "maxHp": 65,
+        "exp": 0,
+        "moves": ["pay-day", "double-kick", "sand-attack", "headbutt"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Chansey",
+        "id": 113,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/113.png",
+        "stats": {
+          "hp": 250,
+          "attack": 5,
+          "defense": 5,
+          "specialattack": 35,
+          "specialdefense": 105,
+          "speed": 50
+        },
+        "level": 4,
+        "currentHp": 250,
+        "maxHp": 250,
+        "exp": 0,
+        "moves": ["pound", "double-slap", "mega-punch", "fire-punch"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Butterfree",
+        "id": 12,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/12.png",
+        "stats": {
+          "hp": 60,
+          "attack": 45,
+          "defense": 50,
+          "specialattack": 90,
+          "specialdefense": 80,
+          "speed": 70
+        },
+        "level": 6,
+        "currentHp": 60,
+        "maxHp": 60,
+        "exp": 0,
+        "moves": ["razor-wind", "gust", "whirlwind", "headbutt"],
+        "types": ["bug", "flying"]
+      },
+      {
+        "name": "Machoke",
+        "id": 67,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/67.png",
+        "stats": {
+          "hp": 80,
+          "attack": 100,
+          "defense": 70,
+          "specialattack": 50,
+          "specialdefense": 60,
+          "speed": 45
+        },
+        "level": 6,
+        "currentHp": 80,
+        "maxHp": 80,
+        "exp": 0,
+        "moves": ["karate-chop", "mega-punch", "fire-punch", "ice-punch"],
+        "types": ["fighting"]
+      },
+      {
+        "name": "Vaporeon",
+        "id": 134,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/134.png",
+        "stats": {
+          "hp": 130,
+          "attack": 65,
+          "defense": 60,
+          "specialattack": 110,
+          "specialdefense": 95,
+          "speed": 65
+        },
+        "level": 6,
+        "currentHp": 130,
+        "maxHp": 130,
+        "exp": 0,
+        "moves": ["pay-day", "double-kick", "sand-attack", "headbutt"],
+        "types": ["water"]
+      },
+      {
+        "name": "Ninetales",
+        "id": 38,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/38.png",
+        "stats": {
+          "hp": 73,
+          "attack": 76,
+          "defense": 75,
+          "specialattack": 81,
+          "specialdefense": 100,
+          "speed": 100
+        },
+        "level": 8,
+        "currentHp": 73,
+        "maxHp": 73,
+        "exp": 0,
+        "moves": ["headbutt", "tackle", "body-slam", "take-down"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Machamp",
+        "id": 68,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/68.png",
+        "stats": {
+          "hp": 90,
+          "attack": 130,
+          "defense": 80,
+          "specialattack": 65,
+          "specialdefense": 85,
+          "speed": 55
+        },
+        "level": 7,
+        "currentHp": 90,
+        "maxHp": 90,
+        "exp": 0,
+        "moves": ["karate-chop", "mega-punch", "fire-punch", "ice-punch"],
+        "types": ["fighting"]
+      },
+      {
+        "name": "Eevee",
+        "id": 133,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png",
+        "stats": {
+          "hp": 55,
+          "attack": 55,
+          "defense": 50,
+          "specialattack": 45,
+          "specialdefense": 65,
+          "speed": 55
+        },
+        "level": 9,
+        "currentHp": 55,
+        "maxHp": 55,
+        "exp": 0,
+        "moves": ["pay-day", "double-kick", "sand-attack", "headbutt"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Scyther",
+        "id": 123,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/123.png",
+        "stats": {
+          "hp": 70,
+          "attack": 110,
+          "defense": 80,
+          "specialattack": 55,
+          "specialdefense": 80,
+          "speed": 105
+        },
+        "level": 8,
+        "currentHp": 70,
+        "maxHp": 70,
+        "exp": 0,
+        "moves": ["razor-wind", "swords-dance", "cut", "wing-attack"],
+        "types": ["bug", "flying"]
+      },
+      {
+        "name": "Haunter",
+        "id": 93,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/93.png",
+        "stats": {
+          "hp": 45,
+          "attack": 50,
+          "defense": 45,
+          "specialattack": 115,
+          "specialdefense": 55,
+          "speed": 95
+        },
+        "level": 9,
+        "currentHp": 45,
+        "maxHp": 45,
+        "exp": 0,
+        "moves": ["fire-punch", "ice-punch", "thunder-punch", "headbutt"],
+        "types": ["ghost", "poison"]
+      },
+      {
+        "name": "Alakazam",
+        "id": 65,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/65.png",
+        "stats": {
+          "hp": 55,
+          "attack": 50,
+          "defense": 45,
+          "specialattack": 135,
+          "specialdefense": 95,
+          "speed": 120
+        },
+        "level": 9,
+        "currentHp": 55,
+        "maxHp": 55,
+        "exp": 0,
+        "moves": ["mega-punch", "fire-punch", "ice-punch", "thunder-punch"],
+        "types": ["psychic"]
+      },
+      {
+        "name": "Magmar",
+        "id": 126,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/126.png",
+        "stats": {
+          "hp": 65,
+          "attack": 95,
+          "defense": 57,
+          "specialattack": 100,
+          "specialdefense": 85,
+          "speed": 93
+        },
+        "level": 11,
+        "currentHp": 65,
+        "maxHp": 65,
+        "exp": 0,
+        "moves": ["mega-punch", "fire-punch", "thunder-punch", "mega-kick"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Machop",
+        "id": 66,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/66.png",
+        "stats": {
+          "hp": 70,
+          "attack": 80,
+          "defense": 50,
+          "specialattack": 35,
+          "specialdefense": 35,
+          "speed": 35
+        },
+        "level": 12,
+        "currentHp": 70,
+        "maxHp": 70,
+        "exp": 0,
+        "moves": ["karate-chop", "mega-punch", "fire-punch", "ice-punch"],
+        "types": ["fighting"]
+      },
+      {
+        "name": "Venusaur",
+        "id": 3,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/3.png",
+        "stats": {
+          "hp": 80,
+          "attack": 82,
+          "defense": 83,
+          "specialattack": 100,
+          "specialdefense": 100,
+          "speed": 80
+        },
+        "level": 10,
+        "currentHp": 80,
+        "maxHp": 80,
+        "exp": 0,
+        "moves": ["swords-dance", "cut", "bind", "vine-whip"],
+        "types": ["grass", "poison"]
+      },
+      {
+        "name": "Nidorino",
+        "id": 33,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/33.png",
+        "stats": {
+          "hp": 61,
+          "attack": 72,
+          "defense": 57,
+          "specialattack": 55,
+          "specialdefense": 55,
+          "speed": 65
+        },
+        "level": 11,
+        "currentHp": 61,
+        "maxHp": 61,
+        "exp": 0,
+        "moves": ["cut", "double-kick", "headbutt", "horn-attack"],
+        "types": ["poison"]
+      },
+      {
+        "name": "Nidoking",
+        "id": 34,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/34.png",
+        "stats": {
+          "hp": 81,
+          "attack": 102,
+          "defense": 77,
+          "specialattack": 85,
+          "specialdefense": 75,
+          "speed": 85
+        },
+        "level": 13,
+        "currentHp": 81,
+        "maxHp": 81,
+        "exp": 0,
+        "moves": ["mega-punch", "pay-day", "fire-punch", "ice-punch"],
+        "types": ["poison", "ground"]
+      },
+      {
+        "name": "Golduck",
+        "id": 55,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/55.png",
+        "stats": {
+          "hp": 80,
+          "attack": 82,
+          "defense": 78,
+          "specialattack": 95,
+          "specialdefense": 80,
+          "speed": 85
+        },
+        "level": 12,
+        "currentHp": 80,
+        "maxHp": 80,
+        "exp": 0,
+        "moves": ["mega-punch", "pay-day", "ice-punch", "scratch"],
+        "types": ["water"]
+      },
+      {
+        "name": "Rapidash",
+        "id": 78,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/78.png",
+        "stats": {
+          "hp": 65,
+          "attack": 100,
+          "defense": 70,
+          "specialattack": 80,
+          "specialdefense": 80,
+          "speed": 105
+        },
+        "level": 14,
+        "currentHp": 65,
+        "maxHp": 65,
+        "exp": 0,
+        "moves": ["pay-day", "swords-dance", "stomp", "double-kick"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Marowak",
+        "id": 105,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/105.png",
+        "stats": {
+          "hp": 60,
+          "attack": 80,
+          "defense": 110,
+          "specialattack": 50,
+          "specialdefense": 80,
+          "speed": 45
+        },
+        "level": 13,
+        "currentHp": 60,
+        "maxHp": 60,
+        "exp": 0,
+        "moves": ["mega-punch", "fire-punch", "thunder-punch", "swords-dance"],
+        "types": ["ground"]
+      },
+      {
+        "name": "Snorlax",
+        "id": 143,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png",
+        "stats": {
+          "hp": 160,
+          "attack": 110,
+          "defense": 65,
+          "specialattack": 65,
+          "specialdefense": 110,
+          "speed": 30
+        },
+        "level": 13,
+        "currentHp": 160,
+        "maxHp": 160,
+        "exp": 0,
+        "moves": ["mega-punch", "pay-day", "fire-punch", "ice-punch"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Charizard",
+        "id": 6,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png",
+        "stats": {
+          "hp": 78,
+          "attack": 84,
+          "defense": 78,
+          "specialattack": 109,
+          "specialdefense": 85,
+          "speed": 100
+        },
+        "level": 13,
+        "currentHp": 78,
+        "maxHp": 78,
+        "exp": 0,
+        "moves": ["mega-punch", "fire-punch", "thunder-punch", "scratch"],
+        "types": ["fire", "flying"]
+      },
+      {
+        "name": "Lickitung",
+        "id": 108,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/108.png",
+        "stats": {
+          "hp": 90,
+          "attack": 55,
+          "defense": 75,
+          "specialattack": 60,
+          "specialdefense": 75,
+          "speed": 30
+        },
+        "level": 15,
+        "currentHp": 90,
+        "maxHp": 90,
+        "exp": 0,
+        "moves": ["mega-punch", "fire-punch", "ice-punch", "thunder-punch"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Weedle",
+        "id": 13,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/13.png",
+        "stats": {
+          "hp": 40,
+          "attack": 35,
+          "defense": 30,
+          "specialattack": 20,
+          "specialdefense": 20,
+          "speed": 50
+        },
+        "level": 16,
+        "currentHp": 40,
+        "maxHp": 40,
+        "exp": 0,
+        "moves": ["poison-sting", "string-shot", "bug-bite", "electroweb"],
+        "types": ["bug", "poison"]
+      },
+      {
+        "name": "Slowbro",
+        "id": 80,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/80.png",
+        "stats": {
+          "hp": 95,
+          "attack": 75,
+          "defense": 110,
+          "specialattack": 100,
+          "specialdefense": 80,
+          "speed": 30
+        },
+        "level": 15,
+        "currentHp": 95,
+        "maxHp": 95,
+        "exp": 0,
+        "moves": ["mega-punch", "pay-day", "ice-punch", "stomp"],
+        "types": ["water", "psychic"]
+      },
+      {
+        "name": "Dodrio",
+        "id": 85,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/85.png",
+        "stats": {
+          "hp": 60,
+          "attack": 110,
+          "defense": 70,
+          "specialattack": 60,
+          "specialdefense": 60,
+          "speed": 110
+        },
+        "level": 16,
+        "currentHp": 60,
+        "maxHp": 60,
+        "exp": 0,
+        "moves": ["swords-dance", "wing-attack", "whirlwind", "fly"],
+        "types": ["normal", "flying"]
+      },
+      {
+        "name": "Ekans",
+        "id": 23,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/23.png",
+        "stats": {
+          "hp": 35,
+          "attack": 60,
+          "defense": 44,
+          "specialattack": 40,
+          "specialdefense": 54,
+          "speed": 55
+        },
+        "level": 16,
+        "currentHp": 35,
+        "maxHp": 35,
+        "exp": 0,
+        "moves": ["bind", "slam", "headbutt", "body-slam"],
+        "types": ["poison"]
+      },
+      {
+        "name": "Butterfree",
+        "id": 12,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/12.png",
+        "stats": {
+          "hp": 60,
+          "attack": 45,
+          "defense": 50,
+          "specialattack": 90,
+          "specialdefense": 80,
+          "speed": 70
+        },
+        "level": 16,
+        "currentHp": 60,
+        "maxHp": 60,
+        "exp": 0,
+        "moves": ["razor-wind", "gust", "whirlwind", "headbutt"],
+        "types": ["bug", "flying"]
+      },
+      {
+        "name": "Growlithe",
+        "id": 58,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/58.png",
+        "stats": {
+          "hp": 55,
+          "attack": 70,
+          "defense": 45,
+          "specialattack": 70,
+          "specialdefense": 50,
+          "speed": 60
+        },
+        "level": 18,
+        "currentHp": 55,
+        "maxHp": 55,
+        "exp": 0,
+        "moves": ["double-kick", "headbutt", "body-slam", "take-down"],
+        "types": ["fire"]
+      },
+      {
+        "name": "Tauros",
+        "id": 128,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/128.png",
+        "stats": {
+          "hp": 75,
+          "attack": 100,
+          "defense": 95,
+          "specialattack": 40,
+          "specialdefense": 70,
+          "speed": 110
+        },
+        "level": 20,
+        "currentHp": 75,
+        "maxHp": 75,
+        "exp": 0,
+        "moves": ["stomp", "headbutt", "horn-attack", "horn-drill"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Jigglypuff",
+        "id": 39,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/39.png",
+        "stats": {
+          "hp": 115,
+          "attack": 45,
+          "defense": 20,
+          "specialattack": 45,
+          "specialdefense": 25,
+          "speed": 20
+        },
+        "level": 19,
+        "currentHp": 115,
+        "maxHp": 115,
+        "exp": 0,
+        "moves": ["pound", "double-slap", "mega-punch", "fire-punch"],
+        "types": ["normal", "fairy"]
+      },
+      {
+        "name": "Persian",
+        "id": 53,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/53.png",
+        "stats": {
+          "hp": 65,
+          "attack": 70,
+          "defense": 60,
+          "specialattack": 65,
+          "specialdefense": 65,
+          "speed": 115
+        },
+        "level": 20,
+        "currentHp": 65,
+        "maxHp": 65,
+        "exp": 0,
+        "moves": ["pay-day", "scratch", "cut", "headbutt"],
+        "types": ["normal"]
+      },
+      {
+        "name": "Magnemite",
+        "id": 81,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/81.png",
+        "stats": {
+          "hp": 25,
+          "attack": 35,
+          "defense": 70,
+          "specialattack": 95,
+          "specialdefense": 55,
+          "speed": 45
+        },
+        "level": 21,
+        "currentHp": 25,
+        "maxHp": 25,
+        "exp": 0,
+        "moves": ["headbutt", "tackle", "take-down", "double-edge"],
+        "types": ["electric", "steel"]
+      },
+      {
+        "name": "Grimer",
+        "id": 88,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/88.png",
+        "stats": {
+          "hp": 80,
+          "attack": 80,
+          "defense": 50,
+          "specialattack": 40,
+          "specialdefense": 50,
+          "speed": 25
+        },
+        "level": 20,
+        "currentHp": 80,
+        "maxHp": 80,
+        "exp": 0,
+        "moves": ["pound", "fire-punch", "ice-punch", "thunder-punch"],
+        "types": ["poison"]
+      },
+      {
+        "name": "Moltres",
+        "id": 146,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/146.png",
+        "stats": {
+          "hp": 90,
+          "attack": 100,
+          "defense": 90,
+          "specialattack": 125,
+          "specialdefense": 85,
+          "speed": 90
+        },
+        "level": 20,
+        "currentHp": 90,
+        "maxHp": 90,
+        "exp": 0,
+        "moves": ["razor-wind", "gust", "wing-attack", "whirlwind"],
+        "types": ["fire", "flying"]
+      },
+      {
+        "name": "Weezing",
+        "id": 110,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/110.png",
+        "stats": {
+          "hp": 65,
+          "attack": 90,
+          "defense": 120,
+          "specialattack": 85,
+          "specialdefense": 70,
+          "speed": 60
+        },
+        "level": 20,
+        "currentHp": 65,
+        "maxHp": 65,
+        "exp": 0,
+        "moves": ["headbutt", "tackle", "body-slam", "take-down"],
+        "types": ["poison"]
+      },
+      {
+        "name": "Vaporeon",
+        "id": 134,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/134.png",
+        "stats": {
+          "hp": 130,
+          "attack": 65,
+          "defense": 60,
+          "specialattack": 110,
+          "specialdefense": 95,
+          "speed": 65
+        },
+        "level": 20,
+        "currentHp": 130,
+        "maxHp": 130,
+        "exp": 0,
+        "moves": ["pay-day", "double-kick", "sand-attack", "headbutt"],
+        "types": ["water"]
+      },
+      {
+        "name": "Pidgeotto",
+        "id": 17,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/17.png",
+        "stats": {
+          "hp": 63,
+          "attack": 60,
+          "defense": 55,
+          "specialattack": 50,
+          "specialdefense": 50,
+          "speed": 71
+        },
+        "level": 20,
+        "currentHp": 63,
+        "maxHp": 63,
+        "exp": 0,
+        "moves": ["razor-wind", "gust", "wing-attack", "whirlwind"],
+        "types": ["normal", "flying"]
+      },
+      {
+        "name": "Grimer",
+        "id": 88,
+        "sprite": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/88.png",
+        "stats": {
+          "hp": 80,
+          "attack": 80,
+          "defense": 50,
+          "specialattack": 40,
+          "specialdefense": 50,
+          "speed": 25
+        },
+        "level": 20,
+        "currentHp": 80,
+        "maxHp": 80,
+        "exp": 0,
+        "moves": ["pound", "fire-punch", "ice-punch", "thunder-punch"],
+        "types": ["poison"]
+      }
+    ],
+    "trainerGender": "MALE",
+    "pokedex": [
+      26, 474, 68, 25, 131, 149, 13, 7, 58, 136, 113, 12, 67, 134, 38, 133, 123,
+      93, 65, 126, 66, 3, 33, 34, 55, 78, 105, 143, 6, 108, 80, 85, 23, 128, 39,
+      53, 81, 88, 146, 110, 17
+    ],
+    "preferences": {
+      "volume": 0.5,
+      "isMuted": false
+    }
+  },
+  "exploreLog": [
+    "Você encontrou P$143 no chão!",
+    "Você encontrou P$251 no chão!",
+    "Um Pokémon selvagem apareceu!"
+  ]
+}

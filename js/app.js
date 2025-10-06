@@ -1,201 +1,192 @@
-/**
- * js/app.js
- * PONTO DE ENTRADA GLOBAL
- * Módulo para ser carregado dinamicamente com cache-busting.
- */
+let GameConfig,
+  initializeGameState,
+  Utils,
+  PokeAPI,
+  GameLogic,
+  BattleCore,
+  PvpCore,
+  Renderer,
+  AuthSetup,
+  registerExistingPokemonOnLoad;
 
-// Variáveis de escopo do módulo para armazenar as referências importadas
-let GameConfig, initializeGameState, Utils, PokeAPI, GameLogic, BattleCore, PvpCore, Renderer, AuthSetup, registerExistingPokemonOnLoad;
-
-/**
- * Função principal de inicialização que carrega todos os submódulos de forma dinâmica
- * e aplica o cache-busting para garantir que todas as dependências sejam carregadas.
- * * NOTA: Esta função substitui as importações estáticas para evitar o cache dos módulos dependentes.
- * * @param {number} cacheBuster O timestamp para quebrar o cache.
- */
 export async function init(cacheBuster) {
-    // String de versão a ser anexada a todas as importações locais
-    const v = `?v=${cacheBuster}`;
-    
-    // --- UTILS PARA TELA DE ERRO ---
-    function updateErrorStatus(message, isError = false) {
-        const statusElement = document.getElementById("error-status");
-        if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = `text-[8px] gba-font text-center mt-2 ${isError ? 'text-red-500' : 'text-green-500'}`;
-        }
+  const v = `?v=${cacheBuster}`;
+
+  function updateErrorStatus(message, isError = false) {
+    const statusElement = document.getElementById("error-status");
+    if (statusElement) {
+      statusElement.textContent = message;
+      statusElement.className = `text-[8px] gba-font text-center mt-2 ${
+        isError ? "text-red-500" : "text-green-500"
+      }`;
     }
-    // -----------------------------
+  }
 
-
-    // --- FUNÇÕES DE RECUPERAÇÃO DE ERRO (GLOBALMENTE DISPONÍVEIS) ---
-    // Essas funções precisam estar disponíveis em 'window' antes do catch
-    window.exportSaveOnError = function() {
-        // Tenta exportar o save do LocalStorage diretamente, sem depender de GameLogic.js
-        try {
-            const saveProfile = localStorage.getItem("pokemonGameProfile");
-            const saveLog = localStorage.getItem("pokemonGameExploreLog");
-
-            if (!saveProfile) {
-                updateErrorStatus("Nenhum jogo salvo para exportar!", true);
-                return;
-            }
-
-            const data = {
-                profile: JSON.parse(saveProfile),
-                exploreLog: saveLog ? JSON.parse(saveLog) : ["Bem-vindo de volta!"],
-            };
-            const jsonData = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonData], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `pokemon_gba_save_ERRO_${Date.now()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            updateErrorStatus("Save exportado com sucesso! Tente Limpar os Dados.", false);
-        } catch (e) {
-            updateErrorStatus(`Falha ao exportar o save: ${e.message.substring(0, 50)}`, true);
-        }
-    };
-
-    window.clearLocalData = function() {
-        // Implementa a lógica de limpeza de dados sem usar confirm()
-        const confirmButton = document.getElementById("confirm-clear");
-        const cancelButton = document.getElementById("cancel-clear");
-        
-        // Se a confirmação já estiver ativa, executa a limpeza
-        if (confirmButton && confirmButton.style.display !== 'none') {
-            localStorage.removeItem("pokemonGameProfile");
-            localStorage.removeItem("pokemonGameExploreLog");
-            updateErrorStatus("Dados locais limpos. Recarregando...", false);
-            setTimeout(() => window.location.reload(), 1000);
-            return;
-        }
-
-        // Caso contrário, mostra a confirmação
-        const initialButton = document.getElementById("clear-button-initial");
-        if (initialButton) initialButton.style.display = 'none';
-
-        if (confirmButton && cancelButton) {
-            confirmButton.style.display = 'block';
-            cancelButton.style.display = 'block';
-        }
-        updateErrorStatus("Confirme: ISSO APAGARÁ SEU PROGRESO!", true);
-    };
-    
-    // Função auxiliar para cancelar a limpeza
-    window.cancelClearData = function() {
-        const initialButton = document.getElementById("clear-button-initial");
-        const confirmButton = document.getElementById("confirm-clear");
-        const cancelButton = document.getElementById("cancel-clear");
-        
-        if (initialButton) initialButton.style.display = 'block';
-        if (confirmButton) confirmButton.style.display = 'none';
-        if (cancelButton) cancelButton.style.display = 'none';
-        updateErrorStatus("", false); // Limpa a mensagem de status
-    };
-    // -----------------------------------------------------------------
-
+  window.exportSaveOnError = function () {
+    // Tenta exportar o save do LocalStorage diretamente, sem depender de GameLogic.js
     try {
-        // 1. Carrega Módulos com Cache-Busting
-        const configModule = await import(`./config_utils.js${v}`); 
-        ({ GameConfig, initializeGameState, Utils, PokeAPI, registerExistingPokemonOnLoad } = configModule);
+      const saveProfile = localStorage.getItem("pokemonGameProfile");
+      const saveLog = localStorage.getItem("pokemonGameExploreLog");
 
-        const logicModule = await import(`./game_logic.js${v}`);
-        GameLogic = logicModule.GameLogic;
+      if (!saveProfile) {
+        updateErrorStatus("Nenhum jogo salvo para exportar!", true);
+        return;
+      }
 
-        const battleModule = await import(`./battle_core.js${v}`);
-        BattleCore = battleModule.BattleCore;
+      const data = {
+        profile: JSON.parse(saveProfile),
+        exploreLog: saveLog ? JSON.parse(saveLog) : ["Bem-vindo de volta!"],
+      };
+      const jsonData = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
 
-        const pvpModule = await import(`./pvp_core.js${v}`);
-        PvpCore = pvpModule.PvpCore;
-
-        const rendererModule = await import(`./renderer.js${v}`);
-        Renderer = rendererModule.Renderer;
-
-        const authModule = await import(`./auth_setup.js${v}`);
-        AuthSetup = authModule.AuthSetup;
-
-        const friendshipModule = await import(`./poke_friendship.js${v}`);
-        window.PokeFriendship = friendshipModule.PokeFriendship;
-
-        // 2. Exportações Globais (Para o escopo do HTML e comunicação inter-módulos)
-        // ESSENCIAL: Permite que todos os módulos acessem suas dependências via 'window.'
-        window.GameConfig = GameConfig;
-        window.PokeAPI = PokeAPI;
-        window.GameLogic = GameLogic;
-        window.BattleCore = BattleCore;
-        window.PvpCore = PvpCore;
-        window.Renderer = Renderer;
-        window.Utils = Utils;
-        window.initializeGameState = initializeGameState; 
-        window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad; 
-
-        // Exportações diretas para compatibilidade com o HTML (facilitando 'onclick')
-        window.showScreen = Renderer.showScreen;
-        window.selectStarter = Renderer.selectStarter;
-        window.selectGender = Renderer.selectGender;
-        window.explore = GameLogic.explore;
-        window.playerTurn = BattleCore.playerTurn;
-        window.setBattleMenu = BattleCore.setBattleMenu;
-        window.useItem = GameLogic.useItem;
-        window.saveGame = Utils.saveGame;
-        window.createPvpLink = PvpCore.createPvpLink;
-        window.joinPvpBattle = PvpCore.joinPvpBattle;
-        window.copyPvpLink = PvpCore.copyPvpLink;
-        window.showModal = Utils.showModal;
-        window.hideModal = Utils.hideModal;
-        window.switchPokemon = BattleCore.switchPokemon;
-        window.evolvePokemon = GameLogic.evolvePokemon;
-        window.saveProfile = GameLogic.saveProfile;
-        window.buyItem = GameLogic.buyItem;
-        window.healAllPokemon = GameLogic.healAllPokemon;
-        window.showPokemonStats = Renderer.showPokemonStats;
-        window.exportSave = GameLogic.exportSave;
-        window.importSave = GameLogic.importSave;
-        window.dragStart = GameLogic.dragStart;
-        window.allowDrop = GameLogic.allowDrop;
-        window.drop = GameLogic.drop;
-        window.dragEnter = GameLogic.dragEnter;
-        window.dragLeave = GameLogic.dragLeave;
-        window.releasePokemon = GameLogic.releasePokemon;
-        window.setPokemonAsActive = GameLogic.setPokemonAsActive; 
-
-        window.showFriendListModal = PokeFriendship.showFriendListModal;
-        window.sendFriendRequest = PokeFriendship.sendFriendRequest;
-
-        // --- NOVAS EXPORTAÇÕES DE PREFERÊNCIAS ---
-        window.updateVolume = Utils.updateVolume;
-        window.toggleMute = Utils.toggleMute;
-        // --- NOVO: Função de Reset ---
-        window.resetGameData = Utils.resetGameData;
-        // -----------------------------------------
-
-        // 3. Início da Aplicação (usando o AuthSetup carregado dinamicamente)
-        AuthSetup.initAuth();
-
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `pokemon_gba_save_ERRO_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      updateErrorStatus(
+        "Save exportado com sucesso! Tente Limpar os Dados.",
+        false
+      );
     } catch (e) {
-        console.error("Erro fatal ao carregar módulos dependentes:", e);
-        
-        // NOVO TRATAMENTO: Tenta extrair a mensagem de erro em diferentes formatos.
-        let errorMessage = "Erro de carregamento desconhecido.";
-        if (e instanceof Error) {
-            errorMessage = e.message;
-        } else if (typeof e === 'string') {
-            errorMessage = e;
-        } else if (e.toString) {
-            // Caso em que o erro é um objeto, mas não uma instância de Error (ex: objeto Promise rejection)
-            errorMessage = e.toString();
-        }
-        
-        // Garante que a tela de carregamento seja substituída por um erro se a importação falhar.
-        const gbaScreen = document.querySelector(".gba-screen");
-        if (gbaScreen) {
-            gbaScreen.innerHTML = `
+      updateErrorStatus(
+        `Falha ao exportar o save: ${e.message.substring(0, 50)}`,
+        true
+      );
+    }
+  };
+
+  window.clearLocalData = function () {
+    // Implementa a lógica de limpeza de dados sem usar confirm()
+    const confirmButton = document.getElementById("confirm-clear");
+    const cancelButton = document.getElementById("cancel-clear");
+
+    // Se a confirmação já estiver ativa, executa a limpeza
+    if (confirmButton && confirmButton.style.display !== "none") {
+      localStorage.removeItem("pokemonGameProfile");
+      localStorage.removeItem("pokemonGameExploreLog");
+      updateErrorStatus("Dados locais limpos. Recarregando...", false);
+      setTimeout(() => window.location.reload(), 1000);
+      return;
+    }
+
+    // Caso contrário, mostra a confirmação
+    const initialButton = document.getElementById("clear-button-initial");
+    if (initialButton) initialButton.style.display = "none";
+
+    if (confirmButton && cancelButton) {
+      confirmButton.style.display = "block";
+      cancelButton.style.display = "block";
+    }
+    updateErrorStatus("Confirme: ISSO APAGARÁ SEU PROGRESO!", true);
+  };
+
+  window.cancelClearData = function () {
+    const initialButton = document.getElementById("clear-button-initial");
+    const confirmButton = document.getElementById("confirm-clear");
+    const cancelButton = document.getElementById("cancel-clear");
+
+    if (initialButton) initialButton.style.display = "block";
+    if (confirmButton) confirmButton.style.display = "none";
+    if (cancelButton) cancelButton.style.display = "none";
+    updateErrorStatus("", false); // Limpa a mensagem de status
+  };
+
+  try {
+    const configModule = await import(`./config_utils.js${v}`);
+    ({
+      GameConfig,
+      initializeGameState,
+      Utils,
+      PokeAPI,
+      registerExistingPokemonOnLoad,
+    } = configModule);
+
+    const logicModule = await import(`./game_logic.js${v}`);
+    GameLogic = logicModule.GameLogic;
+
+    const battleModule = await import(`./battle_core.js${v}`);
+    BattleCore = battleModule.BattleCore;
+
+    const pvpModule = await import(`./pvp_core.js${v}`);
+    PvpCore = pvpModule.PvpCore;
+
+    const rendererModule = await import(`./renderer.js${v}`);
+    Renderer = rendererModule.Renderer;
+
+    const authModule = await import(`./auth_setup.js${v}`);
+    AuthSetup = authModule.AuthSetup;
+
+    const friendshipModule = await import(`./poke_friendship.js${v}`);
+    window.PokeFriendship = friendshipModule.PokeFriendship;
+
+    window.GameConfig = GameConfig;
+    window.PokeAPI = PokeAPI;
+    window.GameLogic = GameLogic;
+    window.BattleCore = BattleCore;
+    window.PvpCore = PvpCore;
+    window.Renderer = Renderer;
+    window.Utils = Utils;
+    window.initializeGameState = initializeGameState;
+    window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad;
+
+    window.showScreen = Renderer.showScreen;
+    window.selectStarter = Renderer.selectStarter;
+    window.selectGender = Renderer.selectGender;
+    window.explore = GameLogic.explore;
+    window.playerTurn = BattleCore.playerTurn;
+    window.setBattleMenu = BattleCore.setBattleMenu;
+    window.useItem = GameLogic.useItem;
+    window.saveGame = Utils.saveGame;
+    window.createPvpLink = PvpCore.createPvpLink;
+    window.joinPvpBattle = PvpCore.joinPvpBattle;
+    window.copyPvpLink = PvpCore.copyPvpLink;
+    window.showModal = Utils.showModal;
+    window.hideModal = Utils.hideModal;
+    window.switchPokemon = BattleCore.switchPokemon;
+    window.evolvePokemon = GameLogic.evolvePokemon;
+    window.saveProfile = GameLogic.saveProfile;
+    window.buyItem = GameLogic.buyItem;
+    window.healAllPokemon = GameLogic.healAllPokemon;
+    window.showPokemonStats = Renderer.showPokemonStats;
+    window.exportSave = GameLogic.exportSave;
+    window.importSave = GameLogic.importSave;
+    window.dragStart = GameLogic.dragStart;
+    window.allowDrop = GameLogic.allowDrop;
+    window.drop = GameLogic.drop;
+    window.dragEnter = GameLogic.dragEnter;
+    window.dragLeave = GameLogic.dragLeave;
+    window.releasePokemon = GameLogic.releasePokemon;
+    window.setPokemonAsActive = GameLogic.setPokemonAsActive;
+    window.showFriendListModal = PokeFriendship.showFriendListModal;
+    window.sendFriendRequest = PokeFriendship.sendFriendRequest;
+    window.updateVolume = Utils.updateVolume;
+    window.toggleMute = Utils.toggleMute;
+    window.resetGameData = Utils.resetGameData;
+
+    // LOGIN
+    window.signInWithGoogle = AuthSetup.signInWithGoogle;
+    window.signOutUser = AuthSetup.signOutUser;
+
+    AuthSetup.initAuth();
+  } catch (e) {
+    console.error("Erro fatal ao carregar módulos dependentes:", e);
+    let errorMessage = "Erro de carregamento desconhecido.";
+    if (e instanceof Error) {
+      errorMessage = e.message;
+    } else if (typeof e === "string") {
+      errorMessage = e;
+    } else if (e.toString) {
+      errorMessage = e.toString();
+    }
+
+    const gbaScreen = document.querySelector(".gba-screen");
+    if (gbaScreen) {
+      gbaScreen.innerHTML = `
                 <div class="flex flex-col h-full justify-between items-center p-2"> <!-- Reduzido o PADDING para p-2 -->
                     <div class="flex-shrink-0 text-center w-full"> <!-- Adicionado w-full para o contêiner do título/detalhes -->
                         <div class="text-lg sm:text-xl font-bold text-red-600 gba-font mb-2 leading-none mx-auto max-w-xs">
@@ -204,7 +195,10 @@ export async function init(cacheBuster) {
                         <div class="mt-4 text-xs sm:text-sm text-gray-600 gba-font text-left bg-white p-2 border border-gray-400 rounded overflow-y-auto max-h-100"> <!-- Aumentado para max-h-32 -->
                             Ocorreu um erro ao carregar os arquivos principais.
                             <br>
-                            <strong>Detalhe:</strong> ${errorMessage.substring(0, 150)}
+                            <strong>Detalhe:</strong> ${errorMessage.substring(
+                              0,
+                              150
+                            )}
                         </div>
                     </div>
 
@@ -234,6 +228,6 @@ export async function init(cacheBuster) {
                     </div>
                 </div>
             `;
-        }
     }
+  }
 }

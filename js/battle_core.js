@@ -23,8 +23,46 @@ export const BattleCore = {
       }
   },
 
+  /**
+   * NOVO: Anima o ataque trocando a sprite do atacante (apenas para o jogador)
+   * e aplicando a animação de movimento.
+   * @param {string} attackerSelector - Seletor da sprite do atacante.
+   * @param {string} targetSelector - Seletor da sprite do alvo (para dano).
+   * @param {object} attackerPokemon - Dados do Pokémon atacante.
+   * @param {string} animationClass - Classe de animação de movimento (e.g., 'animate-attack').
+   */
+  _animateAttackSprite: async function(attackerSelector, targetSelector, attackerPokemon, animationClass) {
+      const attackerElement = document.querySelector(attackerSelector);
+      const isPlayer = attackerSelector === '.player-sprite';
+      const originalSprite = attackerElement.src;
+      
+      // 1. Troca a sprite do jogador (de Back para Front) para simular o avanço do ataque
+      if (isPlayer) {
+          // A sprite frontal é a de ID sem o '/back/'
+          const frontSpriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${attackerPokemon.id}.png`;
+          attackerElement.src = frontSpriteUrl;
+      }
+      
+      // 2. Aplica a animação de movimento (empurrão)
+      attackerElement.classList.add(animationClass);
+      
+      // Espera o tempo da animação de movimento
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      
+      // 3. Remove a animação de movimento
+      attackerElement.classList.remove(animationClass);
+      
+      // 4. Volta para a sprite original (de Back)
+      if (isPlayer) {
+          attackerElement.src = originalSprite;
+      }
+      
+      // Nota: A animação de dano no alvo é feita separadamente na função playerTurn/processPvpTurn.
+  },
+
   startWildBattle: async function () {
     const randomId = Math.floor(Math.random() * 151) + 1;
+// ... (restante da função startWildBattle) ...
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
@@ -36,10 +74,14 @@ export const BattleCore = {
       window.gameState.profile.pokemon.length > 0
         ? Math.max(...window.gameState.profile.pokemon.map((p) => p.level))
         : 5;
-    wildPokemonData.level = Math.max(
-      1,
-      playerMaxLevel + (Math.random() > 0.5 ? 1 : -1)
-    );
+        
+    // NOVO BALANCEAMENTO: A chance de um Pokémon selvagem ser de fase evoluída (e.g., Nv 15+) é menor
+    let levelAdjustment = (Math.random() > 0.6) ? 
+        (Math.floor(Math.random() * 3) + 1) : // 40% chance de ser 1-3 níveis acima
+        (Math.floor(Math.random() * 3) - 3);  // 60% chance de ser 1-3 níveis abaixo ou igual
+
+    // Garante que o nível mínimo é 1
+    wildPokemonData.level = Math.max(1, playerMaxLevel + levelAdjustment);
     
     wildPokemonData.maxHp = window.Utils.calculateMaxHp(wildPokemonData.stats.hp, wildPokemonData.level);
     wildPokemonData.currentHp = wildPokemonData.maxHp;
@@ -51,18 +93,36 @@ export const BattleCore = {
       turn: 0,
       lastMessage: `Um ${wildPokemonData.name} selvagem apareceu!`,
       log: [],
-      currentMenu: "main", 
+      currentMenu: "main",
+      // NOVO: Rastreia os índices dos Pokémons que participaram
+      participatingIndices: new Set(),
     };
+    
+    // Adiciona o Pokémon ativo atual à lista de participantes
+    window.gameState.battle.participatingIndices.add(window.gameState.battle.playerPokemonIndex);
+    
     window.Renderer.showScreen("battle");
   },
 
   calculateDamage: function (attacker, move, defender) {
-    const attackStat = attacker.stats.attack || 50;
-    const defenseStat = defender.stats.defense || 50;
+// ... (restante da função calculateDamage) ...
+    // COEFICIENTES AJUSTADOS PARA BALANCEAMENTO DE DANO
+    // REDUÇÃO: Diminui o poder do ataque base (0.6) e aumenta a resistência da defesa (1.4)
+    const ATTACK_MODIFIER = 0.6; // Reduz o efeito do Base Attack
+    const DEFENSE_MODIFIER = 1.4; // Aumenta o efeito do Base Defense
+    const POWER_BASE = 35; // Poder base de todos os ataques
+    const LEVEL_FACTOR = 0.35; // Fator de influência do nível
+    
+    // Stats base ajustados
+    const attackStat = (attacker.stats.attack || 50) * ATTACK_MODIFIER;
+    const defenseStat = (defender.stats.defense || 50) * DEFENSE_MODIFIER;
     const level = attacker.level || 5;
     
-    const movePower = 40; 
-    let baseDamage = (((2 * level / 5 + 2) * movePower * attackStat) / defenseStat / 50) + 2;
+    // FÓRMULA DE DANO SIMPLIFICADA (Mais próxima da original, mas ajustada)
+    // Damage = ((((Level * LEVEL_FACTOR + 2) * Power * Attack) / Defense) / 50 + 2) * Modifier
+    
+    const movePower = POWER_BASE; 
+    let baseDamage = (((level * LEVEL_FACTOR + 2) * movePower * attackStat) / defenseStat / 50) + 2;
     let modifier = 1;
 
     // 1. Crítico
@@ -84,44 +144,59 @@ export const BattleCore = {
     return { damage, isCritical };
   },
   
-  gainExp: function (winner, defeatedLevel) {
-    const expGain = Math.floor((defeatedLevel * 50) / 5); 
-    winner.exp += expGain;
+  
+  gainExp: function (defeatedLevel, participatingIndices) {
+// ... (restante da função gainExp) ...
+    // Calcula o XP total ganho
+    const totalExpGain = Math.floor((defeatedLevel * 50) / 5); 
+    
+    const uniqueParticipantsCount = participatingIndices.size;
+    if (uniqueParticipantsCount === 0) return;
 
-    // Acessando calculateExpToNextLevel via window.Utils
-    let expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
-    while (winner.exp >= expToNextLevel) {
-      winner.level++;
-      
-      winner.maxHp = window.Utils.calculateMaxHp(winner.stats.hp, winner.level);
-      winner.currentHp = winner.maxHp;
-      BattleCore.addBattleLog(`${winner.name} subiu para o Nível ${winner.level}!`);
+    // Calcula o XP que cada participante deve receber
+    const sharedExp = Math.floor(totalExpGain / uniqueParticipantsCount);
+    
+    BattleCore.addBattleLog(`XP Ganho: ${totalExpGain} | Dividido por ${uniqueParticipantsCount} Pokémons.`);
 
-      expToNextLevel = window.Utils.calculateExpToNextLevel(winner.level);
-      if (winner.level >= 100) break;
-    }
+    participatingIndices.forEach(index => {
+        const participant = window.gameState.profile.pokemon[index];
+        if (!participant) return; // Segurança, caso o Pokémon tenha sido removido
+
+        participant.exp += sharedExp;
+        BattleCore.addBattleLog(`${participant.name} ganhou ${sharedExp} XP!`);
+
+        let expToNextLevel = window.Utils.calculateExpToNextLevel(participant.level);
+        while (participant.exp >= expToNextLevel) {
+            participant.level++;
+            // Recalcula HP Máximo e cura para o novo nível
+            participant.maxHp = window.Utils.calculateMaxHp(participant.stats.hp, participant.level);
+            participant.currentHp = participant.maxHp;
+            BattleCore.addBattleLog(`${participant.name} subiu para o Nível ${participant.level}!`);
+
+            expToNextLevel = window.Utils.calculateExpToNextLevel(participant.level);
+            if (participant.level >= 100) break;
+        }
+    });
   },
   
   battleWin: function (winner, loser) {
+// ... (restante da função battleWin) ...
     BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
 
     const moneyGain = Math.floor(Math.random() * 500) + 200;
     window.gameState.profile.money += moneyGain;
     BattleCore.addBattleLog(`Você ganhou P$${moneyGain}.`);
 
-    BattleCore.gainExp(winner, loser.level);
+    // NOVA CHAMADA: Passa o Set de participantes para dividir o XP.
+    const participatingIndices = window.gameState.battle.participatingIndices;
+    BattleCore.gainExp(loser.level, participatingIndices);
 
-    const profilePoke =
-      window.gameState.profile.pokemon[
-        window.gameState.battle.playerPokemonIndex
-      ];
-    profilePoke.currentHp = winner.currentHp;
-    profilePoke.exp = winner.exp;
-    profilePoke.level = winner.level;
-    profilePoke.maxHp = winner.maxHp;
+    // REMOVIDA A LÓGICA MANUAL: O XP e o Level já foram atualizados no objeto real do Pokémon 
+    // dentro de window.gameState.profile.pokemon pela função gainExp.
   },
   
   addBattleLog: function (message) {
+// ... (restante da função addBattleLog) ...
     if (window.gameState.battle) {
       window.gameState.battle.lastMessage = message;
       if (window.gameState.battle.log) {
@@ -134,6 +209,7 @@ export const BattleCore = {
   },
   
   calculateCatchRate: function (pokemonHp, maxHp, ballCatchRate) {
+// ... (restante da função calculateCatchRate) ...
     const CATCH_BASE = 85;        // força geral
     const HP_OFFSET = 0.30;       // amortecimento do HP baixo
     const LEVEL_K = 0.022;        // penalidade de nível (sublinear)
@@ -154,6 +230,7 @@ export const BattleCore = {
   },
 
   animateCapture: function (ballName, ballCatchRate) {
+// ... (restante da função animateCapture) ...
     return new Promise((resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
       const chance = BattleCore.calculateCatchRate(
@@ -242,6 +319,7 @@ export const BattleCore = {
   },
   
   tryCapture: async function (ballName, ballCatchRate) {
+// ... (restante da função tryCapture) ...
     const ballItem = window.gameState.profile.items.find(
       (i) => i.name === ballName
     );
@@ -308,6 +386,7 @@ export const BattleCore = {
 
     // 1. Ação do Jogador
     if (action === "run") {
+// ... (restante da lógica de run) ...
       if (Math.random() < 0.5) {
         BattleCore.addBattleLog(`Você fugiu com sucesso!`);
         ended = true;
@@ -322,9 +401,17 @@ export const BattleCore = {
         return;
       }
       
-      // ANIMAÇÃO: Ataque do Jogador
-      BattleCore._animateBattleAction('.player-sprite', 'animate-attack', 300);
-      await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
+      // ANIMAÇÃO: Ataque do Jogador (AGORA USANDO A NOVA FUNÇÃO)
+      await BattleCore._animateAttackSprite(
+          '.player-sprite', 
+          '.opponent-sprite', 
+          playerPokemon, 
+          'animate-attack'
+      );
+      
+      // ANTES:
+      // BattleCore._animateBattleAction('.player-sprite', 'animate-attack', 300);
+      // await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
 
       const damageResult = BattleCore.calculateDamage(
         playerPokemon,
@@ -358,6 +445,7 @@ export const BattleCore = {
       }
       
     } else if (action === "item" && item) {
+// ... (restante da lógica de item) ...
       // Itens de Cura/Pokébola
       if (item.catchRate) {
         // CORREÇÃO: Usa moveName (nome da pokébola) em vez da variável indefinida 'ballName'
@@ -403,7 +491,7 @@ export const BattleCore = {
     if (!ended && (action === "move" || action === "opponent_attack" || (action === "item" && item?.healAmount))) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // ANIMAÇÃO: Ataque do Oponente
+      // ANIMAÇÃO: Ataque do Oponente (NÃO PRECISA TROCAR SPRITE)
       BattleCore._animateBattleAction('.opponent-sprite', 'animate-opponent-attack', 300);
       await new Promise((resolve) => setTimeout(resolve, 300)); // Espera a animação de ataque
 
@@ -458,6 +546,7 @@ export const BattleCore = {
     }
 
     // 3. Fim do Turno / Batalha
+// ... (restante da função playerTurn) ...
     BattleCore.updateBattleScreen(); // Última atualização de tela
 
     if (ended) {
@@ -478,6 +567,7 @@ export const BattleCore = {
   },
 
   switchPokemon: async function (newIndex) {
+// ... (restante da função switchPokemon) ...
     const battle = window.gameState.battle;
     // Acessando getActivePokemon via window.Utils
     const currentPokemon = window.Utils.getActivePokemon();
@@ -491,6 +581,12 @@ export const BattleCore = {
     }
 
     battle.playerPokemonIndex = newIndex;
+    
+    // NOVO: Adiciona o novo Pokémon à lista de participantes únicos (se for PvE)
+    if (battle.type === 'wild') {
+        battle.participatingIndices.add(newIndex);
+    }
+
     BattleCore.setBattleMenu("disabled"); // Desabilita o menu e redesenha (linha 653)
     // CORREÇÃO: Removendo chamada redundante
     // BattleCore.updateBattleScreen(); // Garante que o log de troca apareça imediatamente
@@ -512,6 +608,7 @@ export const BattleCore = {
   },
 
   setBattleMenu: function (menu) {
+// ... (restante da função setBattleMenu) ...
     if(window.gameState.battle.type === 'pvp' && window.gameState.battle.currentMenu === 'disabled' && menu !== 'main') {
         return; 
     }
@@ -520,6 +617,7 @@ export const BattleCore = {
   },
   
   updateBattleScreen: function () {
+// ... (restante da função updateBattleScreen) ...
     const battleArea = document.getElementById("battle-area");
     if (!battleArea || !window.gameState.battle) return;
 
@@ -553,6 +651,7 @@ export const BattleCore = {
 
     // --- Geração do Menu de Opções ---
     if (isMainMenu) {
+// ... (restante da lógica de menu) ...
       optionsHtml = `
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button bg-red-500 hover:bg-red-600">Lutar</button>
@@ -562,6 +661,7 @@ export const BattleCore = {
                 </div>
             `;
     } else if (battle.currentMenu === "fight") {
+// ... (restante da lógica de menu) ...
       optionsHtml = playerPokemon.moves
         .map(
           (move) =>
@@ -572,6 +672,7 @@ export const BattleCore = {
         .join("");
       optionsHtml = `<div class="grid grid-cols-2 gap-2">${optionsHtml}</div>`;
     } else if (battle.currentMenu === "item") {
+// ... (restante da lógica de menu) ...
       const items = window.gameState.profile.items;
       // Itens que podem ser usados em batalha (Pokébolas em wild, Poções em qualquer)
       const battleItems = items.filter((i) => (i.catchRate && battle.type === 'wild') || i.healAmount);
@@ -601,6 +702,7 @@ export const BattleCore = {
     // --- Renderização da Tela de Batalha ---
     battleArea.innerHTML = `
             <div class="relative h-48 mb-4 flex-shrink-0">
+// ... (restante do HTML) ...
                 <!-- OPPONENT HP BOX -->
                 <div class="absolute top-0 left-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
                     <div class="gba-font text-sm font-bold">${

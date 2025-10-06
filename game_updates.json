@@ -1,0 +1,46 @@
+{
+  "updates": [
+    {
+      "date": "06/10/2025 03:35",
+      "text": "Ajuste id do perfil, possibilidade de copiar para facilitar a amizade, e também modificado para consultar API para verificar pokemons sem mais evoluções ao invés de uma lista"
+    },
+    {
+      "date": "06/10/2025 02:35",
+      "text": "EXP Compartilhada entre todos os pokemon que participam da batalha"
+    },
+    {
+      "date": "06/10/2025 02:27",
+      "text": "Adicionado Cadeia Evolutiva nas telas de Meus Pokemons (detalhes) e na Pokedex (detalhes)"
+    },
+    {
+      "date": "06/10/2025 01:29",
+      "text": "Corrigido filtros da Pokédex"
+    },
+    {
+      "date": "06/10/2025 12:47",
+      "text": "Tela da Mochila (Bag) refatorada: Adicionados ícones (sprites) e funcionalidade de 'Usar' itens de cura diretamente na lista de Pokémons."
+    },
+    {
+      "date": "06/10/2025 12:40",
+      "text": "Adicionados ícones (sprites) aos itens da Loja."
+    },
+    {
+      "date": "06/10/2025 12:15",
+      "text": "Tela de 'Updates e Pendências' movida para o Menu Principal."
+    },
+    {
+      "date": "06/10/2025 12:00",
+      "text": "Estrutura do Renderer modularizada (subarquivos) e uso de Cache-Busting corrigido."
+    },
+    {
+      "date": "05/10/2025 23:00",
+      "text": "Correção de bug de 'deslogar' ao mudar o gênero na tela de perfil."
+    }
+  ],
+  "todos": [
+    "Balancear Dano (Ataque/Defesa) para batalhas PvE (Concluído, precisa de testes).",
+    "Balancear HP e Nível dos Pokémons selvagens (diminuindo Pokémons evoluídos no explorar) (Concluído, precisa de testes).",
+    "Implementar tela de Amizades (Friendship) e PvP com suporte a Firestore.",
+    "Adicionar mais itens e efeitos de itens (Status/Boosts)."
+  ]
+}

@@ -7,9 +7,17 @@ let GameConfig,
   PvpCore,
   Renderer,
   AuthSetup,
-  registerExistingPokemonOnLoad;
+  registerExistingPokemonOnLoad,
+  PokeFriendship;
 
+/**
+ * Função principal de inicialização da aplicação.
+ * Carrega todos os módulos dependentes de forma dinâmica com cache-busting.
+ * @param {number} cacheBuster Timestamp usado para versionamento de cache.
+ */
 export async function init(cacheBuster) {
+  // Variável global para ser usada em carregamentos de assets estáticos (ex: game_updates.json)
+  window.cacheBuster = cacheBuster; 
   const v = `?v=${cacheBuster}`;
 
   function updateErrorStatus(message, isError = false) {
@@ -69,6 +77,7 @@ export async function init(cacheBuster) {
     if (confirmButton && confirmButton.style.display !== "none") {
       localStorage.removeItem("pokemonGameProfile");
       localStorage.removeItem("pokemonGameExploreLog");
+      localStorage.removeItem("pokemonGamePokedexCache");
       updateErrorStatus("Dados locais limpos. Recarregando...", false);
       setTimeout(() => window.location.reload(), 1000);
       return;
@@ -97,6 +106,7 @@ export async function init(cacheBuster) {
   };
 
   try {
+    // 1. Carregamento de Configurações e Utilitários
     const configModule = await import(`./config_utils.js${v}`);
     ({
       GameConfig,
@@ -106,24 +116,33 @@ export async function init(cacheBuster) {
       registerExistingPokemonOnLoad,
     } = configModule);
 
+    // 2. Carregamento de Lógica de Jogo
     const logicModule = await import(`./game_logic.js${v}`);
     GameLogic = logicModule.GameLogic;
 
+    // 3. Carregamento do Core de Batalha
     const battleModule = await import(`./battle_core.js${v}`);
     BattleCore = battleModule.BattleCore;
 
+    // 4. Carregamento do Core de PvP
     const pvpModule = await import(`./pvp_core.js${v}`);
     PvpCore = pvpModule.PvpCore;
 
+    // 5. Carregamento da Fábrica do Renderer e Inicialização
     const rendererModule = await import(`./renderer.js${v}`);
-    Renderer = rendererModule.Renderer;
+    // Chama a função de fábrica do Renderer, passando o versionamento
+    Renderer = await rendererModule.createRenderer(cacheBuster);
 
+    // 6. Carregamento do Setup de Autenticação
     const authModule = await import(`./auth_setup.js${v}`);
     AuthSetup = authModule.AuthSetup;
 
+    // 7. Carregamento do Sistema de Amizade
     const friendshipModule = await import(`./poke_friendship.js${v}`);
-    window.PokeFriendship = friendshipModule.PokeFriendship;
+    PokeFriendship = friendshipModule.PokeFriendship;
+    window.PokeFriendship = PokeFriendship; // Expõe para uso em onclick/eventos
 
+    // --- Exposição para o escopo global (window) ---
     window.GameConfig = GameConfig;
     window.PokeAPI = PokeAPI;
     window.GameLogic = GameLogic;
@@ -134,9 +153,11 @@ export async function init(cacheBuster) {
     window.initializeGameState = initializeGameState;
     window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad;
 
+    // --- Exposição de funções de tela e lógica ---
     window.showScreen = Renderer.showScreen;
     window.selectStarter = Renderer.selectStarter;
     window.selectGender = Renderer.selectGender;
+    window.updateGenderOnly = Renderer.updateGenderOnly; // Novo: Para uso no perfil
     window.explore = GameLogic.explore;
     window.playerTurn = BattleCore.playerTurn;
     window.setBattleMenu = BattleCore.setBattleMenu;
@@ -153,6 +174,8 @@ export async function init(cacheBuster) {
     window.buyItem = GameLogic.buyItem;
     window.healAllPokemon = GameLogic.healAllPokemon;
     window.showPokemonStats = Renderer.showPokemonStats;
+    // CORREÇÃO: Expondo a função showPokedexStats
+    window.showPokedexStats = Renderer.showPokedexStats;
     window.exportSave = GameLogic.exportSave;
     window.importSave = GameLogic.importSave;
     window.dragStart = GameLogic.dragStart;
@@ -172,6 +195,7 @@ export async function init(cacheBuster) {
     window.signInWithGoogle = AuthSetup.signInWithGoogle;
     window.signOutUser = AuthSetup.signOutUser;
 
+    // INICIALIZAÇÃO FINAL: Autenticação e Carregamento de Save
     AuthSetup.initAuth();
   } catch (e) {
     console.error("Erro fatal ao carregar módulos dependentes:", e);

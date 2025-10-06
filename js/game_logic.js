@@ -44,38 +44,51 @@ export const GameLogic = {
     }
   },
 
-  saveProfile: function () {
-    const newNameInput = document.getElementById("newTrainerName");
-    const newGenderInput = document.querySelector(
-      'input[name="newTrainerGender"]:checked'
-    );
+  saveProfile: function (options = {}) {
+    const { redirectTo = null, showSuccess = true } = options;
 
-    if (!newNameInput || !newGenderInput) {
-      window.Utils.showModal(
-        "errorModal",
-        "Erro ao encontrar campos de perfil."
-      );
+    // Inputs de EDIÇÃO (quando estiver na tela de editar perfil)
+    const editNameEl   = document.getElementById("newTrainerName");
+    const editGenderEl = document.querySelector('input[name="newTrainerGender"]:checked');
+
+    // Input INICIAL (tela de criação) — apenas para nome
+    const initNameEl = document.getElementById("trainerNameInput");
+
+    // Nome: prioriza edição -> inicial -> gameState, usando ?? para evitar fallback em ''
+    const nameRaw =
+      (editNameEl ? editNameEl.value : undefined) ??
+      (initNameEl ? initNameEl.value : undefined) ??
+      (window.gameState?.profile?.trainerName ?? "");
+
+    // Gênero: prioriza edição se houver radio na tela de edição, senão usa o state já definido pelos cliques nas imagens
+    const genderRaw =
+      (editGenderEl ? editGenderEl.value : undefined) ??
+      (window.gameState?.profile?.trainerGender ?? "");
+
+    const finalName = String(nameRaw).trim();
+    const finalGender = String(genderRaw).trim();
+
+    if (finalName.length < 3) {
+      window.Utils.showModal("errorModal", "O nome deve ter no mínimo 3 caracteres.");
       return;
     }
 
-    const newName = newNameInput.value.trim();
-    const newGender = newGenderInput.value;
-
-    if (newName.length < 3) {
-      window.Utils.showModal(
-        "errorModal",
-        "O nome deve ter no mínimo 3 caracteres."
-      );
+    if (!finalGender) {
+      window.Utils.showModal("errorModal", "Selecione um gênero do treinador.");
       return;
     }
 
-    window.gameState.profile.trainerName = newName.toUpperCase();
-    window.gameState.profile.trainerGender = newGender; // Chama a função genérica para salvar
+    window.gameState.profile.trainerName = finalName.toUpperCase();
+    window.gameState.profile.trainerGender = finalGender;
 
+    // Persistência (ex.: Firestore encapsulado)
     window.GameLogic.saveGameData();
 
-    window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
-    window.Renderer.showScreen("profile");
+    if (showSuccess) {
+      window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
+    }
+
+    window.Renderer.showScreen(redirectTo || "profile");
   },
 
   loadProfile: async function () {
@@ -379,37 +392,37 @@ export const GameLogic = {
     }
   },
 
-  saveProfile: function () {
-    const newNameInput = document.getElementById("newTrainerName");
-    const newGenderInput = document.querySelector(
-      'input[name="newTrainerGender"]:checked'
-    );
+  // saveProfile: function () {
+  //   const newNameInput = document.getElementById("newTrainerName");
+  //   const newGenderInput = document.querySelector(
+  //     'input[name="newTrainerGender"]:checked'
+  //   );
 
-    if (!newNameInput || !newGenderInput) {
-      window.Utils.showModal(
-        "errorModal",
-        "Erro ao encontrar campos de perfil."
-      );
-      return;
-    }
+  //   if (!newNameInput || !newGenderInput) {
+  //     window.Utils.showModal(
+  //       "errorModal",
+  //       "Erro ao encontrar campos de perfil."
+  //     );
+  //     return;
+  //   }
 
-    const newName = newNameInput.value.trim();
-    const newGender = newGenderInput.value;
+  //   const newName = newNameInput.value.trim();
+  //   const newGender = newGenderInput.value;
 
-    if (newName.length < 3) {
-      window.Utils.showModal(
-        "errorModal",
-        "O nome deve ter no mínimo 3 caracteres."
-      );
-      return;
-    }
+  //   if (newName.length < 3) {
+  //     window.Utils.showModal(
+  //       "errorModal",
+  //       "O nome deve ter no mínimo 3 caracteres."
+  //     );
+  //     return;
+  //   }
 
-    window.gameState.profile.trainerName = newName.toUpperCase();
-    window.gameState.profile.trainerGender = newGender;
-    window.GameLogic.saveProfile();
-    window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
-    window.Renderer.showScreen("profile");
-  },
+  //   window.gameState.profile.trainerName = newName.toUpperCase();
+  //   window.gameState.profile.trainerGender = newGender;
+  //   window.GameLogic.saveProfile();
+  //   window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
+  //   window.Renderer.showScreen("profile");
+  // },
 
   releasePokemon: function (index) {
     if (window.gameState.profile.pokemon.length <= 1) {

@@ -1,6 +1,10 @@
 {
   "updates": [
     {
+      "date": "06/10/2025 18:00",
+      "text": "Adicionado 1025 pokemons locais sem depender da PokeAPI"
+    },
+    {
       "date": "06/10/2025 14:00",
       "text": "Remoção de PokéAPI agora os dados estão locais"
     },

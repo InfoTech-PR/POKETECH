@@ -106,15 +106,18 @@ export async function init(cacheBuster) {
   };
 
   try {
-    // 1. Carregamento de Configurações e Utilitários
+    // 1. Carregamento de Configurações e Utilitários (Agora é uma função assíncrona)
     const configModule = await import(`./config_utils.js${v}`);
+    
+    // Chama a função fábrica para carregar dados locais com cache-busting
+    const loadedConfig = await configModule.createConfigAndUtils(v);
     ({
       GameConfig,
       initializeGameState,
       Utils,
       PokeAPI,
       registerExistingPokemonOnLoad,
-    } = configModule);
+    } = loadedConfig);
 
     // 2. Carregamento de Lógica de Jogo
     const logicModule = await import(`./game_logic.js${v}`);

@@ -24,7 +24,7 @@ export const BattleCore = {
   },
 
   startWildBattle: async function () {
-    const randomId = Math.floor(Math.random() * 151) + 1;
+    const randomId = Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1; // Usa o limite de dados locais
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
     if (!wildPokemonData) {
       window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
@@ -75,14 +75,15 @@ export const BattleCore = {
     const LEVEL_FACTOR = 0.35; // Fator de influência do nível
     
     // Stats base ajustados
-    const attackStat = (attacker.stats.attack || 50) * ATTACK_MODIFIER;
-    const defenseStat = (defender.stats.defense || 50) * DEFENSE_MODIFIER;
+    // CORREÇÃO: Usar special_attack e special_defense quando disponíveis
+    const attackStat = (attacker.stats.attack || attacker.stats.special_attack || 50) * ATTACK_MODIFIER;
+    const defenseStat = (defender.stats.defense || defender.stats.special_defense || 50) * DEFENSE_MODIFIER;
     const level = attacker.level || 5;
     
     // FÓRMULA DE DANO SIMPLIFICADA (Mais próxima da original, mas ajustada)
     // Damage = ((((Level * LEVEL_FACTOR + 2) * Power * Attack) / Defense) / 50 + 2) * Modifier
     
-    const movePower = POWER_BASE; 
+    const movePower = move.power || POWER_BASE; 
     let baseDamage = (((level * LEVEL_FACTOR + 2) * movePower * attackStat) / defenseStat / 50) + 2;
     let modifier = 1;
 
@@ -570,9 +571,9 @@ export const BattleCore = {
     // Garante que o Pokémon do jogador está no time
     if (!playerPokemon) return;
 
-    // NOVO SELETOR: Adiciona uma classe para o player sprite para fácil manipulação
-    // CORREÇÃO: Usar a classe player-sprite também no img do player, para que o seletor funcione
-    const playerBackSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${playerPokemon.id}.png`;
+    // NOVO: Usa a propriedade backSprite, que agora é fornecida pelos dados locais
+    const playerBackSprite = playerPokemon.backSprite || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${playerPokemon.id}.png`;
+    // O sprite do oponente é o 'sprite' (front_sprite) que já está no objeto opponent
 
     const playerHpPercent =
       (playerPokemon.currentHp / playerPokemon.maxHp) * 100;
@@ -601,6 +602,8 @@ export const BattleCore = {
                 </div>
             `;
     } else if (battle.currentMenu === "fight") {
+      // CORREÇÃO: Assumindo que moveName é a string do move. A função calculateDamage precisa dos detalhes,
+      // mas vamos manter a simplicidade por enquanto, se a lógica de dano não depender do poder do move.
       optionsHtml = playerPokemon.moves
         .map(
           (move) =>
@@ -665,7 +668,7 @@ export const BattleCore = {
                 
                 <!-- SPRITES: Posições atualizadas para flexibilidade -->
                 <div class="relative w-full h-64">
-                    <!-- Opponent Sprite: Ajustado de top-4 para top-2 para subir mais a sprite -->
+                    <!-- Opponent Sprite: Usa opponent.sprite (front_sprite) -->
                     <img src="${opponent.sprite}" alt="${
       opponent.name
     }" class="opponent-sprite w-28 h-28 absolute top-2 right-0 md:right-24 transform -translate-y-1/2 scale-150 z-10">
@@ -711,7 +714,7 @@ export const BattleCore = {
                       playerPokemon.currentHp
                     }/${playerPokemon.maxHp}</div>
                 </div>
-                <!-- Player Sprite: Centrado na parte inferior esquerda, move-se para a esquerda em telas maiores -->
+                <!-- Player Sprite: Usa playerBackSprite (back_sprite) -->
                 <img src="${playerBackSprite}" alt="${
       playerPokemon.name
     }" class="player-sprite absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">

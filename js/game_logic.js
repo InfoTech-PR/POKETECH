@@ -362,11 +362,25 @@ export const GameLogic = {
       );
       return;
     }
+    
+    // Novo Requisito de EXP (mantido aqui como 1000)
+    const requiredExp = 1000; 
+     if (pokemon.exp < requiredExp) {
+        window.Utils.showModal(
+            "errorModal",
+            `${pokemon.name} precisa de ${requiredExp} EXP para evoluir!`
+        );
+        return;
+    }
 
     window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
+    // O Pokémon perde a EXP ao evoluir (ou usa a EXP mínima, a sua regra atual é 0)
+    pokemon.exp -= requiredExp; 
+
     window.Utils.showModal("infoModal", `Evoluindo ${pokemon.name}...`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    // NOVA CHAMADA: Usa a função de dados locais
     const newPokemonData = await window.PokeAPI.fetchPokemonData(
       nextEvolutionName
     );
@@ -374,7 +388,13 @@ export const GameLogic = {
     if (newPokemonData) {
       newPokemonData.level = pokemon.level;
       newPokemonData.exp = pokemon.exp;
+      // O fetchPokemonData já calcula o maxHp inicial. Precisamos recalcular o maxHp
+      // com base no level *atual* e curar.
+      newPokemonData.maxHp = window.Utils.calculateMaxHp(newPokemonData.stats.hp, newPokemonData.level);
       newPokemonData.currentHp = newPokemonData.maxHp;
+      // CORREÇÃO: Garante que os sprites do Pokémon evoluído sejam transferidos
+      newPokemonData.sprite = newPokemonData.sprite;
+      newPokemonData.backSprite = newPokemonData.backSprite;
 
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
       window.GameLogic.saveGameData();
@@ -384,45 +404,14 @@ export const GameLogic = {
       );
       window.Renderer.showScreen("pokemonList");
     } else {
+      // Reembolsa o dinheiro se a evolução falhar (dados locais ausentes)
       window.gameState.profile.money += GameConfig.EVOLUTION_COST;
       window.Utils.showModal(
         "errorModal",
-        `Falha ao buscar dados de ${nextEvolutionName}. Evolução cancelada.`
+        `Falha ao buscar dados de ${window.Utils.formatName(nextEvolutionName)}. Evolução cancelada.`
       );
     }
   },
-
-  // saveProfile: function () {
-  //   const newNameInput = document.getElementById("newTrainerName");
-  //   const newGenderInput = document.querySelector(
-  //     'input[name="newTrainerGender"]:checked'
-  //   );
-
-  //   if (!newNameInput || !newGenderInput) {
-  //     window.Utils.showModal(
-  //       "errorModal",
-  //       "Erro ao encontrar campos de perfil."
-  //     );
-  //     return;
-  //   }
-
-  //   const newName = newNameInput.value.trim();
-  //   const newGender = newGenderInput.value;
-
-  //   if (newName.length < 3) {
-  //     window.Utils.showModal(
-  //       "errorModal",
-  //       "O nome deve ter no mínimo 3 caracteres."
-  //     );
-  //     return;
-  //   }
-
-  //   window.gameState.profile.trainerName = newName.toUpperCase();
-  //   window.gameState.profile.trainerGender = newGender;
-  //   window.GameLogic.saveProfile();
-  //   window.Utils.showModal("infoModal", "Perfil atualizado com sucesso!");
-  //   window.Renderer.showScreen("profile");
-  // },
 
   releasePokemon: function (index) {
     if (window.gameState.profile.pokemon.length <= 1) {

@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pokémon GBA RPG - Canvas Immersive</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Axios é necessário para a PokeAPI (config_utils.js) -->
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- REMOVIDO: Axios não é mais necessário, pois a PokeAPI foi substituída por dados locais. -->
+    <!-- <script src="https://unpkg.com/axios/dist/axios.min.js"></script> -->
     
     <!-- NOVO: CDN de Ícones Font Awesome para o Drag and Drop Handle -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -253,6 +253,31 @@
         </button>
       </div>
     </div>
+    
+    <!-- NOVO: Modal dedicado para a lista de amizades (para usar o listener onSnapshot) -->
+    <div
+      id="friendshipModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
+    >
+      <div
+        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
+      >
+        <div class="text-lg font-bold text-gray-800 gba-font mb-4">
+          LISTA DE AMIGOS
+        </div>
+        <div id="friendship-list-container" class="text-left">
+          <!-- Conteúdo dinâmico da lista de amizades será injetado aqui -->
+          <p class="text-sm gba-font text-gray-500">Carregando...</p>
+        </div>
+        <button
+          onclick="window.PokeFriendship.stopFriendshipListener(); window.Utils.hideModal('friendshipModal')"
+          class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 mx-auto w-full"
+        >
+          FECHAR
+        </button>
+      </div>
+    </div>
+
 
     <!-- SCRIPT PRINCIPAL E INICIALIZAÇÃO FIREBASE -->
     <script type="module">

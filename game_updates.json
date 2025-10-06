@@ -1,6 +1,10 @@
 {
   "updates": [
     {
+      "date": "06/10/2025 14:00",
+      "text": "Remoção de PokéAPI agora os dados estão locais"
+    },
+    {
       "date": "06/10/2025 03:35",
       "text": "Ajuste id do perfil, possibilidade de copiar para facilitar a amizade, e também modificado para consultar API para verificar pokemons sem mais evoluções ao invés de uma lista"
     },

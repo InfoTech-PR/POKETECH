@@ -490,7 +490,7 @@ export const RendererMenus = {
                 <img src="${trainerImage}" alt="Imagem do Treinador" class="w-20 h-20 rounded-full border-4 border-gray-800">
             </div>
             
-            <div class="space-y-3 text-sm gba-font flex-grow overflow-y-auto p-2">
+            <div class="space-y-3 text-sm gba-font flex-grow  p-2">
                 <div>
                     <label for="newTrainerName" class="block text-xs font-bold mb-1">Nome:</label>
                     <input id="newTrainerName" type="text" value="${

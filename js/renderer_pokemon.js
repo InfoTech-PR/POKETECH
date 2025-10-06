@@ -45,7 +45,7 @@ export const RendererPokemon = {
             <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
               p.name
             }', ${index})">
-                <img src="${p.sprite}" alt="${
+                <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
           p.name
         }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <!-- Ajuste de Layout: flex-col para empilhar HP e EXP, e text-xs para caber em telas pequenas -->
@@ -267,7 +267,7 @@ export const RendererPokemon = {
         const spriteId = evo.id;
         const isLast = evoIndex === evolutionChain.length - 1;
         
-        let spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${spriteId}.png`;
+        let spriteUrl = `../assets/sprites/pokemon/${spriteId}_front.png`;
         // Silhueta para Pokémon não descoberto: apenas filtro de cor, sem o 'brightness(0.1)' para manter a transparência da imagem original
         const silhouetteFilter = "filter: grayscale(100%) brightness(0);";
         let filterStyle = isKnown ? "" : silhouetteFilter;
@@ -453,7 +453,7 @@ export const RendererPokemon = {
         const spriteId = evo.id;
         const isLast = evoIndex === evolutionChain.length - 1;
         
-        let spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${spriteId}.png`;
+        let spriteUrl = `../assets/sprites/pokemon/${id}_front.png`;
         const silhouetteFilter = "filter: grayscale(100%) brightness(0);";
         let filterStyle = isKnown ? "" : silhouetteFilter;
         let displayName = isKnown ? window.Utils.formatName(evo.name) : "???";
@@ -600,7 +600,7 @@ export const RendererPokemon = {
         const isCaught = p.isCaught;
         const displayId = id.toString().padStart(3, "0");
 
-        const displayUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        const displayUrl = `../assets/sprites/pokemon/${id}_front.png`;
         let displayName = p.name;
         let filterStyle = "filter: grayscale(100%) brightness(0.1);";
 

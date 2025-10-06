@@ -160,9 +160,9 @@ export const RendererMenus = {
                             ${window.GameConfig.STARTERS.map(
                               (name) => `
                                 <div onclick="window.selectStarter('${name}')" class="flex flex-col items-center flex-1 cursor-pointer">
-                                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${
+                                    <img src="../assets/sprites/pokemon/${
                                       starterSpriteIds[name]
-                                    }.png" alt="${name}" 
+                                    }_front.png" alt="${name}" 
                                         class="mx-auto w-20 h-20 sm:w-24 sm:h-24 transition-transform duration-200 hover:scale-125">
                                     <div class="text-xs gba-font text-gray-800 mt-2 text-center">${window.Utils.formatName(
                                       name

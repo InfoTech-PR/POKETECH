@@ -342,15 +342,16 @@ export const GameLogic = {
 
   evolvePokemon: async function (pokemonIndex) {
     const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+    // Chamar PokeAPI localmente para obter o nome da próxima evolução
     const nextEvolutionName = await window.PokeAPI.fetchNextEvolution(
       pokemon.id
     );
     const GameConfig = window.GameConfig;
 
-    if (!nextEvolutionName || pokemon.level < 1) {
+    if (!nextEvolutionName) {
       window.Utils.showModal(
         "errorModal",
-        `${pokemon.name} ainda não pode evoluir.`
+        `${pokemon.name} ainda não pode evoluir, ou já atingiu o máximo.`
       );
       return;
     }
@@ -374,27 +375,33 @@ export const GameLogic = {
     }
 
     window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
-    // O Pokémon perde a EXP ao evoluir (ou usa a EXP mínima, a sua regra atual é 0)
+    // O Pokémon perde a EXP ao evoluir
     pokemon.exp -= requiredExp; 
 
     window.Utils.showModal("infoModal", `Evoluindo ${pokemon.name}...`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // NOVA CHAMADA: Usa a função de dados locais
-    const newPokemonData = await window.PokeAPI.fetchPokemonData(
+    // NOVA CHAMADA: Usa a função de dados locais, que retorna o objeto pronto
+    // com base stats (fetchPokemonData no config_utils.js)
+    const newPokemonDataRaw = await window.PokeAPI.fetchPokemonData(
       nextEvolutionName
     );
 
-    if (newPokemonData) {
-      newPokemonData.level = pokemon.level;
-      newPokemonData.exp = pokemon.exp;
-      // O fetchPokemonData já calcula o maxHp inicial. Precisamos recalcular o maxHp
-      // com base no level *atual* e curar.
+    if (newPokemonDataRaw) {
+      // 1. Usar os dados base da nova forma
+      const newPokemonData = {
+          ...newPokemonDataRaw,
+          // 2. Preservar Nível e EXP
+          level: pokemon.level,
+          exp: pokemon.exp,
+      }
+
+      // 3. Recalcular o HP Máximo com os novos base stats + nível atual
       newPokemonData.maxHp = window.Utils.calculateMaxHp(newPokemonData.stats.hp, newPokemonData.level);
       newPokemonData.currentHp = newPokemonData.maxHp;
-      // CORREÇÃO: Garante que os sprites do Pokémon evoluído sejam transferidos
-      newPokemonData.sprite = newPokemonData.sprite;
-      newPokemonData.backSprite = newPokemonData.backSprite;
+      // 4. Registrar na Pokédex
+      window.Utils.registerPokemon(newPokemonData.id);
+
 
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
       window.GameLogic.saveGameData();

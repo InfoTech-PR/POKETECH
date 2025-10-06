@@ -3,13 +3,13 @@ export const BattleCore = {
   _getBallSpriteUrl: function(ballName) {
       switch (ballName.toLowerCase()) {
           case 'pokébola':
-              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png';
+              return '../assets/sprites/items/poke-ball.png';
           case 'great ball':
-              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png';
+              return '../assets/sprites/items/great-ball.png';
           case 'ultra ball':
-              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png';
+              return '../assets/sprites/items/ultra-ball.png';
           default:
-              return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png'; // Fallback
+              return '../assets/sprites/items/poke-ball.png'; // Fallback
       }
   },
   
@@ -572,7 +572,7 @@ export const BattleCore = {
     if (!playerPokemon) return;
 
     // NOVO: Usa a propriedade backSprite, que agora é fornecida pelos dados locais
-    const playerBackSprite = playerPokemon.backSprite || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/back/${playerPokemon.id}.png`;
+    const playerBackSprite = playerPokemon.backSprite || `../assets/sprites/pokemon/${playerPokemon.id}_back.png`;
     // O sprite do oponente é o 'sprite' (front_sprite) que já está no objeto opponent
 
     const playerHpPercent =

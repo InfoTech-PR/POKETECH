@@ -453,7 +453,7 @@ export const RendererPokemon = {
         const spriteId = evo.id;
         const isLast = evoIndex === evolutionChain.length - 1;
         
-        let spriteUrl = `../assets/sprites/pokemon/${id}_front.png`;
+        let spriteUrl = `../assets/sprites/pokemon/${spriteId}_front.png`;
         const silhouetteFilter = "filter: grayscale(100%) brightness(0);";
         let filterStyle = isKnown ? "" : silhouetteFilter;
         let displayName = isKnown ? window.Utils.formatName(evo.name) : "???";

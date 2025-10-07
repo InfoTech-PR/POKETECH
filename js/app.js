@@ -15,7 +15,7 @@ let GameConfig,
  * Carrega todos os módulos dependentes de forma dinâmica com cache-busting.
  * @param {number} cacheBuster Timestamp usado para versionamento de cache.
  */
-export async function init(cacheBuster) {
+export async function init(cacheBuster = Date.now()) {
   // Variável global para ser usada em carregamentos de assets estáticos (ex: game_updates.json)
   window.cacheBuster = cacheBuster;
   const v = `?v=${cacheBuster}`;
@@ -107,7 +107,7 @@ export async function init(cacheBuster) {
 
   try {
     // 1. Carregamento de Configurações e Utilitários (Agora é uma função assíncrona)
-    const configModule = await import(`./config_utils.js${v}`);
+    const configModule = await import(`./config_utils.js?v=${Date.now()}`);
 
     // Chama a função fábrica para carregar dados locais com cache-busting
     const loadedConfig = await configModule.createConfigAndUtils(v);
@@ -120,28 +120,28 @@ export async function init(cacheBuster) {
     } = loadedConfig);
 
     // 2. Carregamento de Lógica de Jogo
-    const logicModule = await import(`./game_logic.js${v}`);
+    const logicModule = await import(`./game_logic.js?v=${Date.now()}`);
     GameLogic = logicModule.GameLogic;
 
     // 3. Carregamento do Core de Batalha
-    const battleModule = await import(`./battle_core.js${v}`);
+    const battleModule = await import(`./battle_core.js?v=${Date.now()}`);
     BattleCore = battleModule.BattleCore;
 
     // 4. Carregamento do Core de PvP
-    const pvpModule = await import(`./pvp_core.js${v}`);
+    const pvpModule = await import(`./pvp_core.js?v=${Date.now()}`);
     PvpCore = pvpModule.PvpCore;
 
     // 5. Carregamento da Fábrica do Renderer e Inicialização
-    const rendererModule = await import(`./renderer.js${v}`);
+    const rendererModule = await import(`./renderer.js?v=${Date.now()}`);
     // Chama a função de fábrica do Renderer, passando o versionamento
     Renderer = await rendererModule.createRenderer(cacheBuster);
 
     // 6. Carregamento do Setup de Autenticação
-    const authModule = await import(`./auth_setup.js${v}`);
+    const authModule = await import(`./auth_setup.js?v=${Date.now()}`);
     AuthSetup = authModule.AuthSetup;
 
     // 7. Carregamento do Sistema de Amizade
-    const friendshipModule = await import(`./poke_friendship.js${v}`);
+    const friendshipModule = await import(`./poke_friendship.js?v=${Date.now()}`);
     PokeFriendship = friendshipModule.PokeFriendship;
     window.PokeFriendship = PokeFriendship; // Expõe para uso em onclick/eventos
 

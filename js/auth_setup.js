@@ -7,7 +7,6 @@ import {
   signOut,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { GameLogic } from "./game_logic.js";
 
 export const AuthSetup = {
   signInWithGoogle: async function () {

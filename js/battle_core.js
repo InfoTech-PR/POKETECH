@@ -443,6 +443,27 @@ export const BattleCore = {
     return { damage, isCritical, effectiveness };
   },
 
+  /**
+   * Função auxiliar para encerrar a batalha e sincronizar o log.
+   * @param {string} finalMessage Mensagem final para o log de exploração.
+   */
+  _endBattleAndSyncLog: function(finalMessage) {
+    if (window.gameState.battle) {
+        // 1. Adiciona a mensagem final ao log principal
+        window.GameLogic.addExploreLog(finalMessage);
+        
+        // 2. Limpa o estado da batalha
+        window.gameState.battle = null;
+
+        // 3. Salva os dados
+        window.GameLogic.saveGameData();
+
+        // 4. Volta ao menu
+        window.AuthSetup?.handleBattleMusic(false);
+        window.Renderer.showScreen("mainMenu");
+    }
+  },
+
   // =======================================================
   // FUNÇÕES DE FLUXO E LÓGICA (playerTurn, opponentTurn, etc.)
   // =======================================================
@@ -556,7 +577,7 @@ export const BattleCore = {
       }
     });
 
-    console.log("--- DISTRIBUIÇÃO DE XP FINALIZADA ---");
+    console.log("--- DISTRIBUÇÃO DE XP FINALIZADA ---");
   },
 
   battleWin: function (winner, loser) {
@@ -667,60 +688,51 @@ export const BattleCore = {
           }
 
           if (isCaptured) {
-            BattleCore.addBattleLog(
-              `Sucesso! ${wildPokemon.name} foi capturado!`
-            );
+            // AÇÃO DE CAPTURA BEM-SUCEDIDA
+            const finalMsg = `Sucesso! ${wildPokemon.name} foi capturado!`;
+            BattleCore.addBattleLog(finalMsg);
+            BattleCore.updateBattleScreen();
 
             setTimeout(() => {
-              // --- Define apenas 2 ataques (um comum e um especial baseado no tipo) ---
+              // Lógica de adicionar Pokémon
               const type = (wildPokemon.types?.[0] || "normal").toLowerCase();
-
               const typeSpecialMove = {
-                fire: "ember",
-                water: "water-gun",
-                grass: "vine-whip",
-                electric: "thunder-shock",
-                ground: "mud-slap",
-                rock: "rock-throw",
-                ice: "ice-beam",
-                bug: "bug-bite",
-                psychic: "confusion",
-                dark: "bite",
-                ghost: "night-shade",
-                steel: "iron-head",
-                fighting: "karate-chop",
-                poison: "poison-sting",
-                flying: "gust",
-                dragon: "dragon-breath",
-                fairy: "disarming-voice",
-                normal: "tackle",
+                fire: "ember", water: "water-gun", grass: "vine-whip", electric: "thunder-shock",
+                ground: "mud-slap", rock: "rock-throw", ice: "ice-beam", bug: "bug-bite",
+                psychic: "confusion", dark: "bite", ghost: "night-shade", steel: "iron-head",
+                fighting: "karate-chop", poison: "poison-sting", flying: "gust", dragon: "dragon-breath",
+                fairy: "disarming-voice", normal: "tackle",
               };
-
-              // Garante que o Pokémon capturado terá exatamente 2 ataques
               wildPokemon.moves = ["tackle", typeSpecialMove[type] || "tackle"];
-
               window.gameState.profile.pokemon.push(wildPokemon);
-              window.GameLogic.saveGameData();
-              window.AuthSetup?.handleBattleMusic(false);
-              window.Renderer.showScreen("mainMenu");
+
+              // Usa a função de encerramento para sincronizar o log
+              BattleCore._endBattleAndSyncLog(finalMsg);
+              
               resolve(true);
-            }, 1000);
+            }, 1000); 
           } else {
+            // O Pokémon não foi capturado.
             BattleCore.addBattleLog(`Oh não! ${wildPokemon.name} escapou!`);
 
             if (opponentSpriteElement) {
               opponentSpriteElement.src = wildPokemon.sprite;
               opponentSpriteElement.style.transform = "scale(1.5)";
             }
-
+            
             if (roll > 90) {
-              BattleCore.addBattleLog(`${wildPokemon.name} fugiu da batalha!`);
+              // O Pokémon escapou E fugiu da batalha
+              const finalMsg = `${wildPokemon.name} fugiu da batalha!`;
+              BattleCore.addBattleLog(finalMsg);
+              BattleCore.updateBattleScreen(); 
+              
               setTimeout(() => {
-                window.AuthSetup?.handleBattleMusic(false);
-                window.Renderer.showScreen("mainMenu");
+                // Usa a função de encerramento para sincronizar o log
+                BattleCore._endBattleAndSyncLog(finalMsg);
                 resolve(true);
               }, 1500);
             } else {
+              // O Pokémon escapou, mas a batalha continua
               resolve(false);
             }
           }
@@ -766,6 +778,7 @@ export const BattleCore = {
     const playerPokemon = window.Utils.getActivePokemon();
     const opponent = battle.opponent;
     let ended = false;
+    let finalMessage = ""; // Mensagem de saída, se aplicável
 
     // Bloqueia o menu
     BattleCore.setBattleMenu("disabled");
@@ -791,7 +804,8 @@ export const BattleCore = {
 
     if (action === "run") {
       if (Math.random() < 0.5) {
-        BattleCore.addBattleLog(`Você fugiu com sucesso!`);
+        finalMessage = `Você fugiu com sucesso!`;
+        BattleCore.addBattleLog(finalMessage);
         ended = true;
       } else {
         BattleCore.addBattleLog(`Você falhou em fugir!`);
@@ -894,6 +908,7 @@ export const BattleCore = {
     if (opponent.currentHp === 0) {
       BattleCore.battleWin(playerPokemon, opponent);
       ended = true;
+      finalMessage = `${opponent.name} desmaiou! Batalha vencida!`;
     }
 
     // 2. Turno do Oponente
@@ -960,21 +975,20 @@ export const BattleCore = {
       }
 
       if (playerPokemon.currentHp === 0) {
-        BattleCore.addBattleLog(
-          `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`
-        );
         const hasLivePokemon = window.gameState.profile.pokemon.some(
           (p) => p.currentHp > 0
         );
 
         // CORREÇÃO CRÍTICA: Se desmaiou e há substituto, força a troca
         if (hasLivePokemon) {
+          BattleCore.addBattleLog(
+            `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`
+          );
           window.Renderer.showScreen("switchPokemon");
           return;
         } else {
-          BattleCore.addBattleLog(
-            "Todos os seus Pokémons desmaiados! Você perdeu a batalha."
-          );
+          finalMessage = "Todos os seus Pokémons desmaiados! Você perdeu a batalha.";
+          BattleCore.addBattleLog(finalMessage);
           ended = true;
         }
       }
@@ -986,10 +1000,16 @@ export const BattleCore = {
 
     if (ended) {
       setTimeout(() => {
-        window.gameState.battle = null;
-        window.AuthSetup?.handleBattleMusic(false);
-        window.Renderer.showScreen("mainMenu");
-        window.GameLogic.saveGameData();
+        // Se a mensagem final foi definida (fuga, derrota, vitória por KO), use a função de sincronização
+        if (finalMessage) {
+            BattleCore._endBattleAndSyncLog(finalMessage);
+        } else {
+            // Caso contrário, limpe o estado e volte (caso de falha na captura que não resultou em fuga/KO)
+            window.gameState.battle = null;
+            window.AuthSetup?.handleBattleMusic(false);
+            window.Renderer.showScreen("mainMenu");
+            window.GameLogic.saveGameData();
+        }
       }, 2000);
     }
 

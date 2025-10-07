@@ -37,6 +37,17 @@ window.updateSubtotal = function (inputId, itemCost) {
   }
 };
 
+/**
+ * Novo helper para buscar a quantidade de um item na mochila do jogador.
+ * @param {string} itemName - O nome do item a ser verificado.
+ * @returns {number} A quantidade do item.
+ */
+function getItemQuantity(itemName) {
+    const item = window.gameState.profile.items.find(i => i.name === itemName);
+    return item ? item.quantity : 0;
+}
+
+
 export const RendererServices = {
   renderHealCenter: function (app) {
     const profile = window.gameState.profile;
@@ -83,6 +94,13 @@ export const RendererServices = {
       const inputId = `qty-${item.name.replace(/\s/g, "")}`;
       const buyBtnId = `buy-btn-${inputId}`;
       const initialSubtotal = item.cost * 1;
+      
+      // NOVO: Busca a quantidade que o jogador já tem
+      const currentQuantity = getItemQuantity(item.name);
+      const quantityText = currentQuantity > 0 
+          ? `<span class="text-blue-700 gba-font text-[10px] ml-1">(Você tem: x${currentQuantity})</span>`
+          : `<span class="text-red-500 gba-font text-[10px] ml-1">(Não possui)</span>`;
+
 
       const isAffordable = window.gameState.profile.money >= initialSubtotal;
 
@@ -100,6 +118,8 @@ export const RendererServices = {
                     <span class="gba-font text-xs sm:text-sm">${
                       item.name
                     }</span>
+                    <!-- NOVO: Mostra a quantidade atual do item -->
+                    <p>${quantityText}</p>
                     <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${
                       item.cost
                     } cada)</span>

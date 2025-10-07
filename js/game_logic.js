@@ -439,8 +439,17 @@ export const GameLogic = {
   },
 
   setPokemonAsActive: function (index) {
+    // NOVIDADE: Adicionado check para não tentar mover o Pokémon já ativo (índice 0)
+    if (index === 0) {
+      window.Utils.showModal(
+        "infoModal",
+        `${window.gameState.profile.pokemon[index].name} já é o seu Pokémon ativo!`
+      );
+      return;
+    }
+      
     const pokemonArray = window.gameState.profile.pokemon;
-    if (index === 0 || index < 0 || index >= pokemonArray.length) {
+    if (index < 0 || index >= pokemonArray.length) {
       return;
     }
 

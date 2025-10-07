@@ -42,6 +42,9 @@ export const RendererPokemon = {
       .map((p, index) => {
         const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
         const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+        
+        // NOVIDADE 1: Variável para identificar se é o Pokémon ativo (índice 0)
+        const isCurrentActive = index === 0;
 
         // CORREÇÃO: O index aqui é a posição real no array, mantido para drag/drop.
         return `
@@ -80,7 +83,9 @@ export const RendererPokemon = {
                 <div class="flex flex-col min-w-0">
                     <div class="font-bold gba-font text-xs sm:text-sm truncate">${
                       p.name
-                    } </div>
+                    } 
+                    ${isCurrentActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ''}
+                    </div>
                     <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
@@ -135,8 +140,8 @@ export const RendererPokemon = {
 
     // 2. Coleta os dados de evolução de forma assíncrona
     const pokemonHtmlPromises = pokemonArray.map(async (p, index) => {
-        // CORREÇÃO: A checagem de "ativo" deve usar o playerPokemonIndex
-        const isCurrentlyActive = window.gameState.battle?.playerPokemonIndex === index || (window.gameState.battle === null && index === 0);
+        // CORREÇÃO: A checagem de "ativo" agora é sempre index === 0
+        const isCurrentlyActive = index === 0;
         const canRelease = pokemonArray.length > 1;
 
         // USA A API: Verifica se há próxima evolução
@@ -166,6 +171,14 @@ export const RendererPokemon = {
         }
 
         const isDisabledEvolve = !canEvolve && !isMaxEvolution;
+        
+        // NOVIDADE 2: Lógica do botão USAR/ATIVO (conforme pedido pelo usuário)
+        const useButtonText = isCurrentlyActive ? "ATIVO (ATUAL)" : "USAR";
+        const isDisabledUse = isCurrentlyActive;
+        const useButtonClass = isCurrentlyActive 
+            ? "bg-green-600 cursor-not-allowed opacity-70" 
+            : "bg-green-500 hover:bg-green-600";
+
 
         // Gera o HTML do item:
         return `
@@ -182,7 +195,7 @@ export const RendererPokemon = {
                               p.name
                             } (Nv. ${p.level}) ${
           isCurrentlyActive
-            ? '<span class="text-[8px] text-green-600">(Ativo)</span>'
+            ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
             : ""
         }</div>
                             <div class="text-[8px] gba-font">HP: ${
@@ -195,17 +208,13 @@ export const RendererPokemon = {
                     <div class="flex space-x-2 w-full sm:w-1/2 justify-end">
                         <!-- NOVO BOTÃO 'USAR' / 'ATIVO' -->
                         <button onclick="${
-                          isCurrentlyActive
+                          isDisabledUse
                             ? ""
                             : `window.GameLogic.setPokemonAsActive(${index})`
                         }"
-                            class="gba-button text-xs w-1/4 h-12 ${
-                              isCurrentlyActive
-                                ? "bg-green-600 cursor-not-allowed"
-                                : "bg-green-500 hover:bg-green-600"
-                            }"
-                            ${isCurrentlyActive ? "disabled" : ""}>
-                            ${isCurrentlyActive ? "ATIVO" : "USAR"}
+                            class="gba-button text-xs w-1/4 h-12 ${useButtonClass}"
+                            ${isDisabledUse ? "disabled" : ""}>
+                            ${useButtonText}
                         </button>
                         
                         <button onclick="${
@@ -674,14 +683,14 @@ export const RendererPokemon = {
   // Esta função agora atua como um roteador.
   renderPokedex: function (app, extraData = {}) {
     // [LOG C] Adicionado log para rastrear a entrada
-    console.log('[POKEDEX] Chamado renderPokedex. Recebido extraData:', extraData);
+    console.log('[POKÉDEX] Chamado renderPokedex. Recebido extraData:', extraData);
     
     // 1. Tenta obter a chave da região do extraData, garantindo que não seja nula.
     const { region: regionKey } = extraData || {};
     let region = null;
     
     // [LOG D] Adicionado log para rastrear a chave da região
-    console.log('[POKEDEX] Region Key extraída:', regionKey);
+    console.log('[POKÉDEX] Region Key extraída:', regionKey);
 
 
     if (regionKey) {
@@ -691,14 +700,14 @@ export const RendererPokemon = {
 
     if (!region) {
         // [LOG E] Adicionado log para rastrear o redirecionamento
-        console.log('[POKEDEX] Região inválida ou nula. Redirecionando para lista de regiões.');
+        console.log('[POKÉDEX] Região inválida ou nula. Redirecionando para lista de regiões.');
         // Se a região não for passada (chamada inicial do menu) ou for inválida, 
         // mostra a lista de regiões.
         return RendererPokemon.renderPokedexRegionList(app);
     }
     
     // [LOG F] Adicionado log para rastrear a região encontrada
-    console.log('[POKEDEX] Região encontrada:', region.name);
+    console.log('[POKÉDEX] Região encontrada:', region.name);
 
     // --- Lógica para renderizar o GRID da região específica ---
     
@@ -713,13 +722,13 @@ export const RendererPokemon = {
     
     if (caughtInRegion === 0) {
         // [LOG G] Adicionado log para rastrear bloqueio
-        console.warn('[POKEDEX] Região bloqueada (0 Pokémons capturados). Redirecionando para lista.');
+        console.warn('[POKÉDEX] Região bloqueada (0 Pokémons capturados). Redirecionando para lista.');
         // Se a região não tem nenhum Pokémon capturado, volta para a lista e mostra o cadeado
         return RendererPokemon.renderPokedexRegionList(app);
     }
     
     // [LOG H] Adicionado log para rastrear o início da renderização do Grid
-    console.log(`[POKEDEX] Iniciando renderização do Grid para ${region.name}.`);
+    console.log(`[POKÉDEX] Iniciando renderização do Grid para ${region.name}.`);
 
 
     // 1. Configura o filtro de estado global
@@ -743,7 +752,7 @@ export const RendererPokemon = {
       const nextSearch = newSearch !== undefined ? newSearch : window.currentPokedexFilters.search;
       const nextType = newType !== undefined ? newType : window.currentPokedexFilters.type;
       
-      console.log(`[POKEDEX FILTER] Aplicando filtro. Busca: ${nextSearch}, Tipo: ${nextType}`);
+      console.log(`[POKÉDEX FILTER] Aplicando filtro. Busca: ${nextSearch}, Tipo: ${nextType}`);
 
       window.currentPokedexFilters.search = nextSearch;
       window.currentPokedexFilters.type = nextType;
@@ -808,7 +817,7 @@ export const RendererPokemon = {
 
   // NOVO: Aceita o objeto region para filtrar o grid
   _renderPokedexGrid: function (searchQuery, typeFilter, region) {
-    console.log(`[POKEDEX GRID] Renderizando grid para ${region.name}. Filtros: Busca='${searchQuery}', Tipo='${typeFilter}'`);
+    console.log(`[POKÉDEX GRID] Renderizando grid para ${region.name}. Filtros: Busca='${searchQuery}', Tipo='${typeFilter}'`);
     const pokedexSet = window.gameState.profile.pokedex;
     const cache = window.gameState.pokedexCache || {}; 
 

@@ -54,6 +54,19 @@ export async function createConfigAndUtils(v) {
     EXP_GROWTH_RATE: 1.35,
     HP_BASE_MULTIPLIER: 0.8,
     HP_LEVEL_MULTIPLIER: 0.25,
+    
+    // NOVO: Mapeamento de Regiões
+    POKEDEX_REGIONS: [
+        { name: "KANTO", id: "kanto", startId: 1, endId: 151, starters: [1, 4, 7] },
+        { name: "JOHTO", id: "johto", startId: 152, endId: 251, starters: [152, 155, 158] },
+        { name: "HOENN", id: "hoenn", startId: 252, endId: 386, starters: [252, 255, 258] },
+        { name: "SINNOH", id: "sinnoh", startId: 387, endId: 493, starters: [387, 390, 393] },
+        { name: "UNOVA", id: "unova", startId: 494, endId: 649, starters: [495, 498, 501] },
+        { name: "KALOS", id: "kalos", startId: 650, endId: 721, starters: [650, 653, 656] },
+        { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
+        { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
+        { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
+    ]
   };
 
   // 2. Definição do initializeGameState
@@ -264,15 +277,10 @@ export async function createConfigAndUtils(v) {
     },
 
     getActivePokemon: function () {
-      if (
-        !window.gameState.battle &&
-        window.gameState.profile.pokemon.length > 0
-      ) {
-        return window.gameState.profile.pokemon[0];
-      }
-      return window.gameState.profile.pokemon[
-        window.gameState.battle?.playerPokemonIndex || 0
-      ];
+      // CORREÇÃO: Pega o Pokémon baseado no índice armazenado na batalha,
+      // sem pressupor que ele está na posição 0 do array.
+      const index = window.gameState.battle?.playerPokemonIndex || 0;
+      return window.gameState.profile.pokemon[index];
     },
 
     calculateMaxHp: function (baseHp, level) {
@@ -359,15 +367,13 @@ export async function createConfigAndUtils(v) {
         types: data.types,
       };
 
-      // === CORREÇÃO DE SEGURANÇA AQUI ===
-      // Garante que o estado do jogo e o cache existam antes de tentar escrever.
       if (window.gameState && window.gameState.pokedexCache) { 
         if (result.id) {
-          // Preenche o cache para a Pokédex (para que o filtro funcione)
+          // Popula o cache para a Pokédex
           window.gameState.pokedexCache[result.id] = {
             name: result.name,
             types: result.types,
-            spriteUrl: result.sprite // Adiciona o sprite (front) para uso no grid da Pokédex
+            spriteUrl: result.sprite 
           };
         }
 
@@ -375,12 +381,9 @@ export async function createConfigAndUtils(v) {
           Utils.registerPokemon(result.id);
         }
       } else {
-         // Ocorre apenas na primeira chamada de explore, antes de inicializar a UI.
          console.warn("Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem.");
       }
-      // === FIM DA CORREÇÃO DE SEGURANÇA ===
       
-      // O sprite na tela de batalha é sempre o front_sprite, a menos que seja um backSprite (que é tratado no battle_core)
       if (window.gameState.currentScreen === 'battle' && !isPokedexView) {
           result.sprite = data.front_sprite;
       }

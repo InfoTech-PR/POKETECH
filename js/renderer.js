@@ -38,24 +38,28 @@ export async function createRenderer(v) {
         renderServiceMenu: RendererMenus.renderServiceMenu,
         renderProfileMenu: RendererMenus.renderProfileMenu,
         renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
-        renderUpdates: RendererMenus.renderUpdates, // NOVO: Expõe a função de updates
+        renderUpdates: RendererMenus.renderUpdates, 
         
         // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
         copyPlayerId: RendererMenus.copyPlayerId, 
 
         // Funções de Gênero
-        // selectGender: Usada SOMENTE na tela de seleção inicial (redesenha a tela)
         selectGender: RendererMenus.selectGender, 
-        // updateGenderOnly: Usada na tela de Perfil (só atualiza o estado, não redireciona)
         updateGenderOnly: RendererMenus.updateGenderOnly, 
         
         // Pokémon Functions (from renderer_pokemon.js)
         renderPokemonList: RendererPokemon.renderPokemonList,
         renderManagePokemon: RendererPokemon.renderManagePokemon,
         renderBag: RendererPokemon.renderBag,
+        
+        // CORREÇÃO E NOVIDADE: renderPokedex agora é a tela que exibe a lista de regiões
+        // A função detalhada é chamada internamente.
         renderPokedex: RendererPokemon.renderPokedex,
+        
+        // NOVA FUNÇÃO (para ser chamada via showScreen('pokedex'))
+        renderPokedexRegionList: RendererPokemon.renderPokedexRegionList, 
+
         showPokemonStats: RendererPokemon.showPokemonStats,
-        // CORREÇÃO: Garante que showPokedexStats seja exposta corretamente no objeto Renderer
         showPokedexStats: RendererPokemon.showPokedexStats,
         selectStarter: RendererMenus.selectStarter, // Mantido aqui para compatibilidade
 
@@ -64,7 +68,6 @@ export async function createRenderer(v) {
         renderShop: RendererServices.renderShop,
         renderPvpSetup: RendererServices.renderPvpSetup,
         renderPvpWaiting: RendererServices.renderPvpWaiting,
-        // CORRIGIDO: Adicionando as funções de Batalha/Troca que estavam faltando
         renderBattleScreen: RendererServices.renderBattleScreen, 
         renderSwitchPokemon: RendererServices.renderSwitchPokemon,
     };

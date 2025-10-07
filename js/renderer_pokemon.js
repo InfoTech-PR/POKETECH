@@ -6,6 +6,33 @@ window.currentPokedexFilters = window.currentPokedexFilters || {
     search: '',
     type: 'all'
 };
+// NOVO ESTADO GLOBAL: Variável temporária para carregar o payload (extraData)
+// para a próxima tela de forma robusta, contornando o bug de passagem de argumentos.
+window.nextScreenPayload = null;
+
+
+/**
+ * NOVO: Função auxiliar global para garantir que o clique na região
+ * passe os dados corretamente para a navegação.
+ * @param {string} regionId - O ID da região (ex: 'kanto').
+ */
+window.openPokedexRegion = function(regionId) {
+    console.log('[POKEDEX NAV HELPER] Chamado openPokedexRegion com ID:', regionId);
+    
+    if (regionId) {
+        const payload = { region: regionId };
+        
+        // CORREÇÃO FINAL: Armazena o payload em uma variável global acessível pela função showScreen.
+        window.nextScreenPayload = payload;
+        
+        console.log('[POKEDEX NAV HELPER] Payload ARMAZENADO no global:', window.nextScreenPayload);
+        
+        // Chama showScreen SEM o argumento extraData, confiando que ele será buscado globalmente.
+        window.Renderer.showScreen('pokedex');
+    } else {
+        console.error('[POKEDEX NAV HELPER] ID da região ausente!');
+    }
+};
 
 export const RendererPokemon = {
   renderPokemonList: function (app) {
@@ -16,6 +43,7 @@ export const RendererPokemon = {
         const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
         const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
 
+        // CORREÇÃO: O index aqui é a posição real no array, mantido para drag/drop.
         return `
         <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
         <div id="pokemon-list-item-${index}" 
@@ -45,7 +73,7 @@ export const RendererPokemon = {
             <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
               p.name
             }', ${index})">
-                <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
+                <img src="${p.sprite}" alt="${
           p.name
         }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <!-- Ajuste de Layout: flex-col para empilhar HP e EXP, e text-xs para caber em telas pequenas -->
@@ -107,7 +135,8 @@ export const RendererPokemon = {
 
     // 2. Coleta os dados de evolução de forma assíncrona
     const pokemonHtmlPromises = pokemonArray.map(async (p, index) => {
-        const isCurrentlyActive = index === 0;
+        // CORREÇÃO: A checagem de "ativo" deve usar o playerPokemonIndex
+        const isCurrentlyActive = window.gameState.battle?.playerPokemonIndex === index || (window.gameState.battle === null && index === 0);
         const canRelease = pokemonArray.length > 1;
 
         // USA A API: Verifica se há próxima evolução
@@ -267,6 +296,7 @@ export const RendererPokemon = {
         const spriteId = evo.id;
         const isLast = evoIndex === evolutionChain.length - 1;
         
+        // CORREÇÃO: Usar spriteId (que é o ID numérico da evolução)
         let spriteUrl = `../assets/sprites/pokemon/${spriteId}_front.png`;
         // Silhueta para Pokémon não descoberto: apenas filtro de cor, sem o 'brightness(0.1)' para manter a transparência da imagem original
         const silhouetteFilter = "filter: grayscale(100%) brightness(0);";
@@ -312,7 +342,9 @@ export const RendererPokemon = {
 
     const modalContent = `
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
-                ${pokemon.name}
+                #${pokemon.id.toString().padStart(3, "0")} - ${
+      pokemon.name
+    }
             </div>
             <img src="${pokemon.sprite}" alt="${
       pokemon.name
@@ -458,11 +490,15 @@ export const RendererPokemon = {
         let filterStyle = isKnown ? "" : silhouetteFilter;
         let displayName = isKnown ? window.Utils.formatName(evo.name) : "???";
 
+        // Se for o Pokémon atual, destaque.
+        const isActive = evo.id === pokemonData.id;
+        const currentMarker = isActive ? '' : '';
+
         // Renderiza o Pokémon. O fundo branco é aplicado ao DIV, não ao IMG.
         let evoItem = `
             <div class="flex flex-col items-center flex-shrink-0 w-20 p-1 bg-white shadow-md rounded-lg">
                 <img src="${spriteUrl}" alt="${displayName}" class="w-12 h-12 mb-1" style="${filterStyle}">
-                <span class="text-[8px] gba-font text-center">${displayName}</span>
+                <span class="text-[8px] gba-font text-center">${displayName} ${currentMarker}</span>
             </div>
         `;
         
@@ -533,177 +569,205 @@ export const RendererPokemon = {
     }
   },
 
-  // NOVO: Função para renderizar APENAS o grid da Pokédex (para filtragem rápida)
-  _renderPokedexGrid: function (searchQuery, typeFilter) {
+  // NOVO: Função que lista os cards de Região
+  renderPokedexRegionList: function (app) {
+    // [LOG B] Adicionado log para rastrear a renderização
+    console.log('[POKEDEX] Renderizando: Lista de Regiões.');
+    
     const pokedexSet = window.gameState.profile.pokedex;
-    const cache = window.gameState.pokedexCache || {}; // Usa cache ou objeto vazio
+    const regions = window.GameConfig.POKEDEX_REGIONS;
 
-    // Converte para minúsculas apenas uma vez
-    searchQuery = (searchQuery || "").toLowerCase();
-
-    let filteredPokedex = [];
-
-    for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
-      const cachedData = cache[id];
-      const isKnown = pokedexSet.has(id);
-      
-      // Garante que cachedData é um objeto, mesmo que seja parcial ou vazio
-      const safeCachedData = cachedData || { name: null, types: [] };
-
-      const pokemonNameRaw = safeCachedData.name
-        ? safeCachedData.name.toLowerCase()
-        : `poke-${id}`; // Fallback para nome
-      const pokemonNameFormatted = window.Utils.formatName(pokemonNameRaw);
-
-      let displayName;
-      if (isKnown) {
-        displayName = safeCachedData.name
-          ? pokemonNameFormatted
-          : `POKÉMON #${id.toString().padStart(3, "0")}`;
-      } else {
-        displayName = `???`;
-      }
-
-      // --- Lógica de Filtragem ---
-
-      // 1. Filtro por Busca (Nome ou ID)
-      if (searchQuery) {
-        const isMatchByName = pokemonNameRaw.includes(searchQuery);
-        const isMatchById = id.toString().includes(searchQuery);
-
-        if (!isMatchByName && !isMatchById) {
-          continue;
+    const regionsHtml = regions.map(region => {
+        // 1. Calcula o progresso da região
+        let caughtInRegion = 0;
+        for (let i = region.startId; i <= region.endId; i++) {
+            if (pokedexSet.has(i)) {
+                caughtInRegion++;
+            }
         }
-      }
-
-      // 2. Filtro por Tipo
-      if (typeFilter !== "all") {
-        // Se o Pokémon não for conhecido, ou não tiver dados de tipo (ainda carregando/fallback),
-        // ele só deve ser incluído se o filtro for 'all'.
-        if (!isKnown || !safeCachedData.types || safeCachedData.types.length === 0) {
-             continue;
-        }
-
-        const hasTypeMatch = safeCachedData.types.includes(typeFilter);
+        const totalInRegion = region.endId - region.startId + 1;
+        const progressPercent = (caughtInRegion / totalInRegion) * 100;
         
-        if (!hasTypeMatch) {
-            continue;
-        }
-      }
+        // NOVO: Lógica do Cadeado
+        const isLocked = caughtInRegion === 0;
+        const cardClass = isLocked 
+            ? "opacity-50 cursor-not-allowed bg-gray-200" 
+            : "hover:bg-gray-100";
 
-      filteredPokedex.push({ id: id, isCaught: isKnown, name: displayName });
-    }
+        // 2. Cria os sprites dos starters
+        // MUDANÇA: Aumenta o tamanho dos sprites e usa justify-center para centralizar no card.
+        const startersHtml = region.starters.map(id => {
+            const isCaught = pokedexSet.has(id);
+            // Se a região estiver bloqueada, silhueta todos
+            const silhouetteFilter = isCaught && !isLocked ? "" : "filter: grayscale(100%) brightness(0.1);";
+            // Aumentando as classes de tamanho para w-16 h-16
+            return `<img src="../assets/sprites/pokemon/${id}_front.png" 
+                          alt="Starter" 
+                          class="w-16 h-16 transition-transform duration-100" 
+                          style="${silhouetteFilter}">`;
+        }).join('');
 
-    const pokedexHtml = filteredPokedex
-      .map((p) => {
-        const id = p.id;
-        const isCaught = p.isCaught;
-        const displayId = id.toString().padStart(3, "0");
-
-        const displayUrl = `../assets/sprites/pokemon/${id}_front.png`;
-        let displayName = p.name;
-        let filterStyle = "filter: grayscale(100%) brightness(0.1);";
-
-        // CORREÇÃO DE RENDERIZAÇÃO: Garante que o nome seja exibido mesmo sem o nome completo
-        // Se o nome for '???', use o ID.
-        const effectiveDisplayName = displayName === '???' ? `#${displayId}` : displayName;
-
-        if (isCaught) {
-          filterStyle = "";
-        }
-
-        return `
-            <div onclick="window.Renderer.showPokedexStats(${id}, ${!isCaught})" 
-                 class="flex flex-col items-center p-1 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors duration-100 bg-white">
-                <img src="${displayUrl}" alt="Pokemon #${id}" class="w-12 h-12 mb-1" style="${filterStyle}">
-                
-                <!-- Nome/ID (Placeholder para escala de grade) -->
-                <div class="text-center w-full truncate">
-                    <span class="gba-font text-[7px] font-bold ${
-                      isCaught ? "text-gray-800" : "text-gray-400"
-                    }">${effectiveDisplayName}</span>
-                    <div class="text-[6px] gba-font text-gray-600 mt-1 truncate">
-                       ${displayName === '???' ? '' : `#${displayId}`}
-                    </div>
-                </div>
+        // 3. Cria a barra de progresso
+        const progressBarHtml = `
+            <div class="w-full bg-gray-400 h-2 rounded-full border border-gray-600 mt-2">
+                <div class="h-2 rounded-full ${progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'} transition-all duration-500" 
+                     style="width: ${progressPercent}%;"></div>
             </div>
         `;
-      })
-      .join("");
 
-    const gridContainer = document.getElementById('pokedexGridContainer');
-    if (gridContainer) {
-        // CORREÇÃO PRINCIPAL: Injeta APENAS o HTML dos Pokémons, sem a div 'grid' wrapper.
-        // O container (#pokedexGridContainer) já tem as classes de grid.
-        gridContainer.innerHTML = pokedexHtml ||
-                  '<p class="text-center text-gray-500 gba-font p-4 col-span-full">Nenhum Pokémon encontrado com o filtro atual.</p>';
-    }
+        // 4. Renderiza o card da região
+        // MUDANÇA: Ajusta o layout interno para empilhar o nome/progresso e os sprites.
+        return `
+            <div onclick="event.stopPropagation(); window.openPokedexRegion('${region.id}')" 
+                 class="p-3 bg-white border-4 border-gray-800 rounded-lg shadow-lg mb-3 cursor-pointer transition-colors duration-150 relative ${cardClass}">
+                
+                <!-- Nome e Progresso (Parte Superior) -->
+                <div class="flex justify-between items-center mb-2 border-b border-gray-300 pb-1">
+                    <div class="gba-font text-base font-bold text-gray-800">${region.name}</div>
+                    <div class="text-right flex flex-col items-end">
+                        <div class="gba-font text-xs text-blue-700">${caughtInRegion} / ${totalInRegion}</div>
+                        <div class="gba-font text-[8px] text-gray-500">${Math.round(progressPercent)}%</div>
+                    </div>
+                </div>
+                
+                <!-- Sprites de Capa (Parte Principal) -->
+                <div class="flex space-x-2 justify-center py-2">
+                    ${startersHtml}
+                </div>
+
+                ${progressBarHtml}
+                
+                <!-- Ícone de Cadeado se estiver bloqueado -->
+                ${isLocked ? `
+                    <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#fefefe" class="bi bi-lock-fill" viewBox="0 0 16 16">
+                            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5M4.5 9.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    const totalCaught = pokedexSet.size;
+    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+
+    const content = `
+        <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX NACIONAL</div>
+        
+        <div class="text-center text-sm gba-font mb-4 flex-shrink-0">
+            TOTAL: ${totalCaught} / ${totalAvailable}
+        </div>
+        
+        <!-- Lista de Regiões -->
+        <div class="flex-grow overflow-y-auto p-2 bg-gray-100 border border-gray-400 rounded-lg">
+            ${regionsHtml}
+        </div>
+        
+        <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4 flex-shrink-0">Voltar</button>
+    `;
+    
+    window.Renderer.renderGbaCard(content);
   },
 
-  renderPokedex: function (app, filters = null) {
-    // 1. Centraliza a lógica de estado do filtro:
-    if (filters) {
-        window.currentPokedexFilters.search = filters.search || '';
-        window.currentPokedexFilters.type = filters.type || 'all';
-    } 
+  // CORREÇÃO APLICADA: Usa valor padrão para `extraData` e desestrutura com fallback.
+  // Esta função agora atua como um roteador.
+  renderPokedex: function (app, extraData = {}) {
+    // [LOG C] Adicionado log para rastrear a entrada
+    console.log('[POKEDEX] Chamado renderPokedex. Recebido extraData:', extraData);
     
-    // Usa o estado global persistente para garantir a consistência na renderização.
+    // 1. Tenta obter a chave da região do extraData, garantindo que não seja nula.
+    const { region: regionKey } = extraData || {};
+    let region = null;
+    
+    // [LOG D] Adicionado log para rastrear a chave da região
+    console.log('[POKEDEX] Region Key extraída:', regionKey);
+
+
+    if (regionKey) {
+      // Busca a região pelo ID
+      region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionKey);
+    } 
+
+    if (!region) {
+        // [LOG E] Adicionado log para rastrear o redirecionamento
+        console.log('[POKEDEX] Região inválida ou nula. Redirecionando para lista de regiões.');
+        // Se a região não for passada (chamada inicial do menu) ou for inválida, 
+        // mostra a lista de regiões.
+        return RendererPokemon.renderPokedexRegionList(app);
+    }
+    
+    // [LOG F] Adicionado log para rastrear a região encontrada
+    console.log('[POKEDEX] Região encontrada:', region.name);
+
+    // --- Lógica para renderizar o GRID da região específica ---
+    
+    // Verifica se a região está bloqueada antes de renderizar o grid
+    const pokedexSet = window.gameState.profile.pokedex;
+    let caughtInRegion = 0;
+    for (let i = region.startId; i <= region.endId; i++) {
+        if (pokedexSet.has(i)) {
+            caughtInRegion++;
+        }
+    }
+    
+    if (caughtInRegion === 0) {
+        // [LOG G] Adicionado log para rastrear bloqueio
+        console.warn('[POKEDEX] Região bloqueada (0 Pokémons capturados). Redirecionando para lista.');
+        // Se a região não tem nenhum Pokémon capturado, volta para a lista e mostra o cadeado
+        return RendererPokemon.renderPokedexRegionList(app);
+    }
+    
+    // [LOG H] Adicionado log para rastrear o início da renderização do Grid
+    console.log(`[POKEDEX] Iniciando renderização do Grid para ${region.name}.`);
+
+
+    // 1. Configura o filtro de estado global
+    window.currentPokedexFilters.region = regionKey;
+    window.currentPokedexFilters.search = window.currentPokedexFilters.search || '';
+    window.currentPokedexFilters.type = window.currentPokedexFilters.type || 'all';
+    
     const searchQuery = window.currentPokedexFilters.search;
     const typeFilter = window.currentPokedexFilters.type;
 
 
-    const pokedexSet = window.gameState.profile.pokedex;
     const allTypes = [
-      "grass",
-      "fire",
-      "water",
-      "bug",
-      "normal",
-      "poison",
-      "electric",
-      "ground",
-      "fairy",
-      "fighting",
-      "psychic",
-      "rock",
-      "ghost",
-      "ice",
-      "dragon",
-      "steel",
-      "dark",
-      "flying",
+      "grass", "fire", "water", "bug", "normal", "poison", "electric", "ground", 
+      "fairy", "fighting", "psychic", "rock", "ghost", "ice", "dragon", "steel", 
+      "dark", "flying",
     ];
 
-    // 2. Definição da função de filtro global
+    // 2. Definição da função de filtro global (para ser usada pelo oninput/onchange)
     window.filterPokedex = (newSearch, newType) => {
       
-      // Atualiza o estado global com base na mudança (newSearch ou newType)
       const nextSearch = newSearch !== undefined ? newSearch : window.currentPokedexFilters.search;
       const nextType = newType !== undefined ? newType : window.currentPokedexFilters.type;
+      
+      console.log(`[POKEDEX FILTER] Aplicando filtro. Busca: ${nextSearch}, Tipo: ${nextType}`);
 
       window.currentPokedexFilters.search = nextSearch;
       window.currentPokedexFilters.type = nextType;
 
-      // Chama APENAS a renderização do grid, mantendo o foco do input.
-      RendererPokemon._renderPokedexGrid(nextSearch, nextType);
+      // Chama APENAS a renderização do grid, passando o OBJETO region
+      RendererPokemon._renderPokedexGrid(nextSearch, nextType, region);
     };
 
     // 3. Chamada da função de cache com os filtros atuais
     RendererPokemon._ensurePokedexCacheLoaded(window.currentPokedexFilters);
 
-    const totalCaught = pokedexSet.size;
-    const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
+    const totalInRegion = region.endId - region.startId + 1;
+
 
     // Estrutura de Conteúdo: Apenas a estrutura (filtros, cabeçalho e container do grid)
     const content = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX</div>
+            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">POKÉDEX ${region.name}</div>
             
             <!-- Contador de Registros -->
             <div class="text-center text-sm gba-font mb-4 flex-shrink-0">
-                REGISTRADOS: ${totalCaught} / ${totalAvailable}
+                REGISTRADOS: ${caughtInRegion} / ${totalInRegion}
             </div>
             
-            <!-- NOVO: Área de Busca e Filtro (Mantida no DOM) -->
+            <!-- Área de Busca e Filtro -->
             <div class="mb-4 flex flex-col sm:flex-row gap-2 flex-shrink-0" style="z-index: 10;">
                 <!-- Busca por Nome/ID -->
                 <input id="pokedexSearch" type="text" placeholder="Buscar por Nome ou ID..."
@@ -733,17 +797,128 @@ export const RendererPokemon = {
                     <p class="text-center text-gray-500 gba-font p-4 col-span-full">Carregando Pokédex...</p>
                 </div>
             </div>
-            <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+            
+            <button onclick="window.Renderer.showScreen('pokedex')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar às Regiões</button>
         `;
     window.Renderer.renderGbaCard(content);
     
     // Inicia a renderização do grid após a estrutura ser desenhada
-    RendererPokemon._renderPokedexGrid(searchQuery, typeFilter);
+    RendererPokemon._renderPokedexGrid(searchQuery, typeFilter, region);
+  },
+
+  // NOVO: Aceita o objeto region para filtrar o grid
+  _renderPokedexGrid: function (searchQuery, typeFilter, region) {
+    console.log(`[POKEDEX GRID] Renderizando grid para ${region.name}. Filtros: Busca='${searchQuery}', Tipo='${typeFilter}'`);
+    const pokedexSet = window.gameState.profile.pokedex;
+    const cache = window.gameState.pokedexCache || {}; 
+
+    searchQuery = (searchQuery || "").toLowerCase();
+
+    let filteredPokedex = [];
+    
+    const startId = region.startId;
+    const endId = region.endId;
+
+    for (let id = startId; id <= endId; id++) {
+      const cachedData = cache[id];
+      const isKnown = pokedexSet.has(id);
+      
+      const safeCachedData = cachedData || { name: null, types: [] };
+
+      const pokemonNameRaw = safeCachedData.name
+        ? safeCachedData.name.toLowerCase()
+        : `poke-${id}`; 
+      const pokemonNameFormatted = window.Utils.formatName(pokemonNameRaw);
+
+      let displayName;
+      if (isKnown) {
+        displayName = safeCachedData.name
+          ? pokemonNameFormatted
+          : `POKÉMON #${id.toString().padStart(3, "0")}`;
+      } else {
+        displayName = `???`;
+      }
+
+      // --- Lógica de Filtragem ---
+      // 1. Filtro por Busca (Nome ou ID)
+      if (searchQuery) {
+        const isMatchByName = pokemonNameRaw.includes(searchQuery);
+        const isMatchById = id.toString().includes(searchQuery);
+
+        if (!isMatchByName && !isMatchById) {
+          continue;
+        }
+      }
+
+      // 2. Filtro por Tipo
+      if (typeFilter !== "all") {
+        if (!isKnown || !safeCachedData.types || safeCachedData.types.length === 0) {
+             continue;
+        }
+
+        const hasTypeMatch = safeCachedData.types.includes(typeFilter);
+        
+        if (!hasTypeMatch) {
+            continue;
+        }
+      }
+
+      filteredPokedex.push({ id: id, isCaught: isKnown, name: displayName });
+    }
+
+    const pokedexHtml = filteredPokedex
+      .map((p) => {
+        const id = p.id;
+        const isCaught = p.isCaught;
+        const displayId = id.toString().padStart(3, "0");
+
+        const displayUrl = `../assets/sprites/pokemon/${id}_front.png`;
+        let displayName = p.name;
+        let filterStyle = "filter: grayscale(100%) brightness(0.1);";
+
+        const effectiveDisplayName = displayName === '???' ? '' : displayName; // Removido o ID daqui
+
+        if (isCaught) {
+          filterStyle = "";
+        }
+        
+        // CORREÇÃO AQUI: Aumentar o w-16 h-16 e usar p-0.5 para compactar
+        // Mudar o grid-cols-3 para grid-cols-4 no mobile para permitir mais espaço horizontal
+        return `
+            <div onclick="window.Renderer.showPokedexStats(${id}, ${!isCaught})" 
+                 class="flex flex-col items-center p-0.5 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors duration-100 bg-white">
+                <img src="${displayUrl}" alt="Pokemon #${id}" class="w-16 h-16 mb-0.5" style="${filterStyle}">
+                
+                <!-- Nome/ID (Placeholder para escala de grade) -->
+                <div class="text-center w-full truncate">
+                    <span class="gba-font text-[6px] font-bold ${
+                      isCaught ? "text-gray-800" : "text-gray-400"
+                    }">${effectiveDisplayName}</span>
+                    <div class="text-[6px] gba-font text-gray-600 mt-0.5 truncate">
+                       #${displayId}
+                    </div>
+                </div>
+            </div>
+        `;
+      })
+      .join("");
+    
+    // CORREÇÃO AQUI: Ajustar o layout do grid para acomodar os sprites maiores e apertados
+    const gridContainer = document.getElementById('pokedexGridContainer');
+    if (gridContainer) {
+        // Altera o layout do grid para mais colunas e menos espaçamento
+        // O container principal ainda tem `grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 p-1`
+        // Vamos aumentar o grid-cols-3 para 4 e manter o resto para um visual "amontoado"
+        gridContainer.className = "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-0.5 p-0.5";
+        
+        gridContainer.innerHTML = pokedexHtml ||
+                  '<p class="text-center text-gray-500 gba-font p-4 col-span-full">Nenhum Pokémon encontrado com o filtro atual.</p>';
+    }
   },
 
   _ensurePokedexCacheLoaded: async function (currentFilters = {}) {
+    // Isso deve carregar todos os Pokémons até o limite geral (POKEDEX_LIMIT)
     const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
-    // CORREÇÃO: Inicializa ou garante que o cache seja um objeto
     window.gameState.pokedexCache = window.gameState.pokedexCache || {}; 
     const cache = window.gameState.pokedexCache; 
     
@@ -760,7 +935,6 @@ export const RendererPokemon = {
           window.PokeAPI.fetchPokemonData(id, true)
             .then((data) => {
               if (data && data.id) {
-                // Popula o cache com o mínimo de dados
                 if (!cache[data.id]) {
                   cache[data.id] = { name: data.name, types: data.types };
                 }
@@ -777,7 +951,6 @@ export const RendererPokemon = {
     if (Object.keys(cache).length < totalAvailable) {
       for (let id = 1; id <= totalAvailable; id++) {
         if (!cache[id]) {
-          // Preenche com fallback para que Object.keys(cache).length == totalAvailable
           cache[id] = { name: null, types: [] }; 
           cacheUpdated = true;
         }
@@ -790,14 +963,18 @@ export const RendererPokemon = {
       if (cacheUpdated) {
         window.Utils.saveGame();
         
-        // Após a atualização do cache, chama a renderização do grid,
-        // mas APENAS se a tela atual for a Pokédex.
-        if (window.gameState.currentScreen === 'pokedex') {
-            const filtersToUse = window.currentPokedexFilters;
-            // Usa um pequeno atraso para dar tempo ao DOM de se estabilizar antes do re-render.
-            setTimeout(() => {
-                RendererPokemon._renderPokedexGrid(filtersToUse.search, filtersToUse.type);
-            }, 50); 
+        const currentScreen = window.gameState.currentScreen;
+        const regionKey = window.currentPokedexFilters.region;
+
+        if (currentScreen === 'pokedex' && regionKey) {
+            // Se estiver na tela de uma região específica, renderiza o grid novamente
+            const region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionKey);
+            if (region) {
+                const filtersToUse = window.currentPokedexFilters;
+                setTimeout(() => {
+                    RendererPokemon._renderPokedexGrid(filtersToUse.search, filtersToUse.type, region);
+                }, 50); 
+            }
         }
       }
     }

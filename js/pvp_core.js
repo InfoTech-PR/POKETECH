@@ -1,37 +1,20 @@
-/**
- * js/pvp_core.js
- * MÓDULO 4: CORE PVP
- * Gerencia a lógica PvP em tempo real com Firebase Firestore.
- */
-// REMOVIDO: importações estáticas para evitar problemas de cache. 
-// As dependências agora são acessadas através do objeto 'window' (exposto pelo app.js).
-
-// Firebase Imports (Necessário para Firestore e OnSnapshot)
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-/**
- * Módulo para gerenciar a lógica PvP em tempo real com Firebase Firestore.
- */
 export const PvpCore = {
-  /** Verifica se o Firebase está configurado para habilitar PvP. */
   isPvpEnabled: function () {
-    // Acesso às variáveis globais definidas na inicialização do HTML
     return window.db !== null && window.auth !== null;
   },
 
-  /** Retorna a referência do documento da sala PvP. */
   getPvpRoomRef: function (roomId) {
     const path = `/artifacts/${window.appId}/public/data/pvp_rooms/${roomId}`;
     return doc(window.db, path);
   },
   
-  /** Atualiza a mensagem na tela de setup PvP. */
   updatePvpMessage: function (message) {
       const msgBox = document.getElementById("pvp-messages") || document.getElementById("pvp-message-wait");
       if (msgBox) msgBox.innerHTML = message;
   },
 
-  /** Cria uma nova sala PvP no Firestore. */
   createPvpLink: async function () {
     if (!PvpCore.isPvpEnabled() || !window.userId || window.gameState.profile.pokemon.length === 0) {
       PvpCore.updatePvpMessage("Erro: PvP indisponível ou você não tem Pokémons.");
@@ -77,7 +60,6 @@ export const PvpCore = {
     }
   },
   
-  /** Copia o link da sala PvP para a área de transferência. */
   copyPvpLink: function () {
       const copyText = document.getElementById("pvpLink");
       if (copyText) {
@@ -87,7 +69,6 @@ export const PvpCore = {
       }
   },
 
-  /** Entra em uma sala PvP existente no Firestore. */
   joinPvpBattle: async function (roomId) {
     if (!PvpCore.isPvpEnabled() || !window.userId || window.gameState.profile.pokemon.length === 0) {
       PvpCore.updatePvpMessage("Erro: PvP indisponível ou você não tem Pokémons.");
@@ -151,7 +132,6 @@ export const PvpCore = {
     }
   },
 
-  /** Adiciona um listener em tempo real para mudanças na sala PvP. */
   listenForPvpChanges: function (roomId, isPlayer1) {
     if (window.unsubscribePvp) window.unsubscribePvp();
 
@@ -221,7 +201,6 @@ export const PvpCore = {
     });
   },
 
-  /** Envia a ação do jogador para o Firestore. */
   sendPvpAction: async function (action, moveName = null) {
     if (!PvpCore.isPvpEnabled()) return;
 
@@ -302,7 +281,6 @@ export const PvpCore = {
     }
   },
 
-  /** Processa o turno de batalha PvP após ambos os jogadores enviarem suas ações. */
   processPvpTurn: async function (roomId, roomData, isPlayer1) {
     const roomRef = PvpCore.getPvpRoomRef(roomId);
 

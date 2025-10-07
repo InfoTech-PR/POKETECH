@@ -3,21 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pokémon GBA RPG - Canvas Immersive</title>
+    <title>PokéTech</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- REMOVIDO: Axios não é mais necessário, pois a PokeAPI foi substituída por dados locais. -->
-    <!-- <script src="https://unpkg.com/axios/dist/axios.min.js"></script> -->
-
-    <!-- NOVO: CDN de Ícones Font Awesome para o Drag and Drop Handle -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <!-- DragDropTouch para compatibilidade com touch, usado em renderer.js e game_logic.js -->
     <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
 
     <style>
@@ -55,16 +49,6 @@
         cursor: not-allowed;
       }
 
-      .gba-screen {
-        /* Garante que o card ocupe 100% do seu container pai (max-w-lg) */
-        background-color: #c6c6c6;
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
-          0 10px 20px rgba(0, 0, 0, 0.2);
-        display: flex;
-        flex-direction: column;
-        height: 100%; /* Ajuste principal para ocupar a altura do container pai */
-      }
-
       /* Esta classe já estava definida e é a chave para a rolagem interna */
       .pokemon-list-container {
         flex-grow: 1; /* Permite que o container da lista cresça e preencha o espaço */
@@ -86,12 +70,9 @@
           transform: scale(1.5) rotate(15deg);
         }
       }
-
       .animate-spin-slow {
         animation: shake 1.2s infinite ease-in-out;
       }
-
-      /* --- NOVAS ANIMAÇÕES DE BATALHA --- */
 
       /* 1. Dano (Flash Vermelho/Branco) */
       @keyframes damage-flash {
@@ -163,18 +144,59 @@
         animation: opponent-attack-pulse 0.3s ease-out;
       }
 
-      /* Impede seleção de texto em toda a página */
+      /* Impede seleção de texto e ajusta touch */
       body,
-      html,
-      #app-container,
-      .gba-card-wrapper,
-      .gba-screen,
-      button {
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden; /* Remove scroll desnecessário */
         user-select: none;
-        -webkit-user-select: none; /* Safari / iOS */
-        -ms-user-select: none; /* IE/Edge */
-        -moz-user-select: none; /* Firefox */
-        touch-action: manipulation; /* melhora a interação em telas touch */
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -moz-user-select: none;
+        touch-action: manipulation;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #2d3748;
+      }
+
+      /* Container principal */
+      #app-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100vh;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Wrapper do card */
+      .gba-card-wrapper {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 768px; /* limitar largura em telas grandes */
+        height: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+
+      /* Tela do jogo */
+      .gba-screen {
+        flex: 1; /* preenche o espaço vertical disponível */
+        background-color: #c6c6c6;
+        border-radius: 0.5rem;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
+          0 10px 20px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 1rem;
+        box-sizing: border-box;
       }
     </style>
   </head>
@@ -221,19 +243,17 @@
       ⓘ
     </button>
 
-    <!-- NOVIDADE: Adicionado lg:max-w-2xl para limitar o tamanho em telas grandes (PCs) -->
-    <div id="app-container" class="lg:max-w-3xl">
-      <div class="gba-card-wrapper">
-        <div
-          class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-8 text-center overflow-y-auto gba-screen">
-          <div class="animate-pulse text-xl font-bold text-gray-800 gba-font">
-            CARREGANDO...
-          </div>
-          <div class="mt-4 text-sm text-gray-600 gba-font">
-            Inicializando Firebase e LocalStorage.
-          </div>
-        </div>
-      </div>
+    <!-- Loader global do Firebase -->
+    <div id="firebase-loader" class="fixed inset-0 z-50">
+      <img
+        src="https://i.pinimg.com/originals/23/0c/68/230c68295a086b46a3bd01d03bef7719.gif"
+        alt="Carregando Firebase..."
+        class="w-full h-full object-cover" />
+    </div>
+
+    <!-- GBA Screen -->
+    <div class="gba-screen">
+      <!-- Conteúdo do jogo aqui -->
     </div>
 
     <!-- Modals (Mantidos aqui para simplificar) -->
@@ -424,7 +444,6 @@
 
     <!-- SCRIPT PRINCIPAL E INICIALIZAÇÃO FIREBASE -->
     <script type="module">
-      // Variáveis do Ambiente (Passadas para o escopo global)
       window.appId =
         typeof __app_id !== "undefined" ? __app_id : "default-app-id";
 
@@ -464,21 +483,21 @@
 
       window.onload = async () => {
         try {
-          // Importação dinâmica: o app.js agora exporta uma função 'init'.
-          const { init } = await import(appModulePath);
+          const { init } = await import(`./js/app.js?v=${Date.now()}`);
+          await init();
 
-          // Chamamos a nova função de inicialização, passando o cacheBuster para carregar as dependências
-          init(cacheBuster);
+          // Mantém o loader visível por 3 segundos antes de escondê-lo
+          const loader = document.getElementById("firebase-loader");
+          if (loader) {
+            setTimeout(() => {
+              loader.style.display = "none";
+            }, 3000); // 3000ms = 3s
+          }
         } catch (error) {
           console.error(
             "Falha ao carregar o módulo principal (app.js):",
             error
           );
-          const gbaScreen = document.querySelector(".gba-screen");
-          if (gbaScreen) {
-            gbaScreen.innerHTML =
-              '<div class="text-xl font-bold text-red-600 gba-font">ERRO DE CARREGAMENTO</div><div class="mt-4 text-sm text-gray-600 gba-font">Verifique o console para detalhes.</div>';
-          }
         }
       };
     </script>

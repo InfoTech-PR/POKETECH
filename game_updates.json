@@ -1,6 +1,10 @@
 {
   "updates": [
     {
+      "date": "06/10/2025 21:19",
+      "text": "Adicionado variaveis de dano, super efetivo, pouco efetivo, não surgiu efeito, criticos"
+    },
+    {
       "date": "06/10/2025 18:00",
       "text": "Adicionado 1025 pokemons locais sem depender da PokeAPI"
     },

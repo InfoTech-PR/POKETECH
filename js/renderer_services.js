@@ -272,7 +272,7 @@ export const RendererServices = {
             <div class="flex items-center p-2 border-b border-gray-300 ${isDisabled ? 'opacity-50' : 'cursor-pointer hover:bg-gray-100'}"
                  onclick="${isDisabled ? '' : `window.BattleCore.switchPokemon(${index})`}">
                 
-                <img src="${p.sprite}" alt="${p.name}" class="w-12 h-12 mr-2 flex-shrink-0">
+                <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-12 h-12 mr-2 flex-shrink-0">
                 
                 <div class="flex flex-col flex-grow min-w-0">
                     <div class="font-bold gba-font text-xs truncate">

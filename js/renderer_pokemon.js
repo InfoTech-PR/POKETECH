@@ -76,7 +76,7 @@ export const RendererPokemon = {
             <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
               p.name
             }', ${index})">
-                <img src="${p.sprite}" alt="${
+                <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
           p.name
         }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <!-- Ajuste de Layout: flex-col para empilhar HP e EXP, e text-xs para caber em telas pequenas -->
@@ -355,7 +355,7 @@ export const RendererPokemon = {
       pokemon.name
     }
             </div>
-            <img src="${pokemon.sprite}" alt="${
+            <img src="../assets/sprites/pokemon/${pokemon.id}_front.png" alt="${
       pokemon.name
     }" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
             

@@ -3332,7 +3332,7 @@ export const POKE_DATA = {
     },
     "143": {
         "id": 143,
-        "name": "Snorlax",
+        "name": "DAXJ",
         "front_sprite": "../assets/sprites/pokemon/143_front.png",
         "back_sprite": "../assets/sprites/pokemon/143_back.png",
         "stats": {
@@ -25090,7 +25090,7 @@ export const SPECIES_DATA = {
         "isMythical": false
     },
     "143": {
-        "description": "Very lazy. Just eats and sleeps. As its rotund\fbulk builds, it becomes steadily more slothful.",
+        "description": "Peso na estrada. Sua dieta consiste em risadas e escapamento aberto. Quanto mais ouro ele acumula, mais rolês de XJ ele dá. Dormir? Só se for no ronco do motor!",
         "height": 21,
         "weight": 4600,
         "isLegendary": false,
@@ -32078,7 +32078,7 @@ export const EVOLUTION_CHAINS = {
         },
         {
             "id": 143,
-            "name": "Snorlax"
+            "name": "DAXJ"
         }
     ],
     "144": [
@@ -33786,7 +33786,7 @@ export const EVOLUTION_CHAINS = {
         },
         {
             "id": 143,
-            "name": "Snorlax"
+            "name": "DAXJ"
         }
     ],
     "447": [

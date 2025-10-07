@@ -251,7 +251,7 @@ export const RendererMenus = {
                         <p><strong>DINHEIRO:</strong> P$${profile.money}</p>
                         <p><strong>POKÉS:</strong> ${
                           profile.pokemon.length
-                        } / 6</p>
+                        } / 1025</p>
                     </div>
                 </div>
             </div>

@@ -7,10 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- REMOVIDO: Axios não é mais necessário, pois a PokeAPI foi substituída por dados locais. -->
     <!-- <script src="https://unpkg.com/axios/dist/axios.min.js"></script> -->
-    
+
     <!-- NOVO: CDN de Ícones Font Awesome para o Drag and Drop Handle -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -87,16 +89,26 @@
       .animate-spin-slow {
         animation: shake 1.2s infinite ease-in-out;
       }
-      
+
       /* --- NOVAS ANIMAÇÕES DE BATALHA --- */
 
       /* 1. Dano (Flash Vermelho/Branco) */
       @keyframes damage-flash {
-        0% { filter: brightness(1); }
-        25% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px red); }
-        50% { filter: brightness(1); }
-        75% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px red); }
-        100% { filter: brightness(1); }
+        0% {
+          filter: brightness(1);
+        }
+        25% {
+          filter: brightness(3) contrast(2) drop-shadow(0 0 5px red);
+        }
+        50% {
+          filter: brightness(1);
+        }
+        75% {
+          filter: brightness(3) contrast(2) drop-shadow(0 0 5px red);
+        }
+        100% {
+          filter: brightness(1);
+        }
       }
       .animate-damage {
         animation: damage-flash 0.5s ease-out;
@@ -104,29 +116,47 @@
 
       /* 2. Cura (Flash Verde/Branco) */
       @keyframes heal-flash {
-        0% { filter: brightness(1); }
-        50% { filter: brightness(3) contrast(2) drop-shadow(0 0 5px limegreen); }
-        100% { filter: brightness(1); }
+        0% {
+          filter: brightness(1);
+        }
+        50% {
+          filter: brightness(3) contrast(2) drop-shadow(0 0 5px limegreen);
+        }
+        100% {
+          filter: brightness(1);
+        }
       }
       .animate-heal {
         animation: heal-flash 0.5s ease-out;
       }
-      
+
       /* 3. Ataque (Ligeiro empurrão para frente) */
       @keyframes attack-pulse {
-        0% { transform: translate(0, 0) scale(1.5); }
-        50% { transform: translate(10px, -5px) scale(1.6); }
-        100% { transform: translate(0, 0) scale(1.5); }
+        0% {
+          transform: translate(0, 0) scale(1.5);
+        }
+        50% {
+          transform: translate(10px, -5px) scale(1.6);
+        }
+        100% {
+          transform: translate(0, 0) scale(1.5);
+        }
       }
       .animate-attack {
         animation: attack-pulse 0.3s ease-out;
       }
-      
+
       /* 4. Ataque do Oponente (Ligeiro empurrão para baixo) */
       @keyframes opponent-attack-pulse {
-        0% { transform: translate(0, 0) scale(1.5); }
-        50% { transform: translate(-10px, 5px) scale(1.6); }
-        100% { transform: translate(0, 0) scale(1.5); }
+        0% {
+          transform: translate(0, 0) scale(1.5);
+        }
+        50% {
+          transform: translate(-10px, 5px) scale(1.6);
+        }
+        100% {
+          transform: translate(0, 0) scale(1.5);
+        }
       }
       .animate-opponent-attack {
         animation: opponent-attack-pulse 0.3s ease-out;
@@ -141,18 +171,18 @@
         min-height: 100vh;
         padding: 10px;
       }
-      
+
       /* Garante que os containers internos também ocupem a altura total */
       #app-container {
         /* Permite que a largura se ajuste de forma flexível até o limite do wrapper */
-        width: 100%; 
+        width: 100%;
         height: 100vh; /* Ocupa a altura total da viewport */
         padding: 0;
         display: flex;
         justify-content: center;
         align-items: center;
       }
-      
+
       /* O wrapper do card GBA deve ocupar a altura total dentro do #app-container */
       .gba-card-wrapper {
         /* Mantém largura flexível, a largura máxima é definida via Tailwind na tag <div> abaixo */
@@ -164,12 +194,53 @@
     </style>
   </head>
   <body>
+    <!-- BOTÃO DE FULLSCREEN -->
+    <button
+      id="fullscreen-btn"
+      title="Tela Cheia"
+      style="
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 18px;
+        transition: background-color 0.2s, transform 0.2s;
+      ">
+      ⛶
+    </button>
+
+    <!-- BOTÃO DE UPDATES - abaixo do fullscreen -->
+    <button
+      id="updates-btn"
+      title="Ver Updates"
+      style="
+        position: fixed;
+        top: 60px; /* deslocado 50px abaixo do fullscreen */
+        right: 10px;
+        z-index: 9999;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 18px;
+        transition: background-color 0.2s, transform 0.2s;
+      ">
+      ⓘ
+    </button>
+
     <!-- NOVIDADE: Adicionado lg:max-w-2xl para limitar o tamanho em telas grandes (PCs) -->
-    <div id="app-container" class="lg:max-w-3xl"> 
+    <div id="app-container" class="lg:max-w-3xl">
       <div class="gba-card-wrapper">
         <div
-          class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-8 text-center overflow-y-auto gba-screen"
-        >
+          class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-8 text-center overflow-y-auto gba-screen">
           <div class="animate-pulse text-xl font-bold text-gray-800 gba-font">
             CARREGANDO...
           </div>
@@ -183,11 +254,9 @@
     <!-- Modals (Mantidos aqui para simplificar) -->
     <div
       id="infoModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
-    >
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
       <div
-        class="bg-green-200 border-4 border-green-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
-      >
+        class="bg-green-200 border-4 border-green-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
         <div class="text-lg font-bold text-green-800 gba-font mb-4">
           INFORMAÇÃO
         </div>
@@ -196,8 +265,7 @@
         </p>
         <button
           onclick="window.Utils.hideModal('infoModal')"
-          class="gba-button bg-green-500 hover:bg-green-600 mt-4 mx-auto w-1/2"
-        >
+          class="gba-button bg-green-500 hover:bg-green-600 mt-4 mx-auto w-1/2">
           OK
         </button>
       </div>
@@ -205,19 +273,16 @@
 
     <div
       id="errorModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
-    >
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
       <div
-        class="bg-red-200 border-4 border-red-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
-      >
+        class="bg-red-200 border-4 border-red-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
         <div class="text-lg font-bold text-red-800 gba-font mb-4">ERRO!</div>
         <p class="modal-message text-sm gba-font text-red-700">
           Ocorreu um erro no jogo.
         </p>
         <button
           onclick="window.Utils.hideModal('errorModal')"
-          class="gba-button bg-red-500 hover:bg-red-600 mt-4 mx-auto w-1/2"
-        >
+          class="gba-button bg-red-500 hover:bg-red-600 mt-4 mx-auto w-1/2">
           OK
         </button>
       </div>
@@ -225,43 +290,36 @@
 
     <div
       id="pokemonStatsModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
-    >
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
       <div
-        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
-      >
+        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
         <div class="modal-body"></div>
       </div>
     </div>
 
     <div
       id="pvpModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
-    >
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
       <div
-        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
-      >
+        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
         <div class="text-lg font-bold text-gray-800 gba-font mb-4">
           FIM DE BATALHA
         </div>
         <p class="modal-message text-sm gba-font">Batalha PvP terminada.</p>
         <button
           onclick="window.Utils.hideModal('pvpModal')"
-          class="gba-button bg-blue-500 hover:bg-blue-600 mt-4 mx-auto w-1/2"
-        >
+          class="gba-button bg-blue-500 hover:bg-blue-600 mt-4 mx-auto w-1/2">
           OK
         </button>
       </div>
     </div>
-    
+
     <!-- NOVO: Modal dedicado para a lista de amizades (para usar o listener onSnapshot) -->
     <div
       id="friendshipModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50"
-    >
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
       <div
-        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto"
-      >
+        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
         <div class="text-lg font-bold text-gray-800 gba-font mb-4">
           LISTA DE AMIGOS
         </div>
@@ -271,68 +329,178 @@
         </div>
         <button
           onclick="window.PokeFriendship.stopFriendshipListener(); window.Utils.hideModal('friendshipModal')"
-          class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 mx-auto w-full"
-        >
+          class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 mx-auto w-full">
           FECHAR
         </button>
       </div>
     </div>
 
+    <!-- FULLSCREEN E UPDATE -->
+    <script>
+      const fullscreenBtn = document.getElementById("fullscreen-btn");
+      fullscreenBtn.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement
+            .requestFullscreen()
+            .catch((err) => console.warn(err));
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      // Hover efeito fullscreen
+      fullscreenBtn.addEventListener("mouseover", () => {
+        fullscreenBtn.style.backgroundColor = "rgba(0,0,0,0.7)";
+        fullscreenBtn.style.transform = "scale(1.1)";
+      });
+      fullscreenBtn.addEventListener("mouseout", () => {
+        fullscreenBtn.style.backgroundColor = "rgba(0,0,0,0.5)";
+        fullscreenBtn.style.transform = "scale(1)";
+      });
+
+      const updatesBtn = document.getElementById("updates-btn");
+
+      updatesBtn.addEventListener("click", async () => {
+        let modal = document.getElementById("updatesModal");
+        if (!modal) {
+          modal = document.createElement("div");
+          modal.id = "updatesModal";
+          modal.className =
+            "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50";
+          modal.innerHTML = `
+            <div class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md text-center max-h-[90vh] overflow-y-auto">
+                <div class="text-lg font-bold gba-font mb-4">ATUALIZAÇÕES</div>
+                <div id="updatesContent" class="text-left space-y-2">
+                    Carregando atualizações...
+                </div>
+                <button id="closeUpdatesModal" class="gba-button bg-gray-700 hover:bg-gray-800 mt-4 mx-auto w-1/2">
+                    FECHAR
+                </button>
+            </div>
+        `;
+          document.body.appendChild(modal);
+
+          document
+            .getElementById("closeUpdatesModal")
+            .addEventListener("click", () => {
+              modal.style.display = "none";
+            });
+        } else {
+          modal.style.display = "flex";
+        }
+
+        try {
+          const response = await fetch("./game_updates.json?v=" + Date.now());
+          const data = await response.json();
+          const updatesContent = document.getElementById("updatesContent");
+
+          const updatesHTML = `
+            <div>
+                <strong class="gba-font text-green-700">Updates:</strong>
+                <ul class="list-disc list-inside">
+                    ${data.updates
+                      .map(
+                        (u) =>
+                          `<li class="text-green-600">[${u.date}] ${u.text}</li>`
+                      )
+                      .join("")}
+                </ul>
+            </div>
+            <div class="mt-3">
+                <strong class="gba-font text-blue-700">Novidades / Pendências:</strong>
+                <ul class="list-disc list-inside">
+                    ${data.todos
+                      .map((t) =>
+                        t ? `<li class="text-blue-600">${t}</li>` : ""
+                      )
+                      .join("")}
+                </ul>
+            </div>
+        `;
+
+          updatesContent.innerHTML = updatesHTML;
+        } catch (err) {
+          document.getElementById("updatesContent").innerHTML =
+            "<span class='text-red-600'>Falha ao carregar updates.</span>";
+          console.error("Erro ao carregar game_updates.json:", err);
+        }
+      });
+
+      // Hover efeito updates
+      updatesBtn.addEventListener("mouseover", () => {
+        updatesBtn.style.backgroundColor = "rgba(0,0,0,0.7)";
+        updatesBtn.style.transform = "scale(1.1)";
+      });
+      updatesBtn.addEventListener("mouseout", () => {
+        updatesBtn.style.backgroundColor = "rgba(0,0,0,0.5)";
+        updatesBtn.style.transform = "scale(1)";
+      });
+    </script>
 
     <!-- SCRIPT PRINCIPAL E INICIALIZAÇÃO FIREBASE -->
     <script type="module">
-        // Variáveis do Ambiente (Passadas para o escopo global)
-        window.appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-        
-        // Configuração de Fallback do Firebase (do código original)
-        const FALLBACK_FIREBASE_CONFIG = { 
-            apiKey: "AIzaSyC0Ao4MjuCmDtzIYpi1puIkel73yQFo6Is", 
-            authDomain: "pokemon-pvp.firebaseapp.com", 
-            projectId: "pokemon-pvp" 
-        };
+      // Variáveis do Ambiente (Passadas para o escopo global)
+      window.appId =
+        typeof __app_id !== "undefined" ? __app_id : "default-app-id";
 
-        // Verifica se a variável global de configuração do Firebase existe e não está vazia.
-        const providedFirebaseConfig = typeof __firebase_config !== "undefined" && __firebase_config;
-        
-        // Se a configuração for fornecida pelo ambiente, usa-a. Caso contrário, usa o fallback.
-        window.firebaseConfig = providedFirebaseConfig
-                                ? JSON.parse(__firebase_config) 
-                                : FALLBACK_FIREBASE_CONFIG; 
+      // Configuração de Fallback do Firebase (do código original)
+      const FALLBACK_FIREBASE_CONFIG = {
+        apiKey: "AIzaSyC0Ao4MjuCmDtzIYpi1puIkel73yQFo6Is",
+        authDomain: "pokemon-pvp.firebaseapp.com",
+        projectId: "pokemon-pvp",
+      };
 
-        window.initialAuthToken = typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
+      // Verifica se a variável global de configuração do Firebase existe e não está vazia.
+      const providedFirebaseConfig =
+        typeof __firebase_config !== "undefined" && __firebase_config;
 
-        // Instâncias Firebase (Serão preenchidas no js/app.js)
-        window.db = null;
-        window.auth = null;
-        window.userId = "loading...";
-        window.gameState = {}; 
-        window.unsubscribePvp = null; 
+      // Se a configuração for fornecida pelo ambiente, usa-a. Caso contrário, usa o fallback.
+      window.firebaseConfig = providedFirebaseConfig
+        ? JSON.parse(__firebase_config)
+        : FALLBACK_FIREBASE_CONFIG;
 
-        // --- NOVO: Importação Dinâmica com Cache-Busting ---
-        // Um timestamp dinâmico é adicionado ao caminho do arquivo para forçar o navegador
-        // a baixar a versão mais recente em vez de usar o cache.
-        const cacheBuster = Date.now();
-        const appModulePath = `./js/app.js?v=${cacheBuster}`;
+      window.initialAuthToken =
+        typeof __initial_auth_token !== "undefined"
+          ? __initial_auth_token
+          : null;
 
-        window.onload = async () => {
-            try {
-                // Importação dinâmica: o app.js agora exporta uma função 'init'.
-                const { init } = await import(appModulePath);
-                
-                // Chamamos a nova função de inicialização, passando o cacheBuster para carregar as dependências
-                init(cacheBuster);
-            } catch (error) {
-                console.error("Falha ao carregar o módulo principal (app.js):", error);
-                const gbaScreen = document.querySelector(".gba-screen");
-                if (gbaScreen) {
-                    gbaScreen.innerHTML = '<div class="text-xl font-bold text-red-600 gba-font">ERRO DE CARREGAMENTO</div><div class="mt-4 text-sm text-gray-600 gba-font">Verifique o console para detalhes.</div>';
-                }
-            }
-        };
+      // Instâncias Firebase (Serão preenchidas no js/app.js)
+      window.db = null;
+      window.auth = null;
+      window.userId = "loading...";
+      window.gameState = {};
+      window.unsubscribePvp = null;
 
+      // --- NOVO: Importação Dinâmica com Cache-Busting ---
+      // Um timestamp dinâmico é adicionado ao caminho do arquivo para forçar o navegador
+      // a baixar a versão mais recente em vez de usar o cache.
+      const cacheBuster = Date.now();
+      const appModulePath = `./js/app.js?v=${cacheBuster}`;
+
+      window.onload = async () => {
+        try {
+          // Importação dinâmica: o app.js agora exporta uma função 'init'.
+          const { init } = await import(appModulePath);
+
+          // Chamamos a nova função de inicialização, passando o cacheBuster para carregar as dependências
+          init(cacheBuster);
+        } catch (error) {
+          console.error(
+            "Falha ao carregar o módulo principal (app.js):",
+            error
+          );
+          const gbaScreen = document.querySelector(".gba-screen");
+          if (gbaScreen) {
+            gbaScreen.innerHTML =
+              '<div class="text-xl font-bold text-red-600 gba-font">ERRO DE CARREGAMENTO</div><div class="mt-4 text-sm text-gray-600 gba-font">Verifique o console para detalhes.</div>';
+          }
+        }
+      };
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
+    <script>
+      eruda.init();
+    </script>
   </body>
 </html>

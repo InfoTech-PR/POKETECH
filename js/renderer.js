@@ -38,7 +38,6 @@ export async function createRenderer(v) {
         renderServiceMenu: RendererMenus.renderServiceMenu,
         renderProfileMenu: RendererMenus.renderProfileMenu,
         renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
-        renderUpdates: RendererMenus.renderUpdates, 
         
         // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
         copyPlayerId: RendererMenus.copyPlayerId, 

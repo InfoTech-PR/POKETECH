@@ -17,7 +17,7 @@ let GameConfig,
  */
 export async function init(cacheBuster) {
   // Variável global para ser usada em carregamentos de assets estáticos (ex: game_updates.json)
-  window.cacheBuster = cacheBuster; 
+  window.cacheBuster = cacheBuster;
   const v = `?v=${cacheBuster}`;
 
   function updateErrorStatus(message, isError = false) {
@@ -108,7 +108,7 @@ export async function init(cacheBuster) {
   try {
     // 1. Carregamento de Configurações e Utilitários (Agora é uma função assíncrona)
     const configModule = await import(`./config_utils.js${v}`);
-    
+
     // Chama a função fábrica para carregar dados locais com cache-busting
     const loadedConfig = await configModule.createConfigAndUtils(v);
     ({

@@ -263,8 +263,6 @@ export const RendererMenus = {
                 <button onclick="window.Renderer.showScreen('serviceMenu')" class="gba-button bg-cyan-500 hover:bg-cyan-600">SERVIÇOS</button>
                 <button onclick="window.Renderer.showScreen('pvpSetup')" class="gba-button bg-purple-500 hover:bg-purple-600">BATALHA PVP</button>
                 <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600">PERFIL E OPÇÕES</button>
-                <!-- NOVO: Botão de Updates no Menu Principal -->
-                <button onclick="window.Renderer.showScreen('updates')" class="gba-button bg-yellow-500 hover:bg-yellow-600">UPDATES</button>
             </div>
         `;
 
@@ -320,70 +318,6 @@ export const RendererMenus = {
     window.Renderer.renderGbaCard(content);
   },
   
-  // NOVO: Renderiza a tela de updates
-  renderUpdates: async function (app) {
-      
-      let updatesData = { updates: [], todos: [] };
-      let errorMessage = null;
-
-      try {
-          // Obtém o cacheBuster atual (do app.js que está no escopo global)
-          const cacheBuster = typeof window.cacheBuster !== 'undefined' ? window.cacheBuster : Date.now();
-          const v = `?v=${cacheBuster}`;
-          
-          // Tenta carregar o arquivo JSON
-          const response = await fetch(`./game_updates.json${v}`);
-
-          if (!response.ok) {
-              throw new Error(`Falha ao carregar game_updates.json: ${response.status}`);
-          }
-
-          updatesData = await response.json();
-      } catch (e) {
-          console.error("Erro ao carregar dados de updates:", e);
-          errorMessage = "Falha ao carregar updates. Arquivo JSON ausente ou com erro.";
-      }
-
-      const updatesHtml = updatesData.updates.map(u => `
-          <li class="mb-2 p-2 bg-gray-100 rounded border border-gray-300">
-              <span class="text-[8px] gba-font text-gray-500 block">${u.date}</span>
-              <span class="text-xs gba-font text-green-700">${u.text}</span>
-          </li>
-      `).join('');
-
-      const todosHtml = updatesData.todos.map(t => `
-          <li class="mb-1 text-xs gba-font text-red-700 list-disc ml-4">${t}</li>
-      `).join('');
-
-      const content = `
-          <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">UPDATES DO JOGO</div>
-          
-          <div class="flex-grow overflow-y-auto p-2">
-              ${errorMessage ? 
-                `<p class="text-center text-red-600 gba-font text-sm">${errorMessage}</p>` :
-                `
-                <div class="mb-6">
-                    <h3 class="font-bold gba-font text-sm mb-2 border-b border-gray-400 pb-1">HISTÓRICO DE MUDANÇAS</h3>
-                    <ul class="space-y-2 text-left">
-                        ${updatesHtml || '<li class="text-xs gba-font text-gray-500">Nenhum histórico disponível.</li>'}
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3 class="font-bold gba-font text-sm mb-2 border-b border-gray-400 pb-1 text-red-800">PRÓXIMAS TAREFAS (${updatesData.todos.length})</h3>
-                    <ul class="space-y-1 text-left">
-                        ${todosHtml || '<li class="text-xs gba-font text-gray-500">Nenhuma tarefa pendente.</li>'}
-                    </ul>
-                </div>
-                `
-              }
-          </div>
-          
-          <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4 flex-shrink-0">Voltar</button>
-      `;
-    window.Renderer.renderGbaCard(content);
-  },
-
   renderFriendshipMenu: function (app) {
     const content = `
     <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>

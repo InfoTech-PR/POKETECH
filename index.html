@@ -151,25 +151,15 @@
         padding: 0;
         height: 100%;
         width: 100%;
-        overflow: hidden; /* Remove scroll desnecessário */
         user-select: none;
-        -webkit-user-select: none;
-        -ms-user-select: none;
-        -moz-user-select: none;
         touch-action: manipulation;
-        display: flex;
-        justify-content: center;
-        align-items: center;
         background-color: #2d3748;
+        overflow: auto; /* Scroll normal */
       }
 
-      /* Container principal */
       #app-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
         width: 100%;
-        height: 100vh;
+        height: 100vh; /* altura da viewport */
         padding: 0;
         box-sizing: border-box;
       }
@@ -187,11 +177,11 @@
 
       /* Tela do jogo */
       .gba-screen {
-        flex: 1; /* preenche o espaço vertical disponível */
+        width: 100vw; /* ocupa toda a largura da viewport */
+        height: 100vh; /* ocupa toda a altura da viewport */
         background-color: #c6c6c6;
-        border-radius: 0.5rem;
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5),
-          0 10px 20px rgba(0, 0, 0, 0.2);
+        border-radius: 0; /* remove bordas arredondadas se quiser tela completa */
+        box-shadow: none; /* opcional: remove sombra */
         display: flex;
         flex-direction: column;
         overflow-y: auto;

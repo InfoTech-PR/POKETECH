@@ -705,10 +705,11 @@ export const BattleCore = {
               };
               wildPokemon.moves = ["tackle", typeSpecialMove[type] || "tackle"];
               window.gameState.profile.pokemon.push(wildPokemon);
-              // AÇÃO DE CAPTURA BEM-SUCEDIDA
+              // // AÇÃO DE CAPTURA BEM-SUCEDIDA
               const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
               if (!foiCapturado) {
-                window.gameState.profile.pokedex.push(wildPokemon.id);
+                window.Utils.registerPokemon(newPokemonData.id);
+                window.GameLogic.saveGameData();
               }
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);

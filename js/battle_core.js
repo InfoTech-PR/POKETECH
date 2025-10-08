@@ -688,11 +688,7 @@ export const BattleCore = {
           }
 
           if (isCaptured) {
-            // // AÇÃO DE CAPTURA BEM-SUCEDIDA
-            // const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
-            // if (!foiCapturado) {
-            //   window.gameState.profile.pokedex.push(wildPokemon.id);
-            // }
+
             const finalMsg = `Sucesso! ${wildPokemon.name} foi capturado!`;
             BattleCore.addBattleLog(finalMsg);
             BattleCore.updateBattleScreen();
@@ -709,7 +705,11 @@ export const BattleCore = {
               };
               wildPokemon.moves = ["tackle", typeSpecialMove[type] || "tackle"];
               window.gameState.profile.pokemon.push(wildPokemon);
-
+              // AÇÃO DE CAPTURA BEM-SUCEDIDA
+              const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
+              if (!foiCapturado) {
+                window.gameState.profile.pokedex.push(wildPokemon.id);
+              }
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
 

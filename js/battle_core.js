@@ -406,8 +406,8 @@ export const BattleCore = {
     // FÓRMULA DE DANO PRINCIPAL
     const baseDamage =
       ((level * LEVEL_FACTOR + 2) * POWER_BASE * attackStat) /
-        defenseStat /
-        50 +
+      defenseStat /
+      50 +
       2;
     let finalDamage = baseDamage;
     let modifier = 1;
@@ -447,20 +447,20 @@ export const BattleCore = {
    * Função auxiliar para encerrar a batalha e sincronizar o log.
    * @param {string} finalMessage Mensagem final para o log de exploração.
    */
-  _endBattleAndSyncLog: function(finalMessage) {
+  _endBattleAndSyncLog: function (finalMessage) {
     if (window.gameState.battle) {
-        // 1. Adiciona a mensagem final ao log principal
-        window.GameLogic.addExploreLog(finalMessage);
-        
-        // 2. Limpa o estado da batalha
-        window.gameState.battle = null;
+      // 1. Adiciona a mensagem final ao log principal
+      window.GameLogic.addExploreLog(finalMessage);
 
-        // 3. Salva os dados
-        window.GameLogic.saveGameData();
+      // 2. Limpa o estado da batalha
+      window.gameState.battle = null;
 
-        // 4. Volta ao menu
-        window.AuthSetup?.handleBattleMusic(false);
-        window.Renderer.showScreen("mainMenu");
+      // 3. Salva os dados
+      window.GameLogic.saveGameData();
+
+      // 4. Volta ao menu
+      window.AuthSetup?.handleBattleMusic(false);
+      window.Renderer.showScreen("mainMenu");
     }
   },
 
@@ -689,8 +689,8 @@ export const BattleCore = {
 
           if (isCaptured) {
             // AÇÃO DE CAPTURA BEM-SUCEDIDA
-            const foiCapturado = window.gameState.profile.pokedex.has(wildPokemonData.id);
-            if(!foiCapturado) {
+            //const foiCapturado = window.gameState.profile.pokedex.has(wildPokemonData.id);
+            if (!foiCapturado) {
               window.gameState.profile.pokedex.push(wildPokemon.id);
             }
             const finalMsg = `Sucesso! ${wildPokemon.name} foi capturado!`;
@@ -712,9 +712,9 @@ export const BattleCore = {
 
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
-              
+
               resolve(true);
-            }, 1000); 
+            }, 1000);
           } else {
             // O Pokémon não foi capturado.
             BattleCore.addBattleLog(`Oh não! ${wildPokemon.name} escapou!`);
@@ -723,13 +723,13 @@ export const BattleCore = {
               opponentSpriteElement.src = wildPokemon.sprite;
               opponentSpriteElement.style.transform = "scale(1.5)";
             }
-            
+
             if (roll > 90) {
               // O Pokémon escapou E fugiu da batalha
               const finalMsg = `${wildPokemon.name} fugiu da batalha!`;
               BattleCore.addBattleLog(finalMsg);
-              BattleCore.updateBattleScreen(); 
-              
+              BattleCore.updateBattleScreen();
+
               setTimeout(() => {
                 // Usa a função de encerramento para sincronizar o log
                 BattleCore._endBattleAndSyncLog(finalMsg);
@@ -1006,13 +1006,13 @@ export const BattleCore = {
       setTimeout(() => {
         // Se a mensagem final foi definida (fuga, derrota, vitória por KO), use a função de sincronização
         if (finalMessage) {
-            BattleCore._endBattleAndSyncLog(finalMessage);
+          BattleCore._endBattleAndSyncLog(finalMessage);
         } else {
-            // Caso contrário, limpe o estado e volte (caso de falha na captura que não resultou em fuga/KO)
-            window.gameState.battle = null;
-            window.AuthSetup?.handleBattleMusic(false);
-            window.Renderer.showScreen("mainMenu");
-            window.GameLogic.saveGameData();
+          // Caso contrário, limpe o estado e volte (caso de falha na captura que não resultou em fuga/KO)
+          window.gameState.battle = null;
+          window.AuthSetup?.handleBattleMusic(false);
+          window.Renderer.showScreen("mainMenu");
+          window.GameLogic.saveGameData();
         }
       }, 2000);
     }
@@ -1095,9 +1095,8 @@ export const BattleCore = {
       (playerPokemon.currentHp / playerPokemon.maxHp) * 100;
     const opponentHpPercent = (opponent.currentHp / opponent.maxHp) * 100;
 
-    const logHtml = `<p class="gba-font text-xs">${
-      battle.lastMessage || ""
-    }</p>`;
+    const logHtml = `<p class="gba-font text-xs">${battle.lastMessage || ""
+      }</p>`;
 
     let optionsHtml = "";
     const isMainMenu = battle.currentMenu === "main";
@@ -1109,9 +1108,8 @@ export const BattleCore = {
       optionsHtml = `
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button bg-red-500 hover:bg-red-600">Lutar</button>
-                    <button onclick="BattleCore.playerTurn('run')" class="gba-button bg-green-500 hover:bg-green-600" ${
-                      battle.type === "pvp" ? "disabled" : ""
-                    }>Fugir</button>
+                    <button onclick="BattleCore.playerTurn('run')" class="gba-button bg-green-500 hover:bg-green-600" ${battle.type === "pvp" ? "disabled" : ""
+        }>Fugir</button>
                     <button onclick="BattleCore.setBattleMenu('item')" class="gba-button bg-yellow-500 hover:bg-yellow-600">Item</button>
                     <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button bg-blue-500 hover:bg-blue-600">Pokémon</button>
                 </div>
@@ -1135,17 +1133,14 @@ export const BattleCore = {
       const itemsHtml = battleItems
         .map((item) => {
           const disabled = item.quantity <= 0;
-          return `<button ${
-            disabled ? "disabled" : ""
-          } onclick="BattleCore.playerTurn('item', '${
-            item.name
-          }')" class="flex-1 gba-button ${
-            disabled
+          return `<button ${disabled ? "disabled" : ""
+            } onclick="BattleCore.playerTurn('item', '${item.name
+            }')" class="flex-1 gba-button ${disabled
               ? "bg-gray-300"
               : item.catchRate
-              ? "bg-yellow-400 hover:bg-yellow-500"
-              : "bg-green-400 hover:bg-green-500"
-          }">${item.name} x${item.quantity}</button>`;
+                ? "bg-yellow-400 hover:bg-yellow-500"
+                : "bg-green-400 hover:bg-green-500"
+            }">${item.name} x${item.quantity}</button>`;
         })
         .join("");
 
@@ -1158,31 +1153,27 @@ export const BattleCore = {
             <div class="relative h-48 mb-4 flex-shrink-0">
                 <!-- OPPONENT HP BOX -->
                 <div class="absolute top-0 left-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
-                    <div class="gba-font text-sm font-bold">${
-                      opponent.name
-                    } (Nv. ${opponent.level})</div>
+                    <div class="gba-font text-sm font-bold">${opponent.name
+      } (Nv. ${opponent.level})</div>
                     <div class="flex items-center mt-1">
                         <div class="gba-font text-xs mr-1">HP</div>
                         <div class="w-full bg-gray-300 h-2 rounded-full">
-                            <div class="h-2 rounded-full transition-all duration-500 ${
-                              opponentHpPercent > 50
-                                ? "bg-green-500"
-                                : opponentHpPercent > 20
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                            }" style="width: ${opponentHpPercent}%;"></div>
+                            <div class="h-2 rounded-full transition-all duration-500 ${opponentHpPercent > 50
+        ? "bg-green-500"
+        : opponentHpPercent > 20
+          ? "bg-yellow-500"
+          : "bg-red-500"
+      }" style="width: ${opponentHpPercent}%;"></div>
                         </div>
                     </div>
-                    <div class="gba-font text-xs mt-1">${opponent.currentHp}/${
-      opponent.maxHp
-    }</div>
+                    <div class="gba-font text-xs mt-1">${opponent.currentHp}/${opponent.maxHp
+      }</div>
                 </div>
                 
                 <!-- SPRITES: Posições atualizadas para flexibilidade -->
                 <div class="relative w-full h-64">
-                    <img src="${opponent.sprite}" alt="${
-      opponent.name
-    }" class="opponent-sprite w-28 h-28 absolute top-8 right-0 md:right-24 transform -translate-y-1/2 scale-150 z-10">
+                    <img src="${opponent.sprite}" alt="${opponent.name
+      }" class="opponent-sprite w-28 h-28 absolute top-8 right-0 md:right-24 transform -translate-y-1/2 scale-150 z-10">
                     
                     <style>
                         .capture-shake-position {
@@ -1202,28 +1193,24 @@ export const BattleCore = {
                 
                 <!-- PLAYER HP BOX -->
                 <div class="absolute bottom-0 right-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
-                    <div class="gba-font text-sm font-bold">${
-                      playerPokemon.name
-                    } (Nv. ${playerPokemon.level})</div>
+                    <div class="gba-font text-sm font-bold">${playerPokemon.name
+      } (Nv. ${playerPokemon.level})</div>
                     <div class="flex items-center mt-1">
                         <div class="gba-font text-xs mr-1">HP</div>
                         <div class="w-full bg-gray-300 h-2 rounded-full">
-                            <div class="h-2 rounded-full transition-all duration-500 ${
-                              playerHpPercent > 50
-                                ? "bg-green-500"
-                                : playerHpPercent > 20
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                            }" style="width: ${playerHpPercent}%;"></div>
+                            <div class="h-2 rounded-full transition-all duration-500 ${playerHpPercent > 50
+        ? "bg-green-500"
+        : playerHpPercent > 20
+          ? "bg-yellow-500"
+          : "bg-red-500"
+      }" style="width: ${playerHpPercent}%;"></div>
                         </div>
                     </div>
-                    <div class="gba-font text-xs mt-1">${
-                      playerPokemon.currentHp
-                    }/${playerPokemon.maxHp}</div>
+                    <div class="gba-font text-xs mt-1">${playerPokemon.currentHp
+      }/${playerPokemon.maxHp}</div>
                 </div>
-                <img src="${playerBackSprite}" alt="${
-      playerPokemon.name
-    }" class="player-sprite absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">
+                <img src="${playerBackSprite}" alt="${playerPokemon.name
+      }" class="player-sprite absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">
             </div>
             
             <!-- LOG MESSAGE AREA -->
@@ -1233,14 +1220,12 @@ export const BattleCore = {
             
             <!-- BUTTONS AREA -->
             <div class="p-2 bg-gray-200 border-2 border-gray-800 rounded-md flex flex-col min-h-[140px] justify-between flex-grow">
-                <div id="battle-options-container" class="flex-grow ${
-                  isPvpLocked ? "opacity-50 pointer-events-none" : ""
-                }">
+                <div id="battle-options-container" class="flex-grow ${isPvpLocked ? "opacity-50 pointer-events-none" : ""
+      }">
                     ${optionsHtml}
                 </div>
-                <button onclick="BattleCore.setBattleMenu('main')" id="back-button" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-2 flex-shrink-0" ${
-                  isMainMenu || isDisabled ? "disabled" : ""
-                }>Voltar</button>
+                <button onclick="BattleCore.setBattleMenu('main')" id="back-button" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-2 flex-shrink-0" ${isMainMenu || isDisabled ? "disabled" : ""
+      }>Voltar</button>
             </div>
         `;
   },

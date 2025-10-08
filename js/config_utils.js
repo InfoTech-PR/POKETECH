@@ -42,7 +42,7 @@ export async function createConfigAndUtils(v) {
         catchRate: 1.5,
         cost: 1200,
         spriteUrl:
-          "../assets/sprites/items/items/ultra-ball.png",
+          "../assets/sprites/items/ultra-ball.png",
       },
       {
         name: "Poção",

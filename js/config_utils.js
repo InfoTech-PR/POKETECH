@@ -23,26 +23,26 @@ export async function createConfigAndUtils(v) {
       {
         name: "Pokébola",
         quantity: 0,
-        catchRate: 1.0,
+        catchRate: 0.5,
         cost: 200,
         spriteUrl:
-          "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png",
+          "../assets/sprites/items/poke-ball.png",
       },
       {
         name: "Great Ball",
         quantity: 0,
-        catchRate: 1.5,
+        catchRate: 1.0,
         cost: 600,
         spriteUrl:
-          "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png",
+          "../assets/sprites/items/great-ball.png",
       },
       {
         name: "Ultra Ball",
         quantity: 0,
-        catchRate: 2.0,
+        catchRate: 1.5,
         cost: 1200,
         spriteUrl:
-          "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ultra-ball.png",
+          "../assets/sprites/items/items/ultra-ball.png",
       },
       {
         name: "Poção",
@@ -50,7 +50,7 @@ export async function createConfigAndUtils(v) {
         healAmount: 20,
         cost: 300,
         spriteUrl:
-          "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/potion.png",
+          "../assets/sprites/items/sprites/items/potion.png",
       },
     ],
     // Limite da Pokédex baseado nos dados locais

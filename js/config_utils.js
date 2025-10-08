@@ -5,8 +5,13 @@
 export async function createConfigAndUtils(v) {
   // Importação dinâmica com cache-busting (V = "?v=123456789")
   // O módulo local_poke_data.js é carregado aqui para garantir que esteja atualizado.
-  const localDataModule = await import(`./local_poke_data.js${v}`);
+  const [localDataModule, branchedEvosModule] = await Promise.all([
+      import(`./local_poke_data.js${v}`),
+      import(`./branched_evos.js${v}`),
+  ]);
+  
   const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS } = localDataModule;
+  const { BRANCHED_EVOS } = branchedEvosModule; // Importa as regras de ramificação
 
   // 1. Definição do GameConfig
   const GameConfig = {
@@ -430,26 +435,74 @@ export async function createConfigAndUtils(v) {
 
     /**
      * Obtém a cadeia evolutiva de um Pokémon do EVOLUTION_CHAINS local.
+     * MUDANÇA: Agora incorpora as regras de ramificação para Pokémons com múltiplas evoluções.
+     * @param {number} pokemonId - ID do Pokémon para buscar a cadeia.
+     * @returns {Array<object>} Lista de objetos de evolução.
      */
     fetchEvolutionChainData: async function (pokemonId) {
       const chains = Object.values(EVOLUTION_CHAINS);
-
+      const startId = String(pokemonId);
+      
+      // 1. Caso 1: O Pokémon faz parte de uma cadeia linear (ou cadeia base de 3+)
       const chainFound = chains.find(chain => chain.some(p => p.id === pokemonId));
-
+      
       if (chainFound) {
+          // Se for uma cadeia linear normal, retorna a cadeia.
+          // Se for uma forma intermediária (não base) de uma cadeia com ramificação,
+          // a forma base virá na primeira posição.
           return chainFound.map(p => ({
               id: p.id,
               name: p.name
           }));
       }
+
+      // 2. Caso 2: O Pokémon é a forma base de uma ramificação complexa (ex: Eevee, Tyrogue)
+      if (BRANCHED_EVOS[startId]) {
+          const basePoke = POKE_DATA[startId];
+          const chain = [{ id: basePoke.id, name: basePoke.name }];
+          
+          // Adiciona todas as evoluções possíveis listadas no BRANCHED_EVOS
+          BRANCHED_EVOS[startId].forEach(evoIdString => {
+              const evoId = parseInt(evoIdString);
+              const evoData = POKE_DATA[evoId];
+              if (evoData) {
+                  chain.push({ id: evoData.id, name: evoData.name });
+              }
+          });
+          return chain;
+      }
       
-      const selfData = POKE_DATA[String(pokemonId)];
+      // 3. Caso 3: O Pokémon é uma evolução RAMIFICADA (ex: Vaporeon, Hitmonlee)
+      // Precisa encontrar a forma BASE que leva a ele (ex: Eevee -> Vaporeon).
+      
+      // Itera sobre o mapa de ramificações para encontrar a base
+      for (const baseId in BRANCHED_EVOS) {
+          if (BRANCHED_EVOS[baseId].includes(startId)) {
+              const basePoke = POKE_DATA[baseId];
+              const evolvedPoke = POKE_DATA[startId];
+              if (basePoke && evolvedPoke) {
+                  // Retorna apenas Base -> Forma Ramificada (para evitar poluir com todas as 8 evoluções)
+                  // Mas com a opção de exibir as outras se for a forma base
+                  return [
+                      { id: basePoke.id, name: basePoke.name },
+                      { id: evolvedPoke.id, name: evolvedPoke.name, isBranch: true, baseId: basePoke.id }
+                  ];
+              }
+          }
+      }
+      
+      // 4. Caso Final: Não tem evolução, não é ramificado, nem forma base de ramificação
+      const selfData = POKE_DATA[startId];
       if(selfData) {
           return [{ id: selfData.id, name: selfData.name }];
       }
       
       return [];
     },
+    
+    idToName: function(id) {
+        return POKE_DATA[String(id)]?.name || null;
+    }
   };
 
   return {

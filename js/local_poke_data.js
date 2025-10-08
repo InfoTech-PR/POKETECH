@@ -32022,14 +32022,8 @@ export const EVOLUTION_CHAINS = {
         }
     ],
     "133": [
-        {
-            "id": 133,
-            "name": "Eevee"
-        },
-        {
-            "id": 134,
-            "name": "Vaporeon"
-        }
+        { "id": 133, "name": "Eevee" },
+        { "id": 134, "name": "Vaporeon" },
     ],
     "137": [
         {
@@ -32417,16 +32411,6 @@ export const EVOLUTION_CHAINS = {
             "name": "Quagsire"
         }
     ],
-    "133": [
-        {
-            "id": 133,
-            "name": "Eevee"
-        },
-        {
-            "id": 134,
-            "name": "Vaporeon"
-        }
-    ],
     "198": [
         {
             "id": 198,
@@ -32727,7 +32711,8 @@ export const EVOLUTION_CHAINS = {
         {
             "id": 106,
             "name": "Hitmonlee"
-        }
+        },
+       
     ],
     "238": [
         {
@@ -36659,4 +36644,50 @@ export const EVOLUTION_CHAINS = {
             "name": "Pecharunt"
         }
     ]
+};
+
+
+// Usado para identificar rapidamente as cadeias de evolução complexas no frontend.
+export const BRANCHED_EVOS = {
+    // Pokémon Base (Chave: ID) : [Lista de IDs de todas as evoluções possíveis (diretas ou via item)]
+    // Exemplo: 133 (Eevee) pode evoluir para 134, 135, 136, 196, 197, 470, 471, 700.
+    "133": [134, 135, 136, 196, 197, 470, 471, 700], 
+    // Exemplo: 236 (Tyrogue) pode evoluir para 106, 107, 237.
+    "236": [106, 107, 237],
+    // Exemplo: 44 (Gloom) pode evoluir para 45 ou 182.
+    "44": [45, 182],
+    // Exemplo: 61 (Poliwhirl) pode evoluir para 62 ou 186.
+    "61": [62, 186],
+    // Exemplo: 79 (Slowpoke) pode evoluir para 80 ou 199.
+    "79": [80, 199],
+    // Exemplo: 281 (Kirlia) pode evoluir para 282 ou 475.
+    "281": [282, 475],
+    // Exemplo: 361 (Snorunt) pode evoluir para 362 ou 478.
+    "361": [362, 478],
+    // Exemplo: 366 (Clamperl) pode evoluir para 367 ou 368.
+    "366": [367, 368],
+    // Exemplo: 123 (Scyther) pode evoluir para 212 ou 900.
+    "123": [212, 900],
+    // Exemplo: 840 (Applin) pode evoluir para 841, 842 ou 1011.
+    "840": [841, 842, 1011],
+    // Exemplo: 935 (Charcadet) pode evoluir para 936 ou 937.
+    "935": [936, 937],
+};
+
+// Mapeamento Inverso para saber o "pai" de uma evolução ramificada
+// Usado para saber de quem veio uma evolução ramificada (ex: 134 (Vaporeon) veio de 133 (Eevee))
+export const REVERSE_BRANCHED_EVOS = {
+    "134": 133, "135": 133, "136": 133, "196": 133, "197": 133, "470": 133, "471": 133, "700": 133, 
+    "106": 236, "107": 236, "237": 236,
+    "45": 44, "182": 44,
+    "62": 61, "186": 61,
+    "80": 79, "199": 79,
+    "282": 281, "475": 281,
+    "362": 361, "478": 361,
+    "367": 366, "368": 366,
+    "212": 123, "900": 123,
+    "841": 840, "842": 840, "1011": 840,
+    "936": 935, "937": 935,
+    // Exceção: Wurmple (265) que tem bifurcação na primeira evo.
+    "266": 265, "268": 265
 };

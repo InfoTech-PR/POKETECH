@@ -4,7 +4,53 @@ import {
   getDoc,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+// Certifique-se de que estas constantes estão disponíveis via importação ou globalmente (do local_poke_data.js)
+// Como estamos em um ambiente modular, vamos assumir que as constantes do local_poke_data
+// estão disponíveis globalmente (como é prática neste projeto) ou que o bundler as injetará.
+
 export const GameLogic = {
+  // ==== Helpers de evolução ramificada (novos) ====
+
+  // Item de evolução pendente (ex.: definido pela UI ao clicar "Usar Pedra")
+  _pendingEvolutionItem: null,
+
+  // Consumo simples de item por nome
+  consumeItem: function(itemName) {
+    if (!itemName) return false;
+    const inv = window.gameState?.profile?.items || [];
+    const it = inv.find(i => i.name?.toLowerCase() === itemName.toLowerCase());
+    if (it && it.quantity > 0) {
+      it.quantity -= 1;
+      return true;
+    }
+    return false;
+  },
+
+  // Nome por ID usando POKE_DATA (se exposto) ou PokeAPI
+  _getNameById: function(id) {
+    const byData = window.POKE_DATA?.[String(id)]?.name;
+    if (byData) return byData;
+    const byApi = window.PokeAPI?.idToName?.(id);
+    if (byApi) return byApi;
+    return `#${id}`;
+  },
+
+  // Resolver alvo quando há ramificação
+  resolveBranchTargetId: function(current, ctx) {
+    // Usa o novo mapeamento de evoluções
+    const hasBranch = window.BRANCHED_EVOS?.[String(current.id)];
+    
+    if (!hasBranch) return null;
+    
+    if (typeof window.GameLogic.resolveBranchedEvolution === 'function') {
+      // Chama a função auxiliar que está em evolution_rules.js
+      return window.GameLogic.resolveBranchedEvolution(current, ctx);
+    }
+    return null;
+  },
+
+  // ==== Código original + ajustes ====
+
   addExploreLog: function (message) {
     if (!window.gameState.exploreLog) {
       window.gameState.exploreLog = [];
@@ -130,7 +176,7 @@ export const GameLogic = {
     );
     if (!hasLivePokemon && window.gameState.profile.pokemon.length > 0) {
       GameLogic.addExploreLog(
-        "Todos os Pokémons desmaiaram! Não é seguro explorar."
+        "Todos os Pokémons desmaiaram! Vá para o Centro Pokémon."
       );
       window.Renderer.renderMainMenu(document.getElementById("app-container"));
       return;
@@ -340,22 +386,47 @@ export const GameLogic = {
     window.Renderer.showScreen("healCenter");
   },
 
+  // ==== EVOLUÇÃO ATUALIZADA (com ramificação) ====
   evolvePokemon: async function (pokemonIndex) {
     const pokemon = window.gameState.profile.pokemon[pokemonIndex];
-    // Chamar PokeAPI localmente para obter o nome da próxima evolução
-    const nextEvolutionName = await window.PokeAPI.fetchNextEvolution(
-      pokemon.id
-    );
-    const GameConfig = window.GameConfig;
-
-    if (!nextEvolutionName) {
-      window.Utils.showModal(
-        "errorModal",
-        `${pokemon.name} ainda não pode evoluir, ou já atingiu o máximo.`
-      );
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon inválido para evoluir.");
       return;
     }
 
+    // Contexto para regras de ramificação
+    const ctx = {
+      level: pokemon.level,
+      stats: pokemon.stats,
+      // Pega o item pendente, se houver
+      item: window.GameLogic._pendingEvolutionItem || null, 
+      gender: pokemon.gender,
+      timeOfDay: window.World?.getTimeOfDay?.(), // "day","evening","night" se aplicável
+      ability: pokemon.ability,
+      seed: window.Utils.hash?.(`${pokemon.uid}:${window.gameState.profile.trainerId}`) ?? Date.now(),
+    };
+
+    // 1) Tenta resolver alvo por ramificação
+    let nextId = window.GameLogic.resolveBranchTargetId(pokemon, ctx);
+    
+    // 2) Fallback linear por PokeAPI (se não for ramificado e não tiver item forçado)
+    let nextEvolutionName = null;
+    if (!nextId) {
+      nextEvolutionName = await window.PokeAPI.fetchNextEvolution(pokemon.id);
+      if (!nextEvolutionName) {
+        window.Utils.showModal(
+          "errorModal",
+          `${pokemon.name} ainda não pode evoluir, ou já atingiu o máximo.`
+        );
+        return;
+      }
+    } else {
+      nextEvolutionName = window.GameLogic._getNameById(nextId);
+    }
+
+    const GameConfig = window.GameConfig;
+
+    // Requisitos do projeto (custo e EXP)
     if (window.gameState.profile.money < GameConfig.EVOLUTION_COST) {
       window.Utils.showModal(
         "errorModal",
@@ -363,29 +434,46 @@ export const GameLogic = {
       );
       return;
     }
-    
-    // Novo Requisito de EXP (mantido aqui como 1000)
-    const requiredExp = 1000; 
-     if (pokemon.exp < requiredExp) {
-        window.Utils.showModal(
-            "errorModal",
-            `${pokemon.name} precisa de ${requiredExp} EXP para evoluir!`
-        );
-        return;
+
+    const requiredExp = 1000; // mantido conforme seu código
+    if (pokemon.exp < requiredExp) {
+      window.Utils.showModal(
+        "errorModal",
+        `${pokemon.name} precisa de ${requiredExp} EXP para evoluir!`
+      );
+      return;
     }
 
+    // Débito de custo e EXP
     window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
-    // O Pokémon perde a EXP ao evoluir
-    pokemon.exp -= requiredExp; 
+    pokemon.exp -= requiredExp;
+    
+    let consumedItemName = null;
+
+    // Se a evolução foi disparada por item, tenta consumir o item
+    if (ctx.item) {
+      const itemToConsume = window.GameConfig.SHOP_ITEMS.find(i => i.name.toLowerCase().includes(ctx.item));
+      if (itemToConsume) {
+        const ok = window.GameLogic.consumeItem(itemToConsume.name);
+        if (!ok) {
+           // Rollback (Embora a UI deva bloquear isso, mantemos a segurança)
+           window.gameState.profile.money += GameConfig.EVOLUTION_COST;
+           pokemon.exp += requiredExp;
+           window.Utils.showModal("errorModal", `Erro: O item ${itemToConsume.name} não foi encontrado na mochila.`);
+           window.Renderer.showScreen("managePokemon");
+           return;
+        }
+        consumedItemName = itemToConsume.name;
+      }
+      window.GameLogic._pendingEvolutionItem = null; // Limpa o item pendente após tentativa
+    }
 
     window.Utils.showModal("infoModal", `Evoluindo ${pokemon.name}...`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // NOVA CHAMADA: Usa a função de dados locais, que retorna o objeto pronto
-    // com base stats (fetchPokemonData no config_utils.js)
-    const newPokemonDataRaw = await window.PokeAPI.fetchPokemonData(
-      nextEvolutionName
-    );
+    // Buscar dados da nova forma por nome
+    const targetName = nextEvolutionName || window.GameLogic._getNameById(nextId);
+    const newPokemonDataRaw = await window.PokeAPI.fetchPokemonData(targetName);
 
     if (newPokemonDataRaw) {
       // 1. Usar os dados base da nova forma
@@ -394,6 +482,8 @@ export const GameLogic = {
           // 2. Preservar Nível e EXP
           level: pokemon.level,
           exp: pokemon.exp,
+          // Preservar gênero (necessário para evoluções de ramificação)
+          gender: pokemon.gender,
       }
 
       // 3. Recalcular o HP Máximo com os novos base stats + nível atual
@@ -402,21 +492,28 @@ export const GameLogic = {
       // 4. Registrar na Pokédex
       window.Utils.registerPokemon(newPokemonData.id);
 
-
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
       window.GameLogic.saveGameData();
+      
+      let successMessage = `Parabéns! Seu ${pokemon.name} evoluiu para **${newPokemonData.name}**!`;
+      if (consumedItemName) {
+          successMessage += ` (Item **${consumedItemName}** utilizado)`;
+      }
+
       window.Utils.showModal(
         "infoModal",
-        `Parabéns! Seu ${pokemon.name} evoluiu para ${newPokemonData.name}!`
+        successMessage
       );
       window.Renderer.showScreen("pokemonList");
     } else {
       // Reembolsa o dinheiro se a evolução falhar (dados locais ausentes)
       window.gameState.profile.money += GameConfig.EVOLUTION_COST;
+      pokemon.exp += requiredExp;
       window.Utils.showModal(
         "errorModal",
-        `Falha ao buscar dados de ${window.Utils.formatName(nextEvolutionName)}. Evolução cancelada.`
+        `Falha ao buscar dados de ${window.Utils.formatName(targetName)}. Evolução cancelada.`
       );
+      window.Renderer.showScreen("managePokemon");
     }
   },
 
@@ -613,11 +710,7 @@ export const GameLogic = {
             window.gameState.profile.pokedex &&
             Array.isArray(window.gameState.profile.pokedex)
           ) {
-            // A sua pokedex de exemplo é um objeto, mas a função espera um array.
-            // O problema aqui é que a função `importSave` espera um formato,
-            // mas a função `loadProfile` espera outro (`Set`).
-            // Para resolver isso, vamos remover o `Array.isArray`
-            // E fazer a conversão em outro lugar.
+            // Ver observação no loadProfile que converte para Set depois
           }
 
           await window.GameLogic.saveGameData();
@@ -642,3 +735,6 @@ export const GameLogic = {
     reader.readAsText(file);
   },
 };
+
+// Garantir global (se necessário em outras partes)
+window.GameLogic = window.GameLogic || GameLogic;

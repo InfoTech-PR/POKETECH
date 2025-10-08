@@ -10444,7 +10444,7 @@ export const POKE_DATA = {
     },
     "446": {
         "id": 446,
-        "name": "Munchlax",
+        "name": "DABike",
         "front_sprite": "assets/sprites/pokemon/446_front.png",
         "back_sprite": "assets/sprites/pokemon/446_back.png",
         "stats": {
@@ -27211,7 +27211,7 @@ export const SPECIES_DATA = {
         "isMythical": false
     },
     "446": {
-        "description": "It wolfs down its weight in food once a day, swallowing food whole with almost no chewing.",
+        "description": "Ele devora seu peso em comida uma vez por dia, engolindo a comida inteira quase sem mastigar. A espera de um moto para buscar a comida mais rapido.",
         "height": 6,
         "weight": 1050,
         "isLegendary": false,
@@ -31273,7 +31273,7 @@ export const SPECIES_DATA = {
 };
 
 export const EVOLUTION_CHAINS = {
-     "1": [
+    "1": [
         {
             "id": 1,
             "name": "Bulbasaur"
@@ -31492,18 +31492,13 @@ export const EVOLUTION_CHAINS = {
         }
     ],
     "43": [
+        { "id": 43, "name": "Oddish" },
         {
-            "id": 43,
-            "name": "Oddish"
+            "id": 44, "name": "Gloom", "branches": [
+                [{ "id": 45, "name": "Vileplume" }],
+                [{ "id": 182, "name": "Bellossom" }],
+            ]
         },
-        {
-            "id": 44,
-            "name": "Gloom"
-        },
-        {
-            "id": 45,
-            "name": "Vileplume"
-        }
     ],
     "46": [
         {
@@ -31580,18 +31575,13 @@ export const EVOLUTION_CHAINS = {
         }
     ],
     "60": [
+        { "id": 60, "name": "Poliwag" },
         {
-            "id": 60,
-            "name": "Poliwag"
+            "id": 61, "name": "Poliwhirl", "branches": [
+                [{ "id": 62, "name": "Poliwrath" }],
+                [{ "id": 186, "name": "Politoed" }],
+            ]
         },
-        {
-            "id": 61,
-            "name": "Poliwhirl"
-        },
-        {
-            "id": 62,
-            "name": "Poliwrath"
-        }
     ],
     "63": [
         {
@@ -31671,13 +31661,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "79": [
         {
-            "id": 79,
-            "name": "Slowpoke"
+            "id": 79, "name": "Slowpoke", "branches": [
+                [{ "id": 80, "name": "Slowbro" }],
+                [{ "id": 199, "name": "Slowking" }],
+            ]
         },
-        {
-            "id": 80,
-            "name": "Slowbro"
-        }
     ],
     "81": [
         {
@@ -31817,16 +31805,6 @@ export const EVOLUTION_CHAINS = {
             "name": "Marowak"
         }
     ],
-    "236": [
-        {
-            "id": 236,
-            "name": "Tyrogue"
-        },
-        {
-            "id": 106,
-            "name": "Hitmonlee"
-        }
-    ],
     "108": [
         {
             "id": 108,
@@ -31941,13 +31919,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "123": [
         {
-            "id": 123,
-            "name": "Scyther"
+            "id": 123, "name": "Scyther", "branches": [
+                [{ "id": 212, "name": "Scizor" }],
+                [{ "id": 900, "name": "Kleavor" }],
+            ]
         },
-        {
-            "id": 212,
-            "name": "Scizor"
-        }
     ],
     "238": [
         {
@@ -32022,8 +31998,18 @@ export const EVOLUTION_CHAINS = {
         }
     ],
     "133": [
-        { "id": 133, "name": "Eevee" },
-        { "id": 134, "name": "Vaporeon" },
+        {
+            "id": 133, "name": "Eevee", "branches": [
+                [{ "id": 134, "name": "Vaporeon" }],
+                [{ "id": 135, "name": "Jolteon" }],
+                [{ "id": 136, "name": "Flareon" }],
+                [{ "id": 196, "name": "Espeon" }],
+                [{ "id": 197, "name": "Umbreon" }],
+                [{ "id": 470, "name": "Leafeon" }],
+                [{ "id": 471, "name": "Glaceon" }],
+                [{ "id": 700, "name": "Sylveon" }],
+            ]
+        },
     ],
     "137": [
         {
@@ -32068,7 +32054,7 @@ export const EVOLUTION_CHAINS = {
     "446": [
         {
             "id": 446,
-            "name": "Munchlax"
+            "name": "DABike"
         },
         {
             "id": 143,
@@ -32305,20 +32291,6 @@ export const EVOLUTION_CHAINS = {
             "name": "Ampharos"
         }
     ],
-    "43": [
-        {
-            "id": 43,
-            "name": "Oddish"
-        },
-        {
-            "id": 44,
-            "name": "Gloom"
-        },
-        {
-            "id": 45,
-            "name": "Vileplume"
-        }
-    ],
     "298": [
         {
             "id": 298,
@@ -32341,20 +32313,6 @@ export const EVOLUTION_CHAINS = {
         {
             "id": 185,
             "name": "Sudowoodo"
-        }
-    ],
-    "60": [
-        {
-            "id": 60,
-            "name": "Poliwag"
-        },
-        {
-            "id": 61,
-            "name": "Poliwhirl"
-        },
-        {
-            "id": 62,
-            "name": "Poliwrath"
         }
     ],
     "187": [
@@ -32419,16 +32377,6 @@ export const EVOLUTION_CHAINS = {
         {
             "id": 430,
             "name": "Honchkrow"
-        }
-    ],
-    "79": [
-        {
-            "id": 79,
-            "name": "Slowpoke"
-        },
-        {
-            "id": 80,
-            "name": "Slowbro"
         }
     ],
     "200": [
@@ -32527,16 +32475,7 @@ export const EVOLUTION_CHAINS = {
             "name": "Overqwil"
         }
     ],
-    "123": [
-        {
-            "id": 123,
-            "name": "Scyther"
-        },
-        {
-            "id": 212,
-            "name": "Scizor"
-        }
-    ],
+
     "213": [
         {
             "id": 213,
@@ -32705,14 +32644,12 @@ export const EVOLUTION_CHAINS = {
     ],
     "236": [
         {
-            "id": 236,
-            "name": "Tyrogue"
+            "id": 236, "name": "Tyrogue", "branches": [
+                [{ "id": 106, "name": "Hitmonlee" }],
+                [{ "id": 107, "name": "Hitmonchan" }],
+                [{ "id": 237, "name": "Hitmontop" }],
+            ]
         },
-        {
-            "id": 106,
-            "name": "Hitmonlee"
-        },
-       
     ],
     "238": [
         {
@@ -32890,17 +32827,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "265": [
         {
-            "id": 265,
-            "name": "Wurmple"
+            "id": 265, "name": "Wurmple", "branches": [
+                [{ "id": 266, "name": "Silcoon" }, { "id": 267, "name": "Beautifly" }],
+                [{ "id": 268, "name": "Cascoon" }, { "id": 269, "name": "Dustox" }],
+            ]
         },
-        {
-            "id": 266,
-            "name": "Silcoon"
-        },
-        {
-            "id": 267,
-            "name": "Beautifly"
-        }
     ],
     "270": [
         {
@@ -32951,18 +32882,13 @@ export const EVOLUTION_CHAINS = {
         }
     ],
     "280": [
+        { "id": 280, "name": "Ralts" },
         {
-            "id": 280,
-            "name": "Ralts"
+            "id": 281, "name": "Kirlia", "branches": [
+                [{ "id": 282, "name": "Gardevoir" }],
+                [{ "id": 475, "name": "Gallade" }],
+            ]
         },
-        {
-            "id": 281,
-            "name": "Kirlia"
-        },
-        {
-            "id": 282,
-            "name": "Gardevoir"
-        }
     ],
     "283": [
         {
@@ -33376,13 +33302,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "361": [
         {
-            "id": 361,
-            "name": "Snorunt"
+            "id": 361, "name": "Snorunt", "branches": [
+                [{ "id": 362, "name": "Glalie" }],
+                [{ "id": 478, "name": "Froslass" }],
+            ]
         },
-        {
-            "id": 362,
-            "name": "Glalie"
-        }
     ],
     "363": [
         {
@@ -33400,13 +33324,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "366": [
         {
-            "id": 366,
-            "name": "Clamperl"
+            "id": 366, "name": "Clamperl", "branches": [
+                [{ "id": 367, "name": "Huntail" }],
+                [{ "id": 368, "name": "Gorebyss" }],
+            ]
         },
-        {
-            "id": 367,
-            "name": "Huntail"
-        }
     ],
     "369": [
         {
@@ -33767,7 +33689,7 @@ export const EVOLUTION_CHAINS = {
     "446": [
         {
             "id": 446,
-            "name": "Munchlax"
+            "name": "DABike"
         },
         {
             "id": 143,
@@ -35736,13 +35658,12 @@ export const EVOLUTION_CHAINS = {
     ],
     "840": [
         {
-            "id": 840,
-            "name": "Applin"
+            "id": 840, "name": "Applin", "branches": [
+                [{ "id": 841, "name": "Flapple" }],
+                [{ "id": 842, "name": "Appletun" }],
+                [{ "id": 1011, "name": "Dipplin" }],
+            ]
         },
-        {
-            "id": 841,
-            "name": "Flapple"
-        }
     ],
     "843": [
         {
@@ -36184,13 +36105,11 @@ export const EVOLUTION_CHAINS = {
     ],
     "935": [
         {
-            "id": 935,
-            "name": "Charcadet"
+            "id": 935, "name": "Charcadet", "branches": [
+                [{ "id": 936, "name": "Armarouge" }],
+                [{ "id": 937, "name": "Ceruledge" }],
+            ]
         },
-        {
-            "id": 936,
-            "name": "Armarouge"
-        }
     ],
     "938": [
         {
@@ -36651,7 +36570,7 @@ export const EVOLUTION_CHAINS = {
 export const BRANCHED_EVOS = {
     // Pokémon Base (Chave: ID) : [Lista de IDs de todas as evoluções possíveis (diretas ou via item)]
     // Exemplo: 133 (Eevee) pode evoluir para 134, 135, 136, 196, 197, 470, 471, 700.
-    "133": [134, 135, 136, 196, 197, 470, 471, 700], 
+    "133": [134, 135, 136, 196, 197, 470, 471, 700],
     // Exemplo: 236 (Tyrogue) pode evoluir para 106, 107, 237.
     "236": [106, 107, 237],
     // Exemplo: 44 (Gloom) pode evoluir para 45 ou 182.
@@ -36677,7 +36596,7 @@ export const BRANCHED_EVOS = {
 // Mapeamento Inverso para saber o "pai" de uma evolução ramificada
 // Usado para saber de quem veio uma evolução ramificada (ex: 134 (Vaporeon) veio de 133 (Eevee))
 export const REVERSE_BRANCHED_EVOS = {
-    "134": 133, "135": 133, "136": 133, "196": 133, "197": 133, "470": 133, "471": 133, "700": 133, 
+    "134": 133, "135": 133, "136": 133, "196": 133, "197": 133, "470": 133, "471": 133, "700": 133,
     "106": 236, "107": 236, "237": 236,
     "45": 44, "182": 44,
     "62": 61, "186": 61,
@@ -36689,5 +36608,9 @@ export const REVERSE_BRANCHED_EVOS = {
     "841": 840, "842": 840, "1011": 840,
     "936": 935, "937": 935,
     // Exceção: Wurmple (265) que tem bifurcação na primeira evo.
-    "266": 265, "268": 265
+    "266": 265,
+    "268": 265,
+
+    "267": 266, // Beautifly <- Silcoon
+    "269": 268, // Dustox   <- Cascoon
 };

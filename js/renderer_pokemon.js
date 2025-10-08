@@ -18,7 +18,7 @@ window.nextScreenPayload = null;
  * passe os dados corretamente para a navegação.
  * @param {string} regionId - O ID da região (ex: 'kanto').
  */
-window.openPokedexRegion = function(regionId) {
+window.openPokedexRegion = function (regionId) {
   console.log('[POKEDEX NAV HELPER] Chamado openPokedexRegion com ID:', regionId);
   if (regionId) {
     const payload = { region: regionId };
@@ -49,7 +49,7 @@ export const RendererPokemon = {
   _renderEvoItem: function (evo, spriteId, pokedexSet, currentPokemonId) {
     const isKnown = pokedexSet.has(evo.id);
     // filter: grayscale(100%) brightness(0.1); -> Sombra clara para Pokémon não descoberto mas clicável
-    const silhouetteFilter = "filter: grayscale(100%) brightness(0.1);"; 
+    const silhouetteFilter = "filter: grayscale(100%) brightness(0.1);";
 
     let filterStyle = isKnown || (evo.id === currentPokemonId) ? "" : silhouetteFilter;
     let displayName = isKnown ? window.Utils.formatName(evo.name) : "???";
@@ -125,10 +125,9 @@ export const RendererPokemon = {
     const content = `
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
-        ${
-          pokemonHtml ||
-          '<p class="text-center text-gray-500 gba-font">Você não tem Pokémons!</p>'
-        }
+        ${pokemonHtml ||
+      '<p class="text-center text-gray-500 gba-font">Você não tem Pokémons!</p>'
+      }
       </div>
       <button onclick="window.Renderer.showScreen('managePokemon')" class="gba-button bg-cyan-500 hover:bg-cyan-600 w-full mb-2 flex-shrink-0">Gerenciar Pokémons</button>
       <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
@@ -140,7 +139,7 @@ export const RendererPokemon = {
     const pokemonArray = window.gameState.profile.pokemon;
     const evolutionCost = window.GameConfig.EVOLUTION_COST;
     const requiredExp = 1000; // Nova regra: 1000 EXP
-    
+
     // Loading inicial
     const loadingContent = `
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">GERENCIAR POKÉMONS</div>
@@ -160,22 +159,22 @@ export const RendererPokemon = {
       const isBranched = window.BRANCHED_RULES?.[String(p.id)];
       let nextEvolutionName = null;
       if (!isBranched) {
-          nextEvolutionName = await window.PokeAPI.fetchNextEvolution(p.id);
+        nextEvolutionName = await window.PokeAPI.fetchNextEvolution(p.id);
       }
-      
+
       // O Pokémon é de Evolução Máxima se não for ramificado E não houver próxima evolução linear
       const isMaxEvolution = !isBranched && nextEvolutionName === null;
 
 
       const hasMoney = window.gameState.profile.money >= evolutionCost;
       const hasExp = p.exp >= requiredExp;
-      
+
       // A condição para evoluir (ou ver opções) é: NÃO é max evolution E tem recursos
-      const canEvolve = !isMaxEvolution && hasMoney && hasExp; 
+      const canEvolve = !isMaxEvolution && hasMoney && hasExp;
 
       let evolveButtonText = "Evoluir";
       let evolveButtonClass = "bg-blue-500 hover:bg-blue-600";
-      
+
       if (isMaxEvolution) {
         evolveButtonText = "Evolução Máxima";
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
@@ -190,17 +189,17 @@ export const RendererPokemon = {
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
       }
       const isDisabledEvolve = !canEvolve && !isMaxEvolution;
-      
+
       // Ação do botão: Se for ramificado, abre o modal. Senão, inicia a evolução direta.
-      const evolveAction = isBranched 
-            ? `window.RendererPokemon.showBranchedEvolutionOptions(${index})`
-            : `window.GameLogic.evolvePokemon(${index})`;
+      const evolveAction = isBranched
+        ? `window.RendererPokemon.showBranchedEvolutionOptions(${index})`
+        : `window.GameLogic.evolvePokemon(${index})`;
 
 
       const useButtonText = isCurrentlyActive ? "ATIVO (ATUAL)" : "USAR";
       const isDisabledUse = isCurrentlyActive;
-      const useButtonClass = isCurrentlyActive 
-        ? "bg-green-600 cursor-not-allowed opacity-70" 
+      const useButtonClass = isCurrentlyActive
+        ? "bg-green-600 cursor-not-allowed opacity-70"
         : "bg-green-500 hover:bg-green-600";
 
       return `
@@ -249,32 +248,32 @@ export const RendererPokemon = {
     const profile = window.gameState.profile;
     // Filtra itens com quantidade > 0 e ordena
     const items = (profile.items || []).filter(i => i.quantity > 0).sort((a, b) => {
-        // Cura primeiro, depois alfabeticamente
-        if (a.healAmount > 0 && b.healAmount === 0) return -1;
-        if (a.healAmount === 0 && b.healAmount > 0) return 1;
-        return a.name.localeCompare(b.name);
+      // Cura primeiro, depois alfabeticamente
+      if (a.healAmount > 0 && b.healAmount === 0) return -1;
+      if (a.healAmount === 0 && b.healAmount > 0) return 1;
+      return a.name.localeCompare(b.name);
     });
-    
+
     const hasHealItem = items.some(i => i.healAmount > 0);
 
     const itemsHtml = items.map(item => {
-        const isUsable = item.healAmount > 0;
-        const actionText = isUsable ? "Usar" : "Detalhes"; // Mantido para referência no HTML
-        const isPokeball = item.name.toLowerCase().includes("ball");
-        const itemConfig = window.GameConfig.SHOP_ITEMS.find(i => i.name === item.name);
-        const spriteUrl = itemConfig ? itemConfig.spriteUrl : "";
-        // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
-        // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
-        const useButton = isUsable 
-            ? `<button onclick="window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name}' })" 
+      const isUsable = item.healAmount > 0;
+      const actionText = isUsable ? "Usar" : "Detalhes"; // Mantido para referência no HTML
+      const isPokeball = item.name.toLowerCase().includes("ball");
+      const itemConfig = window.GameConfig.SHOP_ITEMS.find(i => i.name === item.name);
+      const spriteUrl = itemConfig ? itemConfig.spriteUrl : "";
+      // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
+      // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
+      const useButton = isUsable
+        ? `<button onclick="window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name}' })" 
                         class="gba-button bg-green-500 hover:bg-green-600 w-full">
                         Usar
-                    </button>` 
-            : `<button disabled class="gba-button bg-gray-400 w-full cursor-not-allowed">
+                    </button>`
+        : `<button disabled class="gba-button bg-gray-400 w-full cursor-not-allowed">
                         ${isPokeball ? "Apenas em batalha" : "Sem uso fora de batalha"}
                     </button>`;
-        
-        return `
+
+      return `
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 border-b border-gray-300 bg-white">
                     <div class="flex items-center flex-grow min-w-0">
                         <!-- Icone/Sprite do item, usando o URL do objeto item -->
@@ -296,18 +295,16 @@ export const RendererPokemon = {
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MOCHILA</div>
             <p class="text-center text-sm gba-font mb-4 flex-shrink-0 text-gray-600">
-                ${
-                  hasHealItem
-                    ? "Poções podem ser usadas aqui. Pokébolas apenas em batalha."
-                    : "Sua mochila contém seus tesouros."
-                }
+                ${hasHealItem
+        ? "Poções podem ser usadas aqui. Pokébolas apenas em batalha."
+        : "Sua mochila contém seus tesouros."
+      }
             </p>
             <!-- flex-grow e overflow-y-auto para a lista de itens -->
             <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-gray-100 space-y-2">
-            ${
-              itemsHtml ||
-              '<p class="text-center text-gray-500 gba-font p-4">Mochila vazia!</p>'
-            }
+            ${itemsHtml ||
+      '<p class="text-center text-gray-500 gba-font p-4">Mochila vazia!</p>'
+      }
             </div>
             <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
@@ -315,156 +312,35 @@ export const RendererPokemon = {
   },
 
   // NOVO: Função para exibir opções de evolução ramificada (Apenas mock para funcionar a navegação)
-  showBranchedEvolutionOptions: function(pokemonIndex) {
+  showBranchedEvolutionOptions: function (pokemonIndex) {
     const pokemon = window.gameState.profile.pokemon[pokemonIndex];
-    
+
     // Simplesmente abre um modal de erro/info por enquanto (o usuário não pediu a lógica de UI completa aqui)
-    window.Utils.showModal("infoModal", 
-        `**Evolução Ramificada:** ${pokemon.name} tem múltiplas evoluções. Esta tela precisa de implementação completa para seleção.`
+    window.Utils.showModal("infoModal",
+      `**Evolução Ramificada:** ${pokemon.name} tem múltiplas evoluções. Esta tela precisa de implementação completa para seleção.`
     );
   },
 
-
-  showPokemonStats: async function (pokemonName, index) {
-    const pokemon = window.gameState.profile.pokemon[index];
-    if (!pokemon) {
-      window.Utils.showModal("errorModal", "Pokémon não encontrado!");
-      return;
-    }
-
-    const healItem = window.gameState.profile.items.find((i) => i.healAmount);
-    const isHealItemAvailable = healItem && healItem.quantity > 0;
-    const expToNextLevel = window.Utils.calculateExpToNextLevel(pokemon.level);
-    const expPercent = Math.min(100, (pokemon.exp / expToNextLevel) * 100);
-
-    const movesHtml = pokemon.moves
-      .map((move) => `<li class="text-sm">${window.Utils.formatName(move)}</li>`)
-      .join("");
-
-    const typesHtml = pokemon.types
-      .map((type) => `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`)
-      .join("");
-
-    const statsHtml = Object.entries(pokemon.stats)
-      .map(([stat, value]) => `
-        <div class="flex justify-between items-center mb-1">
-          <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
-          <span class="text-xs gba-font">${value}</span>
-        </div>
-      `).join("");
-
-    // 1. Obtém a cadeia completa
-    let evolutionChain = await window.PokeAPI.fetchEvolutionChainData(pokemon.id);
-    
-    // 2. LÓGICA DE FILTRAGEM (USADO APENAS NA LISTA DE POKÉMONS, NÃO NA POKÉDEX)
-    const pokedexSet = window.gameState.profile.pokedex;
-    let evolutionItemsHtml = '';
-
-    evolutionItemsHtml = evolutionChain.map((evo, evoIndex) => {
-      const isLast = evoIndex === evolutionChain.length - 1;
-      const isBaseOfBranch = window.BRANCHED_EVOS?.[String(evo.id)]; // Verifica se é a forma base de uma ramificação
-
-      let evoItem = '';
-
-      // Adiciona a seta (se não for o primeiro elemento)
-      if (evoIndex > 0) {
-        evoItem += `
-          <div class="flex-shrink-0 flex items-center justify-center self-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
-              <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
-            </svg>
-          </div>
-        `;
-      }
-      
-      // Renderiza o item do Pokémon
-      // CORREÇÃO: Usa RendererPokemon._renderEvoItem
-      evoItem += RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, pokemon.id);
-
-      // Adiciona o marcador de ramificação se for a forma base de uma cadeia ramificada
-      if (isBaseOfBranch) {
-          evoItem += `
-              <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -ml-2 -mr-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 .707-.707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
-                  </svg>
-                  RAMIFICA
-              </div>
-          `;
-      }
-      
-      return evoItem;
-    }).join('');
-
-    const evolutionSection = `
-      <div class="mt-4 p-2 border-t border-gray-400 flex-shrink-0">
-        <h3 class="font-bold gba-font text-sm mb-2 text-center text-blue-700">CADEIA EVOLUTIVA</h3>
-        <div class="flex justify-center items-center p-2 bg-gray-100 rounded-lg space-x-1">
-          ${evolutionItemsHtml}
-        </div>
-      </div>
-    `;
-
-    const modalContent = `
-      <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
-        #${pokemon.id.toString().padStart(3, "0")} - ${pokemon.name}
-      </div>
-      <img src="../assets/sprites/pokemon/${pokemon.id}_front.png" alt="${pokemon.name}" class="w-32 h-32 mx-auto mb-4 flex-shrink-0">
-      <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
-      <div class="text-left gba-font text-xs flex-shrink-0">
-        <p><strong>Nível:</strong> ${pokemon.level}</p>
-        <p><strong>HP:</strong> ${pokemon.currentHp}/${pokemon.maxHp}</p>
-        <div class="mt-2 flex items-center">
-          <span class="gba-font text-[10px] mr-2">EXP</span>
-          <div class="w-full bg-gray-300 h-2 rounded-full border border-gray-500">
-            <div class="h-2 rounded-full bg-blue-500 transition-all duration-500" style="width: ${expPercent}%;"></div>
-          </div>
-        </div>
-        <p class="text-[8px] text-gray-700 mt-1">Progresso: ${pokemon.exp} / ${expToNextLevel}</p>
-      </div>
-      ${evolutionSection}
-      <div class="mt-4 p-2 border-t border-gray-400 flex-grow overflow-y-auto">
-        <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
-        ${statsHtml}
-        <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques:</h3>
-        <ul class="list-disc list-inside gba-font text-xs">
-          ${movesHtml}
-        </ul>
-      </div>
-      <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
-    `;
-
-    const modal = document.getElementById("pokemonStatsModal");
-    if (modal) {
-      const modalBody = modal.querySelector(".modal-body");
-      if (modalBody) {
-        modalBody.classList.add("flex", "flex-col", "h-full");
-        modalBody.innerHTML = modalContent;
-        modal.classList.remove("hidden");
-      }
-    }
-  },
-
   showPokedexStats: async function (pokemonId, isSilhouette = false) {
-    
+
     // Define a ação de voltar baseada na região atual 
     const currentRegionId = window.currentPokedexFilters.region;
     // Ação que fecha o modal E navega (retorna à lista de região ou ao grid da região atual)
-    const returnAction = currentRegionId 
-        ? `window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('pokedex', { region: '${currentRegionId}' })`
-        : `window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('pokedex', { region: null })`; 
-        
+    const returnAction = currentRegionId
+      ? `window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('pokedex', { region: '${currentRegionId}' })`
+      : `window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('pokedex', { region: null })`;
+
     // 1. LÓGICA DE SILHUETA
     if (isSilhouette) {
-        const baseId = window.REVERSE_BRANCHED_EVOS?.[String(pokemonId)];
-        const basePokemonName = baseId ? window.Utils.formatName(window.POKE_DATA?.[String(baseId)]?.name || window.PokeAPI.idToName(baseId)) : null;
+      const baseId = window.PokeAPI.REVERSE_BRANCHED_EVOS?.[String(pokemonId)];
+      const basePokemonName = baseId ? window.Utils.formatName(window.POKE_DATA?.[String(baseId)]?.name || window.PokeAPI.idToName(baseId)) : null;
 
-        let extraMessage = '';
-        if (basePokemonName) {
-            extraMessage = `<p class="mt-2 text-xs">Deriva de: <strong>${basePokemonName}</strong></p>`;
-        }
-        
-        const modalContent = `
+      let extraMessage = '';
+      if (basePokemonName) {
+        extraMessage = `<p class="mt-2 text-xs">Deriva de: <strong>${basePokemonName}</strong></p>`;
+      }
+
+      const modalContent = `
             <div class="text-xl font-bold text-gray-800 gba-font mb-4 text-center flex-shrink-0">
                 ???
             </div>
@@ -473,8 +349,8 @@ export const RendererPokemon = {
                 <p>Este Pokémon ainda não foi capturado.</p>
                 <p class="mt-2">Continue explorando para encontrá-lo!</p>
                 <p class="mt-2 text-sm">#${pokemonId
-                  .toString()
-                  .padStart(3, "0")}</p>
+          .toString()
+          .padStart(3, "0")}</p>
                 ${extraMessage}
             </div>
             <button onclick="${returnAction}" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Voltar</button>
@@ -493,8 +369,8 @@ export const RendererPokemon = {
     }
 
     // 2. LÓGICA DO POKÉMON CONHECIDO
-    
-    const [pokemonData, speciesData, rawEvolutionChain] = await Promise.all([
+
+    let [pokemonData, speciesData, rawEvolutionChain] = await Promise.all([
       window.PokeAPI.fetchPokemonData(pokemonId, true),
       window.PokeAPI.fetchSpeciesData(pokemonId),
       window.PokeAPI.fetchEvolutionChainData(pokemonId),
@@ -505,40 +381,59 @@ export const RendererPokemon = {
       return;
     }
 
+    const currentPokemonIdString = String(pokemonId);
+    // Prioridade 1: É uma forma derivada de ramificação (Ex: Vaporeon)
+    const baseIdRaw = window.PokeAPI.REVERSE_BRANCHED_EVOS?.[currentPokemonIdString]; // pode ser string/undefined
+    const baseIdNum = baseIdRaw != null ? Number(baseIdRaw) : null; // normaliza ou mantém null
+    const baseId = baseIdNum;
+    if (baseIdNum && rawEvolutionChain[0]?.id !== baseIdNum) {
+      rawEvolutionChain = [
+        { id: baseIdNum, name: window.PokeAPI.idToName(baseIdNum) },
+        ...rawEvolutionChain,
+      ];
+    }
+
     // --- FILTRAGEM DA CADEIA DE EVOLUÇÃO (LÓGICA DE PRIORIDADE) ---
     let evolutionChain = rawEvolutionChain;
-    const currentPokemonIdString = String(pokemonId);
-    let baseId = null;
+
+
     let isBaseOfBranch = false;
     let isShowingFullBranch = false;
 
-    // Prioridade 1: É uma forma derivada de ramificação (Ex: Vaporeon)
-    baseId = window.REVERSE_BRANCHED_EVOS?.[currentPokemonIdString];
+
 
     if (baseId) {
-        console.log("entrou no baseID");
-        // Mostra a cadeia curta: [Base -> Atual]
-        const baseEvo = rawEvolutionChain.find(e => e.id === baseId);
-        const currentEvo = rawEvolutionChain.find(e => e.id === pokemonId);
-        if (baseEvo && currentEvo) {
-            console.log("entrou no baseEvo e currentEvo");
-            evolutionChain = [baseEvo, currentEvo].filter(Boolean);
-        }
+      console.log("entrou no baseID: ");
+      console.log(baseId);
+      // Mostra a cadeia curta: [Base -> Atual]
+      const baseEvo = rawEvolutionChain.find(e => e.id === baseId);
+      const currentEvo = rawEvolutionChain.find(e => e.id === pokemonId);
+      console.log(rawEvolutionChain);
+      console.log("BaseEvo: ");
+      console.log(baseEvo);
+      console.log("CurrentEvo:");
+      console.log(currentEvo);
+      if (baseEvo && currentEvo) {
+        console.log("entrou no baseEvo e currentEvo");
+        evolutionChain = [baseEvo, currentEvo].filter(Boolean);
+
+        console.log(evolutionChain);
+      }
     } else {
-        console.log("entrou no else do baseID");
-        console.log(currentPokemonIdString);
-        console.log(window.BRANCHED_EVOS);
-        console.log(window.BRANCHED_EVOS?.[currentPokemonIdString]);
-        console.log(window.REVERSE_BRANCHED_EVOS);
-        // Prioridade 2: É a forma base de uma ramificação (Ex: Eevee, Tyrogue).
-        if (window.BRANCHED_EVOS?.[currentPokemonIdString]) {
-            console.log("entrou if do BRANCHED_EVOS");
-            // Mostra A CADEIA COMPLETA.
-            evolutionChain = rawEvolutionChain;
-            isShowingFullBranch = true;
-            isBaseOfBranch = true;
-        } 
-        // Se não for ramificado (Prioridade 3), usa a rawEvolutionChain completa (cadeia linear).
+      console.log("entrou no else do baseID");
+      console.log(currentPokemonIdString);
+      console.log(window.PokeAPI.BRANCHED_EVOS);
+      console.log(window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]);
+      console.log(window.PokeAPI.REVERSE_BRANCHED_EVOS);
+      // Prioridade 2: É a forma base de uma ramificação (Ex: Eevee, Tyrogue).
+      if (window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]) {
+        console.log("entrou if do BRANCHED_EVOS");
+        // Mostra A CADEIA COMPLETA.
+        evolutionChain = rawEvolutionChain;
+        isShowingFullBranch = true;
+        isBaseOfBranch = true;
+      }
+      // Se não for ramificado (Prioridade 3), usa a rawEvolutionChain completa (cadeia linear).
     }
     // --- FIM DA FILTRAGEM ---
 
@@ -565,16 +460,17 @@ export const RendererPokemon = {
     let evolutionItemsHtml = '';
 
     if (isShowingFullBranch) {
-        // Lógica para Pokémons base com múltiplas evoluções (Eevee, Tyrogue, etc.)
-        const baseEvo = evolutionChain.shift(); // Remove o Pokémon base da lista
-        const otherEvolutions = evolutionChain;
-        
-        // Renderiza o Pokémon Base + Marcador
-        let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
-        baseHtml += `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${baseEvo.id}, ${!pokedexSet.has(baseEvo.id)})" class="cursor-pointer">`;
-        baseHtml += RendererPokemon._renderEvoItem(baseEvo, baseEvo.id, pokedexSet, pokemonData.id); 
-        baseHtml += `</div>`;
-        baseHtml += `
+      // Lógica para Pokémons base com múltiplas evoluções (Eevee, Tyrogue, etc.)
+      const chain = evolutionChain.slice(); // ou [...evolutionChain]
+      const baseEvo = chain.shift(); // Remove o Pokémon base da lista
+      const otherEvolutions = chain;
+
+      // Renderiza o Pokémon Base + Marcador
+      let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
+      baseHtml += `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${baseEvo.id}, ${!pokedexSet.has(baseEvo.id)})" class="cursor-pointer">`;
+      baseHtml += RendererPokemon._renderEvoItem(baseEvo, baseEvo.id, pokedexSet, pokemonData.id);
+      baseHtml += `</div>`;
+      baseHtml += `
             <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -mt-1 mb-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 .707-.707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
@@ -582,16 +478,16 @@ export const RendererPokemon = {
                 RAMIFICA
             </div>
         `;
-        baseHtml += `</div>`;
-        
-        // Renderiza as Evoluções abaixo (em um layout flexível)
-        const evosHtml = otherEvolutions.map(evo => {
-            const isKnown = pokedexSet.has(evo.id);
-            // CORREÇÃO: Usa RendererPokemon. para chamar o método
-            return `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">${RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, pokemonData.id)}</div>`;
-        }).join('');
+      baseHtml += `</div>`;
 
-        evolutionItemsHtml = baseHtml + `
+      // Renderiza as Evoluções abaixo (em um layout flexível)
+      const evosHtml = otherEvolutions.map(evo => {
+        const isKnown = pokedexSet.has(evo.id);
+        // CORREÇÃO: Usa RendererPokemon. para chamar o método
+        return `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">${RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, pokemonData.id)}</div>`;
+      }).join('');
+
+      evolutionItemsHtml = baseHtml + `
         <div class="flex flex-wrap justify-center items-start space-x-1 mt-2 w-full">
             ${otherEvolutions.length > 0 ? `<div class="text-3xl text-gray-400">⇩</div>` : ''} 
             <div class="flex flex-wrap justify-center items-start space-x-2 space-y-2 max-w-full">
@@ -600,36 +496,36 @@ export const RendererPokemon = {
         </div>`;
 
     } else {
-        // Lógica para Pokémons lineares ou evoluções derivadas ramificadas (Cadeia Curta)
-        evolutionItemsHtml = evolutionChain.map((evo, evoIndex) => {
-            const evoIdString = String(evo.id);
-            const isEvoBaseOfBranch = window.BRANCHED_EVOS?.[evoIdString]; 
-            
-            let evoItem = '';
+      // Lógica para Pokémons lineares ou evoluções derivadas ramificadas (Cadeia Curta)
+      evolutionItemsHtml = evolutionChain.map((evo, evoIndex) => {
+        const evoIdString = String(evo.id);
+        const isEvoBaseOfBranch = window.PokeAPI.BRANCHED_EVOS?.[evoIdString];
 
-            // 1. Adiciona a Seta
-            if (evoIndex > 0) {
-                evoItem += `
+        let evoItem = '';
+
+        // 1. Adiciona a Seta
+        if (evoIndex > 0) {
+          evoItem += `
                     <div class="flex-shrink-0 flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
                         </svg>
                     </div>
                 `;
-            }
-            
-            // 2. Renderiza o Pokémon e torna-o clicável
-            const isKnown = pokedexSet.has(evo.id);
-            // CORRIGIDO: Ação de clique
-            evoItem += `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">`;
-            // CORREÇÃO: Usa RendererPokemon. para chamar o método
-            evoItem += RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, pokemonData.id);
-            evoItem += `</div>`;
+        }
 
-            // 3. Adiciona o Marcador de Ramificação (se for o base em uma cadeia curta)
-            // Esta condição só ocorre para Vaporeon (baseId existe) mostrando [Eevee -> Vaporeon]
-            if (isEvoBaseOfBranch && evo.id === baseId) { 
-                evoItem += `
+        // 2. Renderiza o Pokémon e torna-o clicável
+        const isKnown = pokedexSet.has(evo.id);
+        // CORRIGIDO: Ação de clique
+        evoItem += `<div onclick="${returnAction}; window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">`;
+        // CORREÇÃO: Usa RendererPokemon. para chamar o método
+        evoItem += RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, pokemonData.id);
+        evoItem += `</div>`;
+
+        // 3. Adiciona o Marcador de Ramificação (se for o base em uma cadeia curta)
+        // Esta condição só ocorre para Vaporeon (baseId existe) mostrando [Eevee -> Vaporeon]
+        if (isEvoBaseOfBranch && evo.id === baseId) {
+          evoItem += `
                     <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -ml-2 -mr-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 .707-.707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
@@ -637,10 +533,10 @@ export const RendererPokemon = {
                         RAMIFICA
                     </div>
                 `;
-            }
+        }
 
-            return evoItem;
-        }).join('');
+        return evoItem;
+      }).join('');
     }
 
 
@@ -690,9 +586,9 @@ export const RendererPokemon = {
 
   _ensurePokedexCacheLoaded: async function () {
     const totalAvailable = window.GameConfig.POKEDEX_LIMIT;
-    window.gameState.pokedexCache = window.gameState.pokedexCache || {}; 
-    const cache = window.gameState.pokedexCache; 
-    
+    window.gameState.pokedexCache = window.gameState.pokedexCache || {};
+    const cache = window.gameState.pokedexCache;
+
     let cacheUpdated = false;
 
     if (Object.keys(cache).length >= totalAvailable) {
@@ -723,7 +619,7 @@ export const RendererPokemon = {
 
       if (cacheUpdated) {
         window.Utils.saveGame();
-        
+
         const currentScreen = window.gameState.currentScreen;
         const regionKey = window.currentPokedexFilters.region;
 
@@ -742,7 +638,7 @@ export const RendererPokemon = {
 
   renderPokedexRegionList: function () {
     console.log('[POKÉDEX] Renderizando: Lista de Regiões.');
-    
+
     const pokedexSet = window.gameState.profile.pokedex;
     const regions = window.GameConfig.POKEDEX_REGIONS;
 
@@ -862,13 +758,13 @@ export const RendererPokemon = {
 
     window.currentPokedexFilters.search = window.currentPokedexFilters.search || '';
     window.currentPokedexFilters.type = window.currentPokedexFilters.type || 'all';
-    
+
     const searchQuery = window.currentPokedexFilters.search;
     const typeFilter = window.currentPokedexFilters.type;
 
     const allTypes = [
-      "grass", "fire", "water", "bug", "normal", "poison", "electric", "ground", 
-      "fairy", "fighting", "psychic", "rock", "ghost", "ice", "dragon", "steel", 
+      "grass", "fire", "water", "bug", "normal", "poison", "electric", "ground",
+      "fairy", "fighting", "psychic", "rock", "ghost", "ice", "dragon", "steel",
       "dark", "flying",
     ];
 
@@ -898,8 +794,8 @@ export const RendererPokemon = {
                 class="w-full sm:w-1/3 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
           <option value="all">TODOS OS TIPOS</option>
           ${allTypes.map((type) =>
-            `<option value="${type}" ${type === typeFilter ? "selected" : ""}>${window.Utils.formatName(type)}</option>`
-          ).join("")}
+      `<option value="${type}" ${type === typeFilter ? "selected" : ""}>${window.Utils.formatName(type)}</option>`
+    ).join("")}
         </select>
       </div>
       <div class="flex-grow overflow-y-auto border border-gray-400 p-0 mb-4 bg-gray-100 pokemon-list-container" style="z-index: 5;">
@@ -916,7 +812,7 @@ export const RendererPokemon = {
   _renderPokedexGrid: function (searchQuery, typeFilter, region) {
     console.log(`[POKÉDEX GRID] Renderizando grid para ${region.name}. Filtros: Busca='${searchQuery}', Tipo='${typeFilter}'`);
     const pokedexSet = window.gameState.profile.pokedex;
-    const cache = window.gameState.pokedexCache || {}; 
+    const cache = window.gameState.pokedexCache || {};
 
     searchQuery = (searchQuery || "").toLowerCase();
 

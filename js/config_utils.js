@@ -6,11 +6,11 @@ export async function createConfigAndUtils(v) {
   // Importação dinâmica com cache-busting (V = "?v=123456789")
   // O módulo local_poke_data.js é carregado aqui para garantir que esteja atualizado.
   const [localDataModule, branchedEvosModule] = await Promise.all([
-      import(`./local_poke_data.js${v}`),
-      import(`./branched_evos.js${v}`),
+    import(`./local_poke_data.js${v}`),
+    import(`./branched_evos.js${v}`),
   ]);
-  
-  const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS } = localDataModule;
+
+  const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS, REVERSE_BRANCHED_EVOS } = localDataModule;
   const { BRANCHED_EVOS } = branchedEvosModule; // Importa as regras de ramificação
 
   // 1. Definição do GameConfig
@@ -59,18 +59,18 @@ export async function createConfigAndUtils(v) {
     EXP_GROWTH_RATE: 1.35,
     HP_BASE_MULTIPLIER: 0.8,
     HP_LEVEL_MULTIPLIER: 0.25,
-    
+
     // NOVO: Mapeamento de Regiões
     POKEDEX_REGIONS: [
-        { name: "KANTO", id: "kanto", startId: 1, endId: 151, starters: [1, 4, 7] },
-        { name: "JOHTO", id: "johto", startId: 152, endId: 251, starters: [152, 155, 158] },
-        { name: "HOENN", id: "hoenn", startId: 252, endId: 386, starters: [252, 255, 258] },
-        { name: "SINNOH", id: "sinnoh", startId: 387, endId: 493, starters: [387, 390, 393] },
-        { name: "UNOVA", id: "unova", startId: 494, endId: 649, starters: [495, 498, 501] },
-        { name: "KALOS", id: "kalos", startId: 650, endId: 721, starters: [650, 653, 656] },
-        { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
-        { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
-        { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
+      { name: "KANTO", id: "kanto", startId: 1, endId: 151, starters: [1, 4, 7] },
+      { name: "JOHTO", id: "johto", startId: 152, endId: 251, starters: [152, 155, 158] },
+      { name: "HOENN", id: "hoenn", startId: 252, endId: 386, starters: [252, 255, 258] },
+      { name: "SINNOH", id: "sinnoh", startId: 387, endId: 493, starters: [387, 390, 393] },
+      { name: "UNOVA", id: "unova", startId: 494, endId: 649, starters: [495, 498, 501] },
+      { name: "KALOS", id: "kalos", startId: 650, endId: 721, starters: [650, 653, 656] },
+      { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
+      { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
+      { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
     ]
   };
 
@@ -321,6 +321,70 @@ export async function createConfigAndUtils(v) {
     }
   }
 
+  // Helpers locais
+  function idToNameLocal(id) {
+    return POKE_DATA[String(id)]?.name || String(id);
+  }
+
+  function flattenBranches(branches) {
+    const seen = new Set();
+    const flat = [];
+    for (const path of branches || []) {
+      for (const node of path) {
+        if (!seen.has(node.id)) {
+          seen.add(node.id);
+          flat.push({ id: node.id, name: node.name });
+        }
+      }
+    }
+    return flat;
+  }
+
+  function findPathToTarget(branches, targetId) {
+    for (const path of branches || []) {
+      const idx = path.findIndex(n => n.id === targetId);
+      if (idx !== -1) {
+        return path.slice(0, idx + 1).map(n => ({ id: n.id, name: n.name }));
+      }
+    }
+    return null;
+  }
+
+  function locateChainContainingId(evoChainsObj, id) {
+    // Procura a cadeia (array) que contém o id em qualquer posição
+    for (const key of Object.keys(evoChainsObj)) {
+      const arr = evoChainsObj[key];
+      if (!Array.isArray(arr) || !arr.length) continue;
+      const head = arr[0];
+      // Verifica branches no head (caso base ramificado tipo Eevee, Tyrogue)
+      if (head && Array.isArray(head.branches) && head.branches.length) {
+        if (head.id === id) {
+          return { baseKey: key, chainArr: arr, head, branchesSource: head };
+        }
+      }
+      // Agora verifica branches em cada elemento (caso intermediário ramificado tipo Gloom, Poliwhirl, Kirlia)
+      for (let i = 0; i < arr.length; i++) {
+        const curr = arr[i];
+        if (curr && Array.isArray(curr.branches) && curr.branches.length) {
+          if (curr.id === id) {
+            return { baseKey: key, chainArr: arr, head, branchesSource: curr };
+          }
+        }
+        // Também registra se o elemento procurado existe no array (mesmo sem branches)
+        if (curr && curr.id === id) {
+          // Não retorna aqui, pois queremos o elemento com branches se houver, senão só identifica que existe
+          // O retorno para casos lineares é tratado depois na lógica principal
+        }
+      }
+      // Checa também se o id está no conjunto geral de ids desse array para fallback linear
+      const idSet = new Set(arr.map(e => e.id));
+      if (idSet.has(id)) {
+        return { baseKey: key, chainArr: arr, head, branchesSource: null };
+      }
+    }
+    return null;
+  }
+
   // 5. Definição do PokeAPI (agora com dados locais)
   const PokeAPI = {
     /**
@@ -329,6 +393,12 @@ export async function createConfigAndUtils(v) {
      * @param {boolean} isPokedexView - Se é para visualização na Pokédex (usa stats base).
      * @returns {object|null} Dados formatados do Pokémon.
      */
+
+    REVERSE_BRANCHED_EVOS: REVERSE_BRANCHED_EVOS,
+    BRANCHED_EVOS: BRANCHED_EVOS,
+
+
+
     async fetchPokemonData(idOrName, isPokedexView = false) {
       let pokemonId = String(idOrName).toLowerCase();
 
@@ -345,7 +415,7 @@ export async function createConfigAndUtils(v) {
       } else {
         pokemonId = String(idOrName);
       }
-      
+
       const data = POKE_DATA[pokemonId];
 
       if (!data) {
@@ -361,7 +431,7 @@ export async function createConfigAndUtils(v) {
         name: data.name,
         id: data.id,
         // Os sprites agora vêm do objeto de dados local
-        sprite: data.front_sprite, 
+        sprite: data.front_sprite,
         backSprite: data.back_sprite,
         stats: data.stats,
         maxHp: isPokedexView ? baseHp : calculatedMaxHp,
@@ -372,13 +442,13 @@ export async function createConfigAndUtils(v) {
         types: data.types,
       };
 
-      if (window.gameState && window.gameState.pokedexCache) { 
+      if (window.gameState && window.gameState.pokedexCache) {
         if (result.id) {
           // Popula o cache para a Pokédex
           window.gameState.pokedexCache[result.id] = {
             name: result.name,
             types: result.types,
-            spriteUrl: result.sprite 
+            spriteUrl: result.sprite
           };
         }
 
@@ -386,11 +456,11 @@ export async function createConfigAndUtils(v) {
           Utils.registerPokemon(result.id);
         }
       } else {
-         console.warn("Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem.");
+        console.warn("Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem.");
       }
-      
+
       if (window.gameState.currentScreen === 'battle' && !isPokedexView) {
-          result.sprite = data.front_sprite;
+        result.sprite = data.front_sprite;
       }
 
 
@@ -440,68 +510,60 @@ export async function createConfigAndUtils(v) {
      * @returns {Array<object>} Lista de objetos de evolução.
      */
     fetchEvolutionChainData: async function (pokemonId) {
-      const chains = Object.values(EVOLUTION_CHAINS);
-      const startId = String(pokemonId);
-      
-      // 1. Caso 1: O Pokémon faz parte de uma cadeia linear (ou cadeia base de 3+)
-      const chainFound = chains.find(chain => chain.some(p => p.id === pokemonId));
-      
-      if (chainFound) {
-          // Se for uma cadeia linear normal, retorna a cadeia.
-          // Se for uma forma intermediária (não base) de uma cadeia com ramificação,
-          // a forma base virá na primeira posição.
-          return chainFound.map(p => ({
-              id: p.id,
-              name: p.name
-          }));
+      const id = Number(pokemonId);
+
+      // Encontre a cadeia e possíveis ramificações no head ou intermediário
+      const located = locateChainContainingId(EVOLUTION_CHAINS, id);
+      if (!located) {
+        // fallback: retorna apenas o próprio se não achou cadeia
+        const self = POKE_DATA[String(id)];
+        return self ? [{ id: self.id, name: self.name }] : [];
       }
 
-      // 2. Caso 2: O Pokémon é a forma base de uma ramificação complexa (ex: Eevee, Tyrogue)
-      if (BRANCHED_EVOS[startId]) {
-          const basePoke = POKE_DATA[startId];
-          const chain = [{ id: basePoke.id, name: basePoke.name }];
-          
-          // Adiciona todas as evoluções possíveis listadas no BRANCHED_EVOS
-          BRANCHED_EVOS[startId].forEach(evoIdString => {
-              const evoId = parseInt(evoIdString);
-              const evoData = POKE_DATA[evoId];
-              if (evoData) {
-                  chain.push({ id: evoData.id, name: evoData.name });
-              }
-          });
-          return chain;
+      // Caso branches no nó principal (head) OU no intermediário (branchesSource)
+      if (located.branchesSource && Array.isArray(located.branchesSource.branches) && located.branchesSource.branches.length) {
+        // retorna nó + todos UNIQUE das branches desse nó
+        return [
+          { id: located.branchesSource.id, name: located.branchesSource.name },
+          ...flattenBranches(located.branchesSource.branches)
+        ];
       }
-      
-      // 3. Caso 3: O Pokémon é uma evolução RAMIFICADA (ex: Vaporeon, Hitmonlee)
-      // Precisa encontrar a forma BASE que leva a ele (ex: Eevee -> Vaporeon).
-      
-      // Itera sobre o mapa de ramificações para encontrar a base
-      for (const baseId in BRANCHED_EVOS) {
-          if (BRANCHED_EVOS[baseId].includes(startId)) {
-              const basePoke = POKE_DATA[baseId];
-              const evolvedPoke = POKE_DATA[startId];
-              if (basePoke && evolvedPoke) {
-                  // Retorna apenas Base -> Forma Ramificada (para evitar poluir com todas as 8 evoluções)
-                  // Mas com a opção de exibir as outras se for a forma base
-                  return [
-                      { id: basePoke.id, name: basePoke.name },
-                      { id: evolvedPoke.id, name: evolvedPoke.name, isBranch: true, baseId: basePoke.id }
-                  ];
-              }
+
+      // Caso forma evoluída ramificada (usando o mapa reverso)
+      const revOrigin = REVERSE_BRANCHED_EVOS[String(id)];
+      if (revOrigin) {
+        console.log("revOrigin");
+        console.log(revOrigin);
+        // Encontra a cadeia do origin
+        const originLocated = locateChainContainingId(EVOLUTION_CHAINS, revOrigin);
+        if (originLocated && originLocated.branchesSource && originLocated.branchesSource.branches) {
+          // Caminho da branch do origin até o id atual
+          const path = findPathToTarget(originLocated.branchesSource.branches, id);
+          if (path && path.length) {
+            // Se o próprio revOrigin (Eevee) não está incluído, adicione
+            if (path[0].id !== Number(revOrigin)) {
+              return [
+                { id: Number(revOrigin), name: idToNameLocal(revOrigin) },
+                ...path
+              ];
+            }
+            return path;
           }
+        }
+        // Fallback: [origin, target]
+        return [
+          { id: Number(revOrigin), name: idToNameLocal(revOrigin) },
+          { id, name: idToNameLocal(id) }
+        ];
       }
-      
-      // 4. Caso Final: Não tem evolução, não é ramificado, nem forma base de ramificação
-      const selfData = POKE_DATA[startId];
-      if(selfData) {
-          return [{ id: selfData.id, name: selfData.name }];
-      }
-      
-      return [];
+
+      // Cadeia linear: retorna tudo do array na ordem
+      const { chainArr } = located;
+      return chainArr.map(p => ({ id: p.id, name: p.name }));
     },
-    
-    idToName: function(id) {
-        return POKE_DATA[String(id)]?.name || null;
+
+    idToName: function (id) {
+      return POKE_DATA[String(id)]?.name || null;
     }
   };
 

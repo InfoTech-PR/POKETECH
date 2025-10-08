@@ -50,7 +50,7 @@ export async function createConfigAndUtils(v) {
         healAmount: 20,
         cost: 300,
         spriteUrl:
-          "../assets/sprites/items/sprites/items/potion.png",
+          "../assets/sprites/items/potion.png",
       },
     ],
     // Limite da Pokédex baseado nos dados locais

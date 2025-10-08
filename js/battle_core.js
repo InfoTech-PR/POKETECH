@@ -708,7 +708,7 @@ export const BattleCore = {
               // // AÇÃO DE CAPTURA BEM-SUCEDIDA
               const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
               if (!foiCapturado) {
-                window.Utils.registerPokemon(newPokemonData.id);
+                window.Utils.registerPokemon(wildPokemon.id);
                 window.GameLogic.saveGameData();
               }
               // Usa a função de encerramento para sincronizar o log

@@ -689,6 +689,10 @@ export const BattleCore = {
 
           if (isCaptured) {
             // AÇÃO DE CAPTURA BEM-SUCEDIDA
+            const foiCapturado = window.gameState.profile.pokedex.has(wildPokemonData.id);
+            if(!foiCapturado) {
+              window.gameState.profile.pokedex.push(wildPokemon.id);
+            }
             const finalMsg = `Sucesso! ${wildPokemon.name} foi capturado!`;
             BattleCore.addBattleLog(finalMsg);
             BattleCore.updateBattleScreen();

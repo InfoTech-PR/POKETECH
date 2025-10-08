@@ -321,6 +321,189 @@ export const RendererPokemon = {
     );
   },
 
+  showPokemonStats: async function (pokemonName, pokemonIndex) {
+    const team = window.gameState.profile.pokemon;
+    const p = team?.[pokemonIndex];
+    if (!p) {
+      window.Utils.showModal("errorModal", "Pokémon inválido.");
+      return;
+    }
+
+    // Cálculo de EXP para a barra
+    const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+    const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+
+    // Dados complementares (mesmo padrão do showPokedexStats)
+    let [pokemonData, speciesData, rawEvolutionChain] = await Promise.all([
+      window.PokeAPI.fetchPokemonData(p.id, true),
+      window.PokeAPI.fetchSpeciesData(p.id),
+      window.PokeAPI.fetchEvolutionChainData(p.id),
+    ]);
+
+    if (!pokemonData || !speciesData) {
+      window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
+      return;
+    }
+
+    // Prioridades/ramificações (espelha showPokedexStats)
+    const currentPokemonIdString = String(p.id);
+    const baseIdRaw = window.PokeAPI.REVERSE_BRANCHED_EVOS?.[currentPokemonIdString];
+    const baseIdNum = baseIdRaw != null ? Number(baseIdRaw) : null;
+    const baseId = baseIdNum;
+
+    if (baseIdNum && rawEvolutionChain[0]?.id !== baseIdNum) {
+      rawEvolutionChain = [
+        { id: baseIdNum, name: window.PokeAPI.idToName(baseIdNum) },
+        ...rawEvolutionChain,
+      ];
+    }
+
+    let evolutionChain = rawEvolutionChain;
+    let isShowingFullBranch = false;
+
+    if (baseId) {
+      const baseEvo = rawEvolutionChain.find(e => e.id === baseId);
+      const currentEvo = rawEvolutionChain.find(e => e.id === p.id);
+      if (baseEvo && currentEvo) {
+        evolutionChain = [baseEvo, currentEvo].filter(Boolean);
+      }
+    } else if (window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]) {
+      evolutionChain = rawEvolutionChain;
+      isShowingFullBranch = true;
+    }
+
+    // Tipos, golpes e estatísticas
+    const moves = (p.moves && p.moves.length) ? p.moves : pokemonData.moves;
+    const movesHtml = moves
+      .map(m => `<li class="text-sm">${window.Utils.formatName(m)}</li>`)
+      .join("");
+
+    const typesHtml = pokemonData.types
+      .map(type => `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`)
+      .join("");
+
+    const statsHtml = Object.entries(pokemonData.stats)
+      .map(([stat, value]) => `
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
+          <span class="text-xs gba-font">${value}</span>
+        </div>
+      `).join("");
+
+    const heightMeters = (speciesData.height / 10).toFixed(1);
+    const weightKg = (speciesData.weight / 10).toFixed(1);
+
+    // Cadeia evolutiva (reutiliza o _renderEvoItem)
+    const pokedexSet = window.gameState.profile.pokedex;
+    let evolutionItemsHtml = '';
+
+    if (isShowingFullBranch) {
+      const chain = evolutionChain.slice();
+      const baseEvo = chain.shift();
+      const otherEvolutions = chain;
+
+      let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
+      baseHtml += RendererPokemon._renderEvoItem(baseEvo, baseEvo.id, pokedexSet, p.id);
+      baseHtml += `
+            <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -mt-1 mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
+                </svg>
+                RAMIFICA
+            </div>
+        `;
+      baseHtml += `</div>`;
+
+      const evosHtml = otherEvolutions
+        .map(evo => RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, p.id))
+        .join('');
+
+      evolutionItemsHtml = baseHtml + `
+        <div class="flex flex-wrap justify-center items-start space-x-1 mt-2 w-full">
+            ${otherEvolutions.length > 0 ? `<div class="text-3xl text-gray-400">⇩</div>` : ''} 
+            <div class="flex flex-wrap justify-center items-start space-x-2 space-y-2 max-w-full">
+                ${evosHtml}
+            </div>
+        </div>`;
+    } else {
+      evolutionItemsHtml = evolutionChain.map((evo, evoIndex) => {
+        let evoItem = '';
+        if (evoIndex > 0) {
+          evoItem += `
+            <div class="flex-shrink-0 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
+              </svg>
+            </div>
+          `;
+        }
+        evoItem += RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, p.id);
+        return evoItem;
+      }).join('');
+    }
+
+    const hpPercent = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
+
+    const modalContent = `
+      <div class="text-xl font-bold text-gray-800 gba-font mb-2 text-center flex-shrink-0">
+        #${p.id.toString().padStart(3, "0")} - ${window.PokeAPI.idToName(p.id)} (Nv. ${p.level})
+      </div>
+      <img src="${`../assets/sprites/pokemon/${p.id}_front.png` || p.sprite}" alt="${window.PokeAPI.idToName(p.id)}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
+      <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
+
+      <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
+        <p class="text-[8px] sm:text-xs"><strong>Altura:</strong> ${heightMeters} m | <strong>Peso:</strong> ${weightKg} kg</p>
+        <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${speciesData.description}</p>
+      </div>
+
+      <div class="p-2 bg-gray-100 rounded-lg border border-gray-300 mb-2">
+        <div class="flex items-center justify-between">
+          <span class="gba-font text-[10px] text-gray-700">HP</span>
+          <span class="gba-font text-[10px] text-gray-700">${p.currentHp}/${p.maxHp}</span>
+        </div>
+        <div class="w-full bg-gray-300 h-2 rounded-full border border-gray-500">
+          <div class="h-2 rounded-full ${p.currentHp > 0 ? 'bg-green-500' : 'bg-red-500'}" style="width: ${hpPercent}%;"></div>
+        </div>
+
+        <div class="flex items-center justify-between mt-2">
+          <span class="gba-font text-[10px] text-gray-700">EXP</span>
+          <span class="gba-font text-[10px] text-gray-700">${p.exp}/${expToNextLevel}</span>
+        </div>
+        <div class="w-full bg-gray-300 h-2 rounded-full border border-gray-500">
+          <div class="h-2 rounded-full bg-blue-500" style="width: ${expPercent}%;"></div>
+        </div>
+      </div>
+
+      <div class="mt-2 p-2 border-t border-gray-400 flex-shrink-0">
+        <h3 class="font-bold gba-font text-sm mb-2 text-center text-blue-700">CADEIA EVOLUTIVA</h3>
+        <div class="flex ${isShowingFullBranch ? 'flex-col items-center' : ' justify-center items-center'} p-2 bg-gray-100 rounded-lg space-x-1">
+          ${evolutionItemsHtml}
+        </div>
+      </div>
+
+      <div class="p-2 flex-grow overflow-y-auto">
+        <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
+        ${statsHtml}
+        <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques:</h3>
+        <ul class="list-disc list-inside gba-font text-xs">
+          ${movesHtml}
+        </ul>
+      </div>
+
+      <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+    `;
+
+    const modal = document.getElementById("pokemonStatsModal");
+    if (modal) {
+      const modalBody = modal.querySelector(".modal-body");
+      if (modalBody) {
+        modalBody.classList.add("flex", "flex-col", "h-full");
+        modalBody.innerHTML = modalContent;
+        modal.classList.remove("hidden");
+      }
+    }
+  },
+
   showPokedexStats: async function (pokemonId, isSilhouette = false) {
 
     // Define a ação de voltar baseada na região atual 

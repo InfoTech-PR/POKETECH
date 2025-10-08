@@ -689,7 +689,7 @@ export const BattleCore = {
 
           if (isCaptured) {
             // AÇÃO DE CAPTURA BEM-SUCEDIDA
-            //const foiCapturado = window.gameState.profile.pokedex.has(wildPokemonData.id);
+            const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
             if (!foiCapturado) {
               window.gameState.profile.pokedex.push(wildPokemon.id);
             }

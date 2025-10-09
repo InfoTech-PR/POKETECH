@@ -63,6 +63,104 @@ export const RendererPokemon = {
     `;
   },
 
+  // 2) Métodos a adicionar em export const RendererPokemon = { ... }
+
+  _renderHealUi: function (p, pokemonIndex) {
+    const profile = window.gameState.profile;
+    const healItems = (profile.items || []).filter(i => i.quantity > 0 && i.healAmount > 0);
+    const canHealNow = healItems.length > 0 && p.currentHp < p.maxHp;
+
+    const selectId = `healItemSelect-${pokemonIndex}`;
+    const options = healItems.map(i =>
+      `<option value="${i.name}">${i.name} (+${i.healAmount} HP) x${i.quantity}</option>`
+    ).join("");
+
+    return `
+    <div class="mt-2 p-2 border-t border-gray-400">
+      <h3 class="font-bold gba-font text-sm mb-2 text-center text-green-700">ITENS DE CURA</h3>
+
+      ${healItems.length ? `
+        <div class="flex items-center space-x-2">
+          <select id="${selectId}" class="flex-grow p-1 border-2 border-gray-800 rounded gba-font text-xs bg-white shadow-inner">
+            ${options}
+          </select>
+          <button
+            onclick="RendererPokemon._useHealItemOnPokemon(${pokemonIndex})"
+            class="gba-button ${canHealNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
+            ${canHealNow ? '' : 'disabled'}
+            data-select="${selectId}">
+            Usar
+          </button>
+        </div>
+        <p class="text-[10px] gba-font text-gray-600 mt-1">Cura limitada ao máximo de HP.</p>
+      ` : `
+        <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de cura disponíveis.</div>
+        <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('bag')"
+                class="gba-button bg-blue-500 hover:bg-blue-600 w-full mt-2">
+          Ir à Mochila
+        </button>
+      `}
+    </div>
+  `;
+  },
+
+  _useHealItemOnPokemon: function (pokemonIndex) {
+    try {
+      const profile = window.gameState.profile;
+      const p = profile?.pokemon?.[pokemonIndex];
+      if (!p) return;
+
+      // Recupera o select pelo data-select acoplado no botão "Usar"
+      // (suporta casos de múltiplos modais ou re-render)
+      const modal = document.getElementById('pokemonStatsModal');
+      const useBtn = modal?.querySelector(`button[onclick="RendererPokemon._useHealItemOnPokemon(${pokemonIndex})"]`);
+      const selectId = useBtn?.getAttribute('data-select');
+      const select = selectId ? document.getElementById(selectId) : null;
+      if (!select) {
+        window.Utils.showModal('errorModal', 'Seletor de item não encontrado.');
+        return;
+      }
+
+      const itemName = select.value;
+      const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
+      if (!item) {
+        window.Utils.showModal('errorModal', 'Item indisponível.');
+        return;
+      }
+
+      if (p.currentHp <= 0) {
+        window.Utils.showModal('infoModal', `${p.name} está desmaiado e não pode ser curado por poções.`);
+        return;
+      }
+
+      if (p.currentHp >= p.maxHp) {
+        window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
+        return;
+      }
+
+      const before = p.currentHp;
+      p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
+
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        profile.items = (profile.items || []).filter(i => i.quantity > 0);
+      }
+
+      window.Utils.saveGame();
+
+      const healed = p.currentHp - before;
+      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+
+      // Re-render do modal para refletir novo HP/itens
+      setTimeout(() => {
+        RendererPokemon.showPokemonStats(p.name, pokemonIndex);
+      }, 120);
+    } catch (e) {
+      console.error('Erro ao usar item de cura:', e);
+      window.Utils.showModal('errorModal', 'Falha ao usar item.');
+    }
+  },
+
   // ====================================================================
   // FUNÇÕES DE RENDERIZAÇÃO PÚBLICAS
   // ====================================================================
@@ -321,134 +419,175 @@ export const RendererPokemon = {
     );
   },
 
-  showPokemonStats: async function (pokemonName, pokemonIndex) {
-    const team = window.gameState.profile.pokemon;
-    const p = team?.[pokemonIndex];
-    if (!p) {
-      window.Utils.showModal("errorModal", "Pokémon inválido.");
-      return;
-    }
+  // Dentro de export const RendererPokemon = { ... }
+  showPokemonStats: async function showPokemonStats(pokemonName, pokemonIndex) {
+    try {
+      const self = RendererPokemon;
 
-    // Cálculo de EXP para a barra
-    const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
-    const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+      // Estado atual (time e perfil)
+      const team = window.gameState?.profile?.pokemon || [];
+      const profile = window.gameState?.profile;
+      const p = team[pokemonIndex];
 
-    // Dados complementares (mesmo padrão do showPokedexStats)
-    let [pokemonData, speciesData, rawEvolutionChain] = await Promise.all([
-      window.PokeAPI.fetchPokemonData(p.id, true),
-      window.PokeAPI.fetchSpeciesData(p.id),
-      window.PokeAPI.fetchEvolutionChainData(p.id),
-    ]);
-
-    if (!pokemonData || !speciesData) {
-      window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
-      return;
-    }
-
-    // Prioridades/ramificações (espelha showPokedexStats)
-    const currentPokemonIdString = String(p.id);
-    const baseIdRaw = window.PokeAPI.REVERSE_BRANCHED_EVOS?.[currentPokemonIdString];
-    const baseIdNum = baseIdRaw != null ? Number(baseIdRaw) : null;
-    const baseId = baseIdNum;
-
-    if (baseIdNum && rawEvolutionChain[0]?.id !== baseIdNum) {
-      rawEvolutionChain = [
-        { id: baseIdNum, name: window.PokeAPI.idToName(baseIdNum) },
-        ...rawEvolutionChain,
-      ];
-    }
-
-    let evolutionChain = rawEvolutionChain;
-    let isShowingFullBranch = false;
-
-    if (baseId) {
-      const baseEvo = rawEvolutionChain.find(e => e.id === baseId);
-      const currentEvo = rawEvolutionChain.find(e => e.id === p.id);
-      if (baseEvo && currentEvo) {
-        evolutionChain = [baseEvo, currentEvo].filter(Boolean);
+      if (!p) {
+        window.Utils.showModal("errorModal", "Pokémon inválido.");
+        return;
       }
-    } else if (window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]) {
-      evolutionChain = rawEvolutionChain;
-      isShowingFullBranch = true;
-    }
 
-    // Tipos, golpes e estatísticas
-    const moves = (p.moves && p.moves.length) ? p.moves : pokemonData.moves;
-    const movesHtml = moves
-      .map(m => `<li class="text-sm">${window.Utils.formatName(m)}</li>`)
-      .join("");
+      // Cálculos de barra
+      const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+      const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+      const hpPercent = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
 
-    const typesHtml = pokemonData.types
-      .map(type => `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${type.toUpperCase()}</span>`)
-      .join("");
+      // Dados complementares (padrão showPokedexStats)
+      const [pokemonData, speciesData, rawEvolutionChain] = await Promise.all([
+        window.PokeAPI.fetchPokemonData(p.id, true),
+        window.PokeAPI.fetchSpeciesData(p.id),
+        window.PokeAPI.fetchEvolutionChainData(p.id),
+      ]);
 
-    const statsHtml = Object.entries(pokemonData.stats)
-      .map(([stat, value]) => `
+      if (!pokemonData || !speciesData) {
+        window.Utils.showModal("errorModal", "Dados do Pokémon não encontrados!");
+        return;
+      }
+
+      // Cadeia evolutiva com suporte a ramificações
+      const currentPokemonIdString = String(p.id);
+      const baseIdRaw = window.PokeAPI.REVERSE_BRANCHED_EVOS?.[currentPokemonIdString];
+      const baseIdNum = baseIdRaw != null ? Number(baseIdRaw) : null;
+
+      let evolutionChain = rawEvolutionChain || [];
+      let isShowingFullBranch = false;
+
+      if (baseIdNum && evolutionChain[0]?.id !== baseIdNum) {
+        evolutionChain = [
+          { id: baseIdNum, name: window.PokeAPI.idToName(baseIdNum) },
+          ...evolutionChain,
+        ];
+      }
+
+      if (baseIdNum) {
+        const baseEvo = evolutionChain.find(e => e.id === baseIdNum);
+        const currentEvo = evolutionChain.find(e => e.id === p.id);
+        if (baseEvo && currentEvo) {
+          evolutionChain = [baseEvo, currentEvo].filter(Boolean);
+        }
+      } else if (window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]) {
+        isShowingFullBranch = true;
+      }
+
+      // Tipos, stats e golpes
+      const moves = (p.moves && p.moves.length) ? p.moves : (pokemonData.moves || []);
+      const movesHtml = moves
+        .map(m => `<li class="text-sm">${window.Utils.formatName(m)}</li>`)
+        .join("");
+
+      const typesHtml = (pokemonData.types || [])
+        .map(type => `<span class="bg-blue-300 text-blue-800 text-xs font-bold mr-1 px-2.5 py-0.5 rounded-full gba-font">${String(type).toUpperCase()}</span>`)
+        .join("");
+
+      const statsHtml = Object.entries(pokemonData.stats || {})
+        .map(([stat, value]) => `
         <div class="flex justify-between items-center mb-1">
           <span class="text-xs gba-font">${window.Utils.formatName(stat)}:</span>
           <span class="text-xs gba-font">${value}</span>
         </div>
       `).join("");
 
-    const heightMeters = (speciesData.height / 10).toFixed(1);
-    const weightKg = (speciesData.weight / 10).toFixed(1);
+      const heightMeters = (speciesData.height / 10).toFixed(1);
+      const weightKg = (speciesData.weight / 10).toFixed(1);
 
-    // Cadeia evolutiva (reutiliza o _renderEvoItem)
-    const pokedexSet = window.gameState.profile.pokedex;
-    let evolutionItemsHtml = '';
+      // Render da cadeia evolutiva
+      const pokedexSet = window.gameState?.profile?.pokedex;
+      let evolutionItemsHtml = '';
 
-    if (isShowingFullBranch) {
-      const chain = evolutionChain.slice();
-      const baseEvo = chain.shift();
-      const otherEvolutions = chain;
+      if (isShowingFullBranch) {
+        const chain = (evolutionChain || []).slice();
+        const baseEvo = chain.shift();
 
-      let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
-      baseHtml += RendererPokemon._renderEvoItem(baseEvo, baseEvo.id, pokedexSet, p.id);
-      baseHtml += `
-            <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -mt-1 mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
-                </svg>
-                RAMIFICA
-            </div>
-        `;
-      baseHtml += `</div>`;
+        let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
+        baseHtml += self._renderEvoItem(baseEvo, baseEvo?.id, pokedexSet, p.id);
+        baseHtml += `
+        <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -mt-1 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M0 3.5A.5.5 0 0 1 .5 3H4a.5.5 0 0 1 0 1H1.42l6.213 6.213A.5.5 0 0 1 7.404 11H4a.5.5 0 0 1 0-1h3.404l-6.214-6.213A.5.5 0 0 1 0 3.5M.5 11a.5.5 0 0 0 0 1H4a.5.5 0 0 0 0-1zm9.896-1.55a.5.5 0 0 0-.707 0l-3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707l3.2 3.2a.5.5 0 0 0 0 .707L9.42 13h1.08a2.5 2.5 0 0 0 2.5-2.5V8h1.5a.5.5 0 0 0 0-1H13v1.5A1.5 1.5 0 0 1 11.5 10H10.58l3.243-3.243A.5.5 0 0 0 14 6.5h-1.5A2.5 2.5 0 0 0 10 4V2.5a.5.5 0 0 0 0-1H11.5A1.5 1.5 0 0 1 13 2.5v1.5a.5.5 0 0 0 1 0V2.5a2.5 2.5 0 0 0-2.5-2.5H10.58z"/>
+          </svg>
+          RAMIFICA
+        </div>
+      `;
+        baseHtml += `</div>`;
 
-      const evosHtml = otherEvolutions
-        .map(evo => RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, p.id))
-        .join('');
+        const otherEvos = chain || [];
+        const evosHtml = otherEvos
+          .map(evo => self._renderEvoItem(evo, evo?.id, pokedexSet, p.id))
+          .join('');
 
-      evolutionItemsHtml = baseHtml + `
+        evolutionItemsHtml = baseHtml + `
         <div class="flex flex-wrap justify-center items-start space-x-1 mt-2 w-full">
-            ${otherEvolutions.length > 0 ? `<div class="text-3xl text-gray-400">⇩</div>` : ''} 
-            <div class="flex flex-wrap justify-center items-start space-x-2 space-y-2 max-w-full">
-                ${evosHtml}
-            </div>
+          ${otherEvos.length > 0 ? `<div class="text-3xl text-gray-400">⇩</div>` : ''} 
+          <div class="flex flex-wrap justify-center items-start space-x-2 space-y-2 max-w-full">
+            ${evosHtml}
+          </div>
         </div>`;
-    } else {
-      evolutionItemsHtml = evolutionChain.map((evo, evoIndex) => {
-        let evoItem = '';
-        if (evoIndex > 0) {
-          evoItem += `
+      } else {
+        evolutionItemsHtml = (evolutionChain || []).map((evo, evoIndex) => {
+          let evoItem = '';
+          if (evoIndex > 0) {
+            evoItem += `
             <div class="flex-shrink-0 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3b82f6" class="bi bi-arrow-right-short" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M4 8a.5.5 0 0 1 .5-.5h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5A.5.5 0 0 1 4 8"/>
               </svg>
             </div>
           `;
-        }
-        evoItem += RendererPokemon._renderEvoItem(evo, evo.id, pokedexSet, p.id);
-        return evoItem;
-      }).join('');
-    }
+          }
+          evoItem += self._renderEvoItem(evo, evo?.id, pokedexSet, p.id);
+          return evoItem;
+        }).join('');
+      }
 
-    const hpPercent = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
+      // Seção de cura (responsiva, botão sempre visível em mobile)
+      const healItems = (profile?.items || []).filter(i => i.quantity > 0 && i.healAmount > 0);
+      const canHealNow = healItems.length > 0 && p.currentHp < p.maxHp;
+      const selectId = `healItemSelect-${pokemonIndex}`;
+      const useBtnId = `healUseBtn-${pokemonIndex}`;
 
-    const modalContent = `
-      <div class="text-xl font-bold text-gray-800 gba-font mb-2 text-center flex-shrink-0">
-        #${p.id.toString().padStart(3, "0")} - ${window.PokeAPI.idToName(p.id)} (Nv. ${p.level})
+      const healOptions = healItems.map(i =>
+        `<option value="${i.name}">${i.name} (+${i.healAmount} HP) x${i.quantity}</option>`
+      ).join("");
+
+      const healSection = `
+      <div class="mt-2 p-2 border-t border-gray-400">
+        <h3 class="font-bold gba-font text-sm mb-2 text-center text-green-700">ITENS DE CURA</h3>
+        ${healItems.length ? `
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <select id="${selectId}" class="w-full sm:flex-grow p-1 border-2 border-gray-800 rounded gba-font text-xs bg-white shadow-inner">
+              ${healOptions}
+            </select>
+            <button id="${useBtnId}"
+                    class="w-full sm:w-auto flex-shrink-0 gba-button ${canHealNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
+                    ${canHealNow ? '' : 'disabled'}>
+              Usar
+            </button>
+          </div>
+          <p class="text-[10px] gba-font text-gray-600 mt-1 text-center sm:text-left">Cura limitada ao máximo de HP.</p>
+        ` : `
+          <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de cura disponíveis.</div>
+          <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.Renderer?.showScreen?.('bag')"
+                  class="gba-button bg-blue-500 hover:bg-blue-600 w-full mt-2">
+            Ir à Mochila
+          </button>
+        `}
       </div>
-      <img src="${`../assets/sprites/pokemon/${p.id}_front.png` || p.sprite}" alt="${window.PokeAPI.idToName(p.id)}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
+    `;
+
+      // Montagem do modal
+      const modalContent = `
+      <div class="text-xl font-bold text-gray-800 gba-font mb-2 text-center flex-shrink-0">
+        #${p.id.toString().padStart(3, "0")} - ${p.name} (Nv. ${p.level})
+      </div>
+
+      <img src="${p.sprite || `../assets/sprites/pokemon/${p.id}_front.png`}" alt="${p.name}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
       <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
 
       <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
@@ -474,6 +613,8 @@ export const RendererPokemon = {
         </div>
       </div>
 
+      ${healSection}
+
       <div class="mt-2 p-2 border-t border-gray-400 flex-shrink-0">
         <h3 class="font-bold gba-font text-sm mb-2 text-center text-blue-700">CADEIA EVOLUTIVA</h3>
         <div class="flex ${isShowingFullBranch ? 'flex-col items-center' : ' justify-center items-center'} p-2 bg-gray-100 rounded-lg space-x-1">
@@ -493,16 +634,70 @@ export const RendererPokemon = {
       <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
     `;
 
-    const modal = document.getElementById("pokemonStatsModal");
-    if (modal) {
+      const modal = document.getElementById("pokemonStatsModal");
+      if (!modal) return;
       const modalBody = modal.querySelector(".modal-body");
-      if (modalBody) {
-        modalBody.classList.add("flex", "flex-col", "h-full");
-        modalBody.innerHTML = modalContent;
-        modal.classList.remove("hidden");
+      if (!modalBody) return;
+
+      modalBody.classList.add("flex", "flex-col", "h-full");
+      modalBody.innerHTML = modalContent;
+      modal.classList.remove("hidden");
+
+      // Handler do botão Usar (sem inline onclick)
+      const useBtn = modal.querySelector(`#${useBtnId}`);
+      if (useBtn) {
+        useBtn.addEventListener('click', () => {
+          try {
+            const select = modal.querySelector(`#${selectId}`);
+            if (!select) {
+              window.Utils.showModal('errorModal', 'Seletor de item não encontrado.');
+              return;
+            }
+
+            const itemName = select.value;
+            const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
+            if (!item) {
+              window.Utils.showModal('errorModal', 'Item indisponível.');
+              return;
+            }
+            if (p.currentHp <= 0) {
+              window.Utils.showModal('infoModal', `${p.name} está desmaiado e não pode ser curado.`);
+              return;
+            }
+            if (p.currentHp >= p.maxHp) {
+              window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
+              return;
+            }
+
+            const before = p.currentHp;
+            p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
+
+            item.quantity -= 1;
+            if (item.quantity <= 0) {
+              profile.items = (profile.items || []).filter(i => i.quantity > 0);
+            }
+
+            window.Utils.saveGame();
+
+            const healed = p.currentHp - before;
+            window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+
+            // Re-render
+            setTimeout(() => {
+              showPokemonStats(p.name, pokemonIndex);
+            }, 120);
+          } catch (err) {
+            console.error('Erro ao usar item de cura:', err);
+            window.Utils.showModal('errorModal', 'Falha ao usar item.');
+          }
+        });
       }
+    } catch (e) {
+      console.error('Erro ao abrir stats do Pokémon:', e);
+      window.Utils.showModal('errorModal', 'Não foi possível abrir os detalhes.');
     }
   },
+
 
   showPokedexStats: async function (pokemonId, isSilhouette = false) {
 
@@ -764,6 +959,49 @@ export const RendererPokemon = {
         modalBody.innerHTML = modalContent;
         modal.classList.remove("hidden");
       }
+    }
+  },
+  // Dentro de export const RendererPokemon = { ... }
+  _useHealItemOnPokemon: function (pokemonIndex) {
+    try {
+      const select = document.getElementById('healItemSelect');
+      if (!select) return;
+
+      const itemName = select.value;
+      const profile = window.gameState.profile;
+      const p = profile?.pokemon?.[pokemonIndex];
+      if (!p) return;
+
+      const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
+      if (!item) {
+        window.Utils.showModal('errorModal', 'Item indisponível.');
+        return;
+      }
+
+      if (p.currentHp >= p.maxHp) {
+        window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
+        return;
+      }
+
+      const before = p.currentHp;
+      p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
+
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        profile.items = (profile.items || []).filter(i => i.quantity > 0);
+      }
+
+      window.Utils.saveGame();
+
+      const healed = p.currentHp - before;
+      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+
+      setTimeout(() => {
+        RendererPokemon.showPokemonStats(p.name, pokemonIndex);
+      }, 150);
+    } catch (e) {
+      console.error('Erro ao usar item de cura:', e);
+      window.Utils.showModal('errorModal', 'Falha ao usar item.');
     }
   },
 

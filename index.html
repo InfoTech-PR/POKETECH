@@ -17,7 +17,7 @@
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
-      /* Estilo inspirado no GBA */
+      /* Estilo inspirado no GBA ORIGINAL */
       .gba-font {
         font-family: "Press Start 2P", cursive;
         text-transform: uppercase;
@@ -144,7 +144,7 @@
         animation: opponent-attack-pulse 0.3s ease-out;
       }
 
-      /* Impede seleção de texto e ajusta touch */
+      /* Impede seleção de texto e ajusta touch ORIGINAL */
       body,
       html {
         margin: 0;
@@ -188,10 +188,92 @@
         padding: 1rem;
         box-sizing: border-box;
       }
+
+      /* 🗺️ ESTILOS ADICIONAIS PARA O MAPA (não afetam o original) */
+      #map-navigation-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #2d3748;
+        z-index: 100;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      #map-canvas {
+        border: 3px solid #000;
+        border-radius: 8px;
+        background: #000;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        max-width: 100%;
+        max-height: 80vh;
+      }
+
+      .map-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 101;
+      }
+
+      .map-control-btn {
+        padding: 8px 12px;
+        font-size: 10px;
+        font-weight: bold;
+        color: #ffffff;
+        border: 3px solid #000;
+        border-radius: 8px;
+        text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: all 0.1s;
+        font-family: "Press Start 2P", cursive;
+        text-transform: uppercase;
+      }
+
+      .map-control-btn:hover {
+        filter: brightness(1.1);
+        box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.5);
+      }
+
+      .map-control-fullscreen {
+        background-color: #22c55e;
+      }
+
+      .map-control-back {
+        background-color: #ef4444;
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 768px) {
+        .map-controls {
+          display: none; /* Esconde controles desktop no mobile */
+        }
+        
+        #map-canvas {
+          width: 95vw;
+          height: 70vh;
+        }
+        
+        #map-navigation-container {
+          padding: 10px;
+        }
+      }
     </style>
   </head>
   <body>
-    <!-- BOTÃO DE FULLSCREEN -->
+    <!-- BOTÃO DE FULLSCREEN ORIGINAL -->
     <button
       id="fullscreen-btn"
       title="Tela Cheia"
@@ -212,7 +294,7 @@
       ⛶
     </button>
 
-    <!-- BOTÃO DE UPDATES - abaixo do fullscreen -->
+    <!-- BOTÃO DE UPDATES ORIGINAL - abaixo do fullscreen -->
     <button
       id="updates-btn"
       title="Ver Updates"
@@ -233,7 +315,7 @@
       ⓘ
     </button>
 
-    <!-- Loader global do Firebase -->
+    <!-- Loader global do Firebase ORIGINAL -->
     <div id="firebase-loader" class="fixed inset-0 z-50">
       <img
         src="https://i.pinimg.com/originals/23/0c/68/230c68295a086b46a3bd01d03bef7719.gif"
@@ -241,12 +323,17 @@
         class="w-full h-full object-cover" />
     </div>
 
-    <!-- GBA Screen -->
+    <!-- GBA Screen ORIGINAL -->
     <div class="gba-screen">
       <!-- Conteúdo do jogo aqui -->
     </div>
 
-    <!-- Modals (Mantidos aqui para simplificar) -->
+    <!-- 🗺️ NOVO: Container do sistema de mapa -->
+    <div id="map-navigation-container">
+      <!-- Será preenchido dinamicamente pelo JavaScript -->
+    </div>
+
+    <!-- Modals ORIGINAIS (Mantidos aqui para simplificar) -->
     <div
       id="infoModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -309,7 +396,7 @@
       </div>
     </div>
 
-    <!-- NOVO: Modal dedicado para a lista de amizades (para usar o listener onSnapshot) -->
+    <!-- NOVO: Modal dedicado para a lista de amizades ORIGINAL -->
     <div
       id="friendshipModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -330,7 +417,7 @@
       </div>
     </div>
 
-    <!-- FULLSCREEN E UPDATE -->
+    <!-- FULLSCREEN E UPDATE SCRIPTS ORIGINAIS -->
     <script>
       const fullscreenBtn = document.getElementById("fullscreen-btn");
       fullscreenBtn.addEventListener("click", () => {
@@ -432,7 +519,7 @@
       });
     </script>
 
-    <!-- SCRIPT PRINCIPAL E INICIALIZAÇÃO FIREBASE -->
+    <!-- SCRIPT PRINCIPAL E INICIALIZAÇÃO FIREBASE ORIGINAL -->
     <script type="module">
       window.appId =
         typeof __app_id !== "undefined" ? __app_id : "default-app-id";
@@ -458,16 +545,14 @@
           ? __initial_auth_token
           : null;
 
-      // Instâncias Firebase (Serão preenchidas no js/app.js)
+      // Instâncias Firebase (Serão preenchidas no js/app.js) ORIGINAL
       window.db = null;
       window.auth = null;
       window.userId = "loading...";
       window.gameState = {};
       window.unsubscribePvp = null;
 
-      // --- NOVO: Importação Dinâmica com Cache-Busting ---
-      // Um timestamp dinâmico é adicionado ao caminho do arquivo para forçar o navegador
-      // a baixar a versão mais recente em vez de usar o cache.
+      // --- IMPORTAÇÃO DINÂMICA ORIGINAL COM CACHE-BUSTING ---
       const cacheBuster = Date.now();
       const appModulePath = `./js/app.js?v=${cacheBuster}`;
 
@@ -476,7 +561,7 @@
           const { init } = await import(`./js/app.js?v=${Date.now()}`);
           await init();
 
-          // Mantém o loader visível por 3 segundos antes de escondê-lo
+          // Mantém o loader visível por 3 segundos antes de escondê-lo ORIGINAL
           const loader = document.getElementById("firebase-loader");
           if (loader) {
             setTimeout(() => {
@@ -490,6 +575,20 @@
           );
         }
       };
+    </script>
+
+    <!-- 🗺️ SCRIPT DO SISTEMA DE MAPA (carrega após tudo, não quebra se não existir) -->
+    <script>
+      // Carrega o sistema de mapa se disponível
+      const mapScript = document.createElement('script');
+      mapScript.src = './js/map_navigation.js?v=' + Date.now();
+      mapScript.onerror = () => {
+        console.log('ℹ️ Sistema de mapa não encontrado, continuando sem ele...');
+      };
+      mapScript.onload = () => {
+        console.log('✅ Sistema de mapa carregado!');
+      };
+      document.head.appendChild(mapScript);
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>

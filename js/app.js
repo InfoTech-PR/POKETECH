@@ -1,3 +1,8 @@
+/**
+ * js/app.js - ARQUIVO PRINCIPAL ORIGINAL COM CORREÇÃO DO MAPA
+ * Corrige o erro "Cannot read properties of null (reading 'getContext')"
+ */
+
 let GameConfig,
   initializeGameState,
   Utils,
@@ -24,9 +29,8 @@ export async function init(cacheBuster = Date.now()) {
     const statusElement = document.getElementById("error-status");
     if (statusElement) {
       statusElement.textContent = message;
-      statusElement.className = `text-[8px] gba-font text-center mt-2 ${
-        isError ? "text-red-500" : "text-green-500"
-      }`;
+      statusElement.className = `text-[8px] gba-font text-center mt-2 ${isError ? "text-red-500" : "text-green-500"
+        }`;
     }
   }
 
@@ -35,12 +39,10 @@ export async function init(cacheBuster = Date.now()) {
     try {
       const saveProfile = localStorage.getItem("pokemonGameProfile");
       const saveLog = localStorage.getItem("pokemonGameExploreLog");
-
       if (!saveProfile) {
         updateErrorStatus("Nenhum jogo salvo para exportar!", true);
         return;
       }
-
       const data = {
         profile: JSON.parse(saveProfile),
         exploreLog: saveLog ? JSON.parse(saveLog) : ["Bem-vindo de volta!"],
@@ -48,7 +50,6 @@ export async function init(cacheBuster = Date.now()) {
       const jsonData = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonData], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = url;
       a.download = `pokemon_gba_save_ERRO_${Date.now()}.json`;
@@ -72,7 +73,6 @@ export async function init(cacheBuster = Date.now()) {
     // Implementa a lógica de limpeza de dados sem usar confirm()
     const confirmButton = document.getElementById("confirm-clear");
     const cancelButton = document.getElementById("cancel-clear");
-
     // Se a confirmação já estiver ativa, executa a limpeza
     if (confirmButton && confirmButton.style.display !== "none") {
       localStorage.removeItem("pokemonGameProfile");
@@ -82,11 +82,9 @@ export async function init(cacheBuster = Date.now()) {
       setTimeout(() => window.location.reload(), 1000);
       return;
     }
-
     // Caso contrário, mostra a confirmação
     const initialButton = document.getElementById("clear-button-initial");
     if (initialButton) initialButton.style.display = "none";
-
     if (confirmButton && cancelButton) {
       confirmButton.style.display = "block";
       cancelButton.style.display = "block";
@@ -98,7 +96,6 @@ export async function init(cacheBuster = Date.now()) {
     const initialButton = document.getElementById("clear-button-initial");
     const confirmButton = document.getElementById("confirm-clear");
     const cancelButton = document.getElementById("cancel-clear");
-
     if (initialButton) initialButton.style.display = "block";
     if (confirmButton) confirmButton.style.display = "none";
     if (cancelButton) cancelButton.style.display = "none";
@@ -108,7 +105,6 @@ export async function init(cacheBuster = Date.now()) {
   try {
     // 1. Carregamento de Configurações e Utilitários (Agora é uma função assíncrona)
     const configModule = await import(`./config_utils.js?v=${Date.now()}`);
-
     // Chama a função fábrica para carregar dados locais com cache-busting
     const loadedConfig = await configModule.createConfigAndUtils(v);
     ({
@@ -145,7 +141,7 @@ export async function init(cacheBuster = Date.now()) {
     PokeFriendship = friendshipModule.PokeFriendship;
     window.PokeFriendship = PokeFriendship; // Expõe para uso em onclick/eventos
 
-    // --- Exposição para o escopo global (window) ---
+    // --- Exposição para o escopo global (window) --- CÓDIGO ORIGINAL MANTIDO
     window.GameConfig = GameConfig;
     window.PokeAPI = PokeAPI;
     window.GameLogic = GameLogic;
@@ -156,7 +152,7 @@ export async function init(cacheBuster = Date.now()) {
     window.initializeGameState = initializeGameState;
     window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad;
 
-    // --- Exposição de funções de tela e lógica ---
+    // --- Exposição de funções de tela e lógica --- CÓDIGO ORIGINAL MANTIDO
     window.showScreen = Renderer.showScreen;
     window.selectStarter = Renderer.selectStarter;
     window.selectGender = Renderer.selectGender;
@@ -194,12 +190,18 @@ export async function init(cacheBuster = Date.now()) {
     window.toggleMute = Utils.toggleMute;
     window.resetGameData = Utils.resetGameData;
 
-    // LOGIN
+    // LOGIN ORIGINAL
     window.signInWithGoogle = AuthSetup.signInWithGoogle;
     window.signOutUser = AuthSetup.signOutUser;
 
-    // INICIALIZAÇÃO FINAL: Autenticação e Carregamento de Save
+    // INICIALIZAÇÃO FINAL: Autenticação e Carregamento de Save ORIGINAL
     AuthSetup.initAuth();
+
+    // 🗺️ CORREÇÃO: Inicialização do mapa com verificações robustas
+    setTimeout(() => {
+      setupMapSystem();
+    }, 5000); // Aumentado para 5 segundos para maior segurança
+
   } catch (e) {
     console.error("Erro fatal ao carregar módulos dependentes:", e);
     let errorMessage = "Erro de carregamento desconhecido.";
@@ -210,51 +212,293 @@ export async function init(cacheBuster = Date.now()) {
     } else if (e.toString) {
       errorMessage = e.toString();
     }
-
     const gbaScreen = document.querySelector(".gba-screen");
     if (gbaScreen) {
       gbaScreen.innerHTML = `
-                <div class="flex flex-col h-full justify-between items-center p-2"> <!-- Reduzido o PADDING para p-2 -->
-                    <div class="flex-shrink-0 text-center w-full"> <!-- Adicionado w-full para o contêiner do título/detalhes -->
-                        <div class="text-lg sm:text-xl font-bold text-red-600 gba-font mb-2 leading-none mx-auto max-w-xs">
-                            ERRO CRÍTICO<br>DE MÓDULO
-                        </div> <!-- Título em duas linhas com max-w-xs para compactar -->
-                        <div class="mt-4 text-xs sm:text-sm text-gray-600 gba-font text-left bg-white p-2 border border-gray-400 rounded overflow-y-auto max-h-100"> <!-- Aumentado para max-h-32 -->
-                            Ocorreu um erro ao carregar os arquivos principais.
-                            <br>
-                            <strong>Detalhe:</strong> ${errorMessage.substring(
-                              0,
-                              150
-                            )}
-                        </div>
+                <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                    <h1 class="text-red-500 text-xl font-bold mb-4 gba-font">ERRO CRÍTICO
+                    DE MÓDULO</h1>
+                    <p class="text-white mb-4">Ocorreu um erro ao carregar os arquivos principais.</p>
+                    
+                    <div class="bg-red-900 p-4 rounded mb-4 text-sm">
+                        <strong>Detalhe:</strong> ${errorMessage.substring(0, 150)}
                     </div>
-
-                    <div class="mt-4 w-full flex-grow flex flex-col justify-end space-y-2">
-                        <button onclick="window.exportSaveOnError()" class="gba-button bg-blue-500 hover:bg-blue-600 w-full">
-                            EXPORTAR SAVE (TENTATIVA)
+                    
+                    <div class="flex flex-col gap-2">
+                        <button onclick="window.exportSaveOnError()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                            📁 Exportar Save de Emergência
                         </button>
                         
-                        <!-- BOTÃO INICIAL PARA LIMPAR DADOS -->
-                        <button id="clear-button-initial" onclick="window.clearLocalData()" class="gba-button bg-red-500 hover:bg-red-600 w-full">
-                            LIMPAR DADOS LOCAIS
+                        <button id="clear-button-initial" onclick="window.clearLocalData()" 
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded">
+                            🗑️ Limpar Dados Locais
                         </button>
                         
-                        <!-- BOTÕES DE CONFIRMAÇÃO (INICIALMENTE ESCONDIDOS) -->
-                        <div class="flex space-x-2">
-                            <button id="confirm-clear" onclick="window.clearLocalData()" class="gba-button bg-red-700 hover:bg-red-800 flex-1" style="display: none;">
-                                CONFIRMAR LIMPEZA
-                            </button>
-                            <button id="cancel-clear" onclick="window.cancelClearData()" class="gba-button bg-gray-500 hover:bg-gray-600 flex-1" style="display: none;">
-                                CANCELAR
-                            </button>
-                        </div>
+                        <button id="confirm-clear" onclick="window.clearLocalData()" 
+                                style="display: none;" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+                            ⚠️ CONFIRMAR LIMPEZA
+                        </button>
                         
-                        <span id="error-status" class="text-[8px] text-gray-500 gba-font text-center mt-2">
-                            Se o erro persistir, o save pode estar corrompido. Tente a Limpeza.
-                        </span>
+                        <button id="cancel-clear" onclick="window.cancelClearData()" 
+                                style="display: none;" 
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded">
+                            ❌ Cancelar
+                        </button>
                     </div>
+                    
+                    <p class="text-gray-400 text-xs mt-4">Se o erro persistir, o save pode estar corrompido. Tente a Limpeza.</p>
+                    
+                    <div id="error-status" class="mt-2"></div>
                 </div>
             `;
     }
   }
 }
+
+/**
+ * 🗺️ FUNÇÃO CORRIGIDA PARA CONFIGURAR O SISTEMA DE MAPA
+ * Corrige o erro "Cannot read properties of null (reading 'getContext')"
+ */
+function setupMapSystem() {
+  try {
+    console.log('🗺️ Iniciando configuração do sistema de mapa...');
+
+    // VERIFICAÇÃO 1: gameState deve existir
+    if (!window.gameState) {
+      console.log('⚠️ gameState não disponível, tentando novamente em 2s...');
+      setTimeout(setupMapSystem, 2000);
+      return;
+    }
+
+    // VERIFICAÇÃO 2: MapNavigationSystem deve estar carregado
+    if (typeof window.MapNavigationSystem !== 'function') {
+      console.log('ℹ️ MapNavigationSystem não carregado, sistema de mapa desabilitado');
+      return;
+    }
+
+    // VERIFICAÇÃO 3: Container do mapa deve existir
+    let mapContainer = document.getElementById('map-navigation-container');
+    if (!mapContainer) {
+      console.log('📦 Criando container do mapa...');
+      mapContainer = createMapContainer();
+    }
+
+    // VERIFICAÇÃO 4: Canvas deve existir e ser válido
+    let canvas = document.getElementById('map-canvas');
+    if (!canvas) {
+      console.log('🎨 Criando canvas do mapa...');
+      canvas = createMapCanvas(mapContainer);
+    }
+
+    // VERIFICAÇÃO 5: Canvas deve ter getContext disponível
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      console.error('❌ Canvas inválido, não é possível inicializar mapa');
+      return;
+    }
+
+    // VERIFICAÇÃO 6: Testa se getContext funciona
+    try {
+      const testContext = canvas.getContext('2d');
+      if (!testContext) {
+        console.error('❌ Não foi possível obter contexto 2D do canvas');
+        return;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao testar contexto do canvas:', error);
+      return;
+    }
+
+    console.log('✅ Todas as verificações passaram, inicializando MapNavigationSystem...');
+
+    // INICIALIZAÇÃO DO SISTEMA DE MAPA
+    const mapSystem = new MapNavigationSystem('map-canvas', window.gameState);
+
+    // Integra com o POKETECH
+    if (typeof mapSystem.integrateWithPoketech === 'function') {
+      mapSystem.integrateWithPoketech();
+    }
+
+    // Expõe globalmente
+    window.MapNavigation = mapSystem;
+
+    // Configura integração com Renderer
+    setupRendererIntegration();
+
+    // Modifica botão explorar
+    setTimeout(() => {
+      modifyExploreButton();
+    }, 1000);
+
+    console.log('✅ Sistema de mapa inicializado com sucesso!');
+
+  } catch (error) {
+    console.error('❌ Erro ao configurar sistema de mapa:', error);
+    console.log('ℹ️ O jogo continuará funcionando sem o sistema de mapa');
+  }
+}
+
+/**
+ * Cria o container do mapa se não existir
+ */
+function createMapContainer() {
+  const body = document.body;
+  const container = document.createElement('div');
+  container.id = 'map-navigation-container';
+  container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #2d3748;
+        z-index: 100;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    `;
+  body.appendChild(container);
+  console.log('✅ Container do mapa criado');
+  return container;
+}
+
+/**
+ * Cria o canvas do mapa
+ */
+function createMapCanvas(container) {
+  // Detecta mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+  // Dimensões do canvas
+  const canvasWidth = isMobile ? Math.min(window.innerWidth - 40, 360) : 800;
+  const canvasHeight = isMobile ? Math.min(window.innerHeight - 100, 400) : 600;
+
+  // Cria canvas
+  const canvas = document.createElement('canvas');
+  canvas.id = 'map-canvas';
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  canvas.style.cssText = `
+        border: 3px solid #000;
+        border-radius: 8px;
+        background: #000;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        max-width: 100%;
+        max-height: 80vh;
+    `;
+
+  // Adiciona canvas ao container
+  container.appendChild(canvas);
+
+  // Adiciona controles se desktop
+  if (!isMobile) {
+    const controlsDiv = document.createElement('div');
+    controlsDiv.style.cssText = `
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 101;
+        `;
+
+    controlsDiv.innerHTML = `
+            <button onclick="window.MapNavigation && window.MapNavigation.toggleFullMap()" 
+                    style="padding: 8px 12px; font-size: 10px; font-weight: bold; color: #ffffff; 
+                           border: 3px solid #000; border-radius: 8px; background-color: #22c55e; 
+                           cursor: pointer; font-family: 'Press Start 2P', cursive;">
+                🗺️ MAPA
+            </button>
+            <button onclick="window.Renderer && window.Renderer.showScreen('mainMenu')" 
+                    style="padding: 8px 12px; font-size: 10px; font-weight: bold; color: #ffffff; 
+                           border: 3px solid #000; border-radius: 8px; background-color: #ef4444; 
+                           cursor: pointer; font-family: 'Press Start 2P', cursive;">
+                ← VOLTAR
+            </button>
+        `;
+
+    container.appendChild(controlsDiv);
+  }
+
+  console.log('✅ Canvas do mapa criado com sucesso');
+  return canvas;
+}
+
+/**
+ * Configura integração com o Renderer
+ */
+function setupRendererIntegration() {
+  if (!window.Renderer || typeof window.Renderer.showScreen !== 'function') {
+    console.log('⚠️ Renderer não disponível para integração');
+    return;
+  }
+
+  // Salva a função original
+  const originalShowScreen = window.Renderer.showScreen;
+
+  // Sobrescreve com suporte ao mapa
+  window.Renderer.showScreen = function (screen) {
+    const mapContainer = document.getElementById('map-navigation-container');
+    const gbaScreen = document.querySelector('.gba-screen');
+
+    if (screen === 'worldMap' && mapContainer) {
+      // Mostra o mapa
+      mapContainer.style.display = 'flex';
+      if (gbaScreen) gbaScreen.style.display = 'none';
+
+      if (window.gameState) {
+        window.gameState.currentScreen = 'worldMap';
+      }
+
+      // Atualiza controles mobile se disponível
+      if (window.MapNavigation && typeof window.MapNavigation.updateMobileControlsPosition === 'function') {
+        setTimeout(() => {
+          window.MapNavigation.updateMobileControlsPosition();
+        }, 100);
+      }
+    } else {
+      // Esconde o mapa e mostra a tela normal
+      if (mapContainer) mapContainer.style.display = 'none';
+      if (gbaScreen) gbaScreen.style.display = 'flex';
+
+      // Chama função original
+      originalShowScreen.call(this, screen);
+    }
+  };
+
+  console.log('✅ Integração com Renderer configurada');
+}
+
+/**
+ * Modifica o botão explorar para usar o mapa
+ */
+function modifyExploreButton() {
+  try {
+    const exploreButton = document.querySelector('button[onclick*="explore"]');
+    if (exploreButton && window.MapNavigation) {
+      exploreButton.onclick = () => {
+        if (window.Renderer && window.Renderer.showScreen) {
+          window.Renderer.showScreen('worldMap');
+        }
+      };
+      exploreButton.innerHTML = '🗺️ EXPLORAR MAPA';
+      console.log('✅ Botão explorar modificado!');
+    }
+  } catch (error) {
+    console.log('ℹ️ Não foi possível modificar botão explorar:', error.message);
+  }
+}
+
+// Função global para abrir o mapa
+window.openWorldMap = function () {
+  if (window.Renderer && window.Renderer.showScreen) {
+    window.Renderer.showScreen('worldMap');
+  }
+};

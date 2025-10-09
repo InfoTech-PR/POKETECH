@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Voxel Chunk — HTML + JS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#202024; }
+    #info {
+      position:fixed; top:8px; left:8px; color:#fff; font:14px sans-serif;
+      background:rgba(0,0,0,0.4); padding:8px 10px; border-radius:6px;
+      user-select:none;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    WASD mover, mouse arrastar olhar; Clique esquerdo remove bloco; Direito adiciona bloco
+  </div>
+  <canvas id="c"></canvas>
+
+  <script type="module">
+    import * as THREE from './three.module.js';
+
+    // Configuração básica
+    const canvas = document.getElementById('c');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87b3ff);
+
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
+    camera.position.set(12, 28, 40);
+
+    // Luzes
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x404040, 0.6);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(40, 60, 25);
+    dir.castShadow = true;
+    scene.add(dir);
+
+    // Grade opcional no chão
+    const grid = new THREE.GridHelper(64, 64, 0x334455, 0x223344);
+    grid.position.y = -0.01;
+    scene.add(grid);
+
+    // Parâmetros do chunk
+    const CHX = 16, CHZ = 16, CHY = 64;
+
+    // Voxels: 1 = sólido, 0 = ar
+    const voxels = new Uint8Array(CHX * CHY * CHZ);
+    const VIDX = (x,y,z) => x + CHX * (z + CHZ * y);
+
+    // Terreno simples (substituir por Perlin depois)
+    function heightAt(x, z) {
+      return 24 + Math.floor(6 * Math.sin(x * 0.4) * Math.cos(z * 0.4));
+    }
+
+    function generateVoxels() {
+      voxels.fill(0);
+      for (let x=0; x<CHX; x++) {
+        for (let z=0; z<CHZ; z++) {
+          const h = Math.max(0, Math.min(CHY-1, heightAt(x, z)));
+          for (let y=0; y<=h; y++) voxels[VIDX(x,y,z)] = 1;
+        }
+      }
+    }
+
+    // Culling: gera faces visíveis apenas onde bloco toca "ar"
+    function buildChunkGeometry() {
+      const positions = [];
+      const normals   = [];
+      const colors    = [];
+      const indices   = [];
+
+      const colorTop = new THREE.Color(0x86c06c);
+      const colorSide = new THREE.Color(0x998a6a);
+      const colorBottom = new THREE.Color(0x6e5b3a);
+
+      const dirs = [
+        { n:[ 1, 0, 0], v:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]] }, // +X
+        { n:[-1, 0, 0], v:[[0,0,1],[0,1,1],[0,1,0],[0,0,0]] }, // -X
+        { n:[ 0, 1, 0], v:[[0,1,1],[1,1,1],[1,1,0],[0,1,0]] }, // +Y
+        { n:[ 0,-1, 0], v:[[0,0,0],[1,0,0],[1,0,1],[0,0,1]] }, // -Y
+        { n:[ 0, 0, 1], v:[[0,0,1],[0,1,1],[1,1,1],[1,0,1]] }, // +Z
+        { n:[ 0, 0,-1], v:[[1,0,0],[1,1,0],[0,1,0],[0,0,0]] }, // -Z
+      ];
+
+      const inB = (x,y,z)=>x>=0&&y>=0&&z>=0&&x<CHX&&y<CHY&&z<CHZ;
+      const solid = (x,y,z)=> inB(x,y,z) && voxels[VIDX(x,y,z)]===1;
+
+      let vOff = 0;
+      for (let x=0; x<CHX; x++) for (let y=0; y<CHY; y++) for (let z=0; z<CHZ; z++) {
+        if (!solid(x,y,z)) continue;
+
+        for (const d of dirs) {
+          const nx = x + d.n[0], ny = y + d.n[1], nz = z + d.n[2];
+          if (solid(nx,ny,nz)) continue; // face interna
+
+          // cor por face
+          const faceColor =
+            d.n[1]=== 1 ? colorTop :
+            d.n[1]===-1 ? colorBottom : colorSide;
+
+          // 4 vértices
+          for (const q of d.v) {
+            positions.push(x + q[0], y + q[1], z + q[2]);
+            normals.push(d.n[0], d.n[1], d.n[2]);
+            colors.push(faceColor.r, faceColor.g, faceColor.b);
+          }
+          // 2 triângulos
+          indices.push(vOff, vOff+1, vOff+2, vOff, vOff+2, vOff+3);
+          vOff += 4;
+        }
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geom.setAttribute('normal',   new THREE.Float32BufferAttribute(normals, 3));
+      geom.setAttribute('color',    new THREE.Float32BufferAttribute(colors, 3));
+      geom.setIndex(indices);
+      geom.computeBoundingSphere();
+      return geom;
+    }
+
+    // Mesh do chunk
+    generateVoxels();
+    let chunkMesh = null;
+    function rebuildChunk() {
+      const geom = buildChunkGeometry();
+      const mat = new THREE.MeshLambertMaterial({
+        vertexColors: true,
+        side: THREE.FrontSide
+      });
+      const newMesh = new THREE.Mesh(geom, mat);
+      newMesh.castShadow = false;
+      newMesh.receiveShadow = true;
+
+      if (chunkMesh) {
+        scene.remove(chunkMesh);
+        chunkMesh.geometry.dispose();
+        chunkMesh.material.dispose();
+      }
+      chunkMesh = newMesh;
+      scene.add(chunkMesh);
+    }
+    rebuildChunk();
+
+    // Controles de câmera simples (yaw/pitch + WASD)
+    let yaw = -Math.PI*0.2, pitch = -Math.PI*0.1;
+    let dragging = false, lastX=0, lastY=0;
+    const keys = new Set();
+
+    function updateCamera(dt) {
+      // Direções
+      const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
+      const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).negate();
+      const up = new THREE.Vector3(0,1,0);
+
+      const speed = 12;
+      const vel = new THREE.Vector3();
+      if (keys.has('KeyW')) vel.add(forward);
+      if (keys.has('KeyS')) vel.add(forward.clone().multiplyScalar(-1));
+      if (keys.has('KeyA')) vel.add(right.clone().multiplyScalar(-1));
+      if (keys.has('KeyD')) vel.add(right);
+      if (keys.has('Space')) vel.add(up);
+      if (keys.has('ShiftLeft') || keys.has('ShiftRight')) vel.add(up.clone().multiplyScalar(-1));
+      if (vel.lengthSq()>0) vel.normalize().multiplyScalar(speed*dt);
+      camera.position.add(vel);
+
+      // Aplica rotação
+      pitch = Math.max(-Math.PI/2+0.01, Math.min(Math.PI/2-0.01, pitch));
+      const lookDir = new THREE.Vector3(
+        Math.sin(yaw)*Math.cos(pitch),
+        Math.sin(pitch),
+        Math.cos(yaw)*Math.cos(pitch)
+      );
+      camera.lookAt(camera.position.clone().add(lookDir));
+    }
+
+    window.addEventListener('mousedown', (e)=>{
+      if (e.button===0 || e.button===2) return; // cliques de edição não iniciam drag
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+    });
+    window.addEventListener('mousemove', (e)=>{
+      if (!dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      const sens = 0.004;
+      yaw -= dx * sens;
+      pitch -= dy * sens;
+    });
+    window.addEventListener('mouseup', ()=>{ dragging = false; });
+    window.addEventListener('contextmenu', (e)=> e.preventDefault());
+    window.addEventListener('keydown', (e)=> keys.add(e.code));
+    window.addEventListener('keyup',   (e)=> keys.delete(e.code));
+
+    // Picking: Raycaster em malha indexada (usa face normal local)
+    const raycaster = new THREE.Raycaster();
+    const mouseNDC = new THREE.Vector2();
+
+    function screenToNDC(event) {
+      const r = renderer.domElement.getBoundingClientRect();
+      mouseNDC.x = ((event.clientX - r.left) / r.width) * 2 - 1;
+      mouseNDC.y = -(((event.clientY - r.top) / r.height) * 2 - 1);
+    }
+
+    function editAt(event, place) {
+      if (!chunkMesh) return;
+      screenToNDC(event);
+      raycaster.setFromCamera(mouseNDC, camera);
+      const hits = raycaster.intersectObject(chunkMesh, false);
+      if (!hits.length) return;
+
+      const hit = hits[0];
+      // normal em espaço local (sem rotação/escala no mesh, então ok)
+      const n = hit.face.normal.clone();
+      const p = hit.point.clone();
+
+      // Epsilon para entrar/sair do bloco atingido
+      const eps = 0.001;
+      const target = place ? p.add(n.clone().multiplyScalar(eps)) : p.add(n.clone().multiplyScalar(-eps));
+
+      const x = Math.floor(target.x);
+      const y = Math.floor(target.y);
+      const z = Math.floor(target.z);
+
+      if (x<0||y<0||z<0||x>=CHX||y>=CHY||z>=CHZ) return;
+
+      if (place) {
+        if (voxels[VIDX(x,y,z)]===0) { voxels[VIDX(x,y,z)]=1; rebuildChunk(); }
+      } else {
+        if (voxels[VIDX(x,y,z)]===1) { voxels[VIDX(x,y,z)]=0; rebuildChunk(); }
+      }
+    }
+
+    window.addEventListener('mousedown', (e)=>{
+      // Clique esquerdo remove, direito adiciona
+      if (e.button===0) editAt(e, false);
+      if (e.button===2) editAt(e, true);
+    });
+
+    // Resize
+    function onResize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w/h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    // Loop
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last)/1000);
+      last = now;
+      updateCamera(dt);
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

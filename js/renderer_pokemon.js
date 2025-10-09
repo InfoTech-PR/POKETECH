@@ -1094,7 +1094,7 @@ export const RendererPokemon = {
       // Sprites grandes e mais próximos
       const startersHtml = (region.starters || []).map((id, idx) => {
         const isCaught = pokedexSet.has(id);
-        const silhouette = isCaught ? "" : "filter: grayscale(100%) brightness(0.1); opacity:0.7;";
+        const silhouette = isCaught ? "" : "filter: grayscale(100%) brightness(0.0); opacity:0.8;";
         const overlapStyle = idx === 0 ? "" : "margin-left:-38px;";
         // deslocamentos laterais menores para aproximar
         const xShift = idx === 0 ? "-translate-x-3" : (idx === 1 ? "translate-x-0" : "translate-x-3");

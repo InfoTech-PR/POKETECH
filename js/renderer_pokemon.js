@@ -46,6 +46,22 @@ export const RendererPokemon = {
    * @param {number} currentPokemonId ID do Pokémon atualmente visualizado.
    * @returns {string} HTML do item.
    */
+
+  _regionColor: function (regionId) {
+    const MAP = {
+      kanto: '#d32f2f',
+      johto: '#1976d2',
+      hoenn: '#388e3c',
+      sinnoh: '#7b1fa2',
+      unova: '#455a64',
+      kalos: '#f57c00',
+      alola: '#00897b',
+      galar: '#c2185b',
+      paldea: '#512da8'
+    };
+    return MAP[regionId] || '#3b82f6';
+  },
+
   _renderEvoItem: function (evo, spriteId, pokedexSet, currentPokemonId) {
     const isKnown = pokedexSet.has(evo.id);
     // filter: grayscale(100%) brightness(0.1); -> Sombra clara para Pokémon não descoberto mas clicável
@@ -146,7 +162,7 @@ export const RendererPokemon = {
         profile.items = (profile.items || []).filter(i => i.quantity > 0);
       }
 
-      window.Utils.saveGame();
+      window.GameLogic.saveGameData();
 
       const healed = p.currentHp - before;
       window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
@@ -677,7 +693,7 @@ export const RendererPokemon = {
               profile.items = (profile.items || []).filter(i => i.quantity > 0);
             }
 
-            window.Utils.saveGame();
+            window.GameLogic.saveGameData();
 
             const healed = p.currentHp - before;
             window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
@@ -991,7 +1007,7 @@ export const RendererPokemon = {
         profile.items = (profile.items || []).filter(i => i.quantity > 0);
       }
 
-      window.Utils.saveGame();
+      window.GameLogic.saveGameData();
 
       const healed = p.currentHp - before;
       window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
@@ -1039,7 +1055,7 @@ export const RendererPokemon = {
       await Promise.allSettled(fetchPromises);
 
       if (cacheUpdated) {
-        window.Utils.saveGame();
+        window.GameLogic.saveGameData();
 
         const currentScreen = window.gameState.currentScreen;
         const regionKey = window.currentPokedexFilters.region;
@@ -1064,57 +1080,77 @@ export const RendererPokemon = {
     const regions = window.GameConfig.POKEDEX_REGIONS;
 
     const regionsHtml = regions.map(region => {
-      // Progresso da região
+      // Progresso por região
       let caughtInRegion = 0;
       for (let i = region.startId; i <= region.endId; i++) {
-        if (pokedexSet.has(i)) {
-          caughtInRegion++;
-        }
+        if (pokedexSet.has(i)) caughtInRegion++;
       }
       const totalInRegion = region.endId - region.startId + 1;
       const progressPercent = (caughtInRegion / totalInRegion) * 100;
 
-      // Cadeado
+      const regionColor = RendererPokemon._regionColor(region.id);
       const isLocked = caughtInRegion === 0;
-      const cardClass = isLocked ? "opacity-50 cursor-not-allowed bg-gray-200" : "hover:bg-gray-100";
 
-      // Sprites de capa
-      const startersHtml = region.starters.map(id => {
+      // Sprites grandes e mais próximos
+      const startersHtml = (region.starters || []).map((id, idx) => {
         const isCaught = pokedexSet.has(id);
-        const silhouetteFilter = isCaught && !isLocked ? "" : "filter: grayscale(100%) brightness(0.1);";
-        return `<img src="../assets/sprites/pokemon/${id}_front.png" alt="Starter" class="w-16 h-16 transition-transform duration-100" style="${silhouetteFilter}">`;
+        const silhouette = isCaught ? "" : "filter: grayscale(100%) brightness(0.1); opacity:0.7;";
+        const overlapStyle = idx === 0 ? "" : "margin-left:-38px;";
+        // deslocamentos laterais menores para aproximar
+        const xShift = idx === 0 ? "-translate-x-3" : (idx === 1 ? "translate-x-0" : "translate-x-3");
+        return `
+    <div class="relative inline-block w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32" style="${overlapStyle}">
+      <img src="../assets/sprites/pokemon/${id}_front.png" alt="Starter"
+           class="absolute left-1/2 ${xShift} -top-1
+                  w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32
+                  scale-[1.9] sm:scale-[2.05] md:scale-[2.2]
+                  drop-shadow-[0_10px_0_rgba(0,0,0,0.2)]
+                  transition-transform duration-150 group-hover:scale-[2.35] pointer-events-none"
+           style="${silhouette}; z-index:${10 + idx};">
+    </div>
+    `;
       }).join('');
 
-      const progressBarHtml = `
-        <div class="w-full bg-gray-400 h-2 rounded-full border border-gray-600 mt-2">
-          <div class="h-2 rounded-full ${progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'} transition-all duration-500" style="width: ${progressPercent}%;"></div>
-        </div>
-      `;
-
       return `
-        <div onclick="event.stopPropagation(); window.openPokedexRegion('${region.id}')" 
-             class="p-3 bg-white border-4 border-gray-800 rounded-lg shadow-lg mb-3 cursor-pointer transition-colors duration-150 relative ${cardClass}">
-          <div class="flex justify-between items-center mb-2 border-b border-gray-300 pb-1">
-            <div class="gba-font text-base font-bold text-gray-800">${region.name}</div>
-            <div class="text-right flex flex-col items-end">
-              <div class="gba-font text-xs text-blue-700">${caughtInRegion} / ${totalInRegion}</div>
-              <div class="gba-font text-[8px] text-gray-500">${Math.round(progressPercent)}%</div>
-            </div>
-          </div>
-          <div class="flex space-x-2 justify-center py-2">
-            ${startersHtml}
-          </div>
-          ${progressBarHtml}
-          ${isLocked ? `
-            <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="#fefefe" class="bi bi-lock-fill" viewBox="0 0 16 16">
-                <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5M4.5 9.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5z"/>
-              </svg>
-            </div>
-          ` : ''}
+    <div onclick="event.stopPropagation(); window.openPokedexRegion('${region.id}')"
+         class="group p-1.5 bg-white border-4 border-gray-800 rounded-lg shadow-lg mb-2 cursor-pointer transition-colors duration-150 relative overflow-hidden">
+
+      <!-- Faixa diagonal mais espessa (dentro do card) -->
+      <div class="absolute top-0.5 left-[-25%] rotate-[-18deg] h-16 sm:h-18 md:h-20 w-[175%] opacity-95 pointer-events-none z-0"
+           style="background:${regionColor};"></div>
+
+      <!-- Cabeçalho compacto acima da faixa -->
+      <div class="relative z-20 flex justify-between items-center mb-1 border-b border-gray-300 pb-1">
+        <div class="gba-font text-[14px] font-bold text-gray-800 tracking-wide">${region.name}</div>
+        <div class="text-right flex flex-col items-end leading-tight">
+          <div class="gba-font text-xs text-black">${caughtInRegion} / ${totalInRegion}</div>
+          <div class="gba-font text-[8px] text-gray-900 ">${Math.round(progressPercent)}%</div>
         </div>
-      `;
+      </div>
+
+      <!-- Sprites: mantém o MESMO tamanho atual, apenas aproximando verticalmente -->
+      <div class="relative z-10 flex justify-center gap-2 sm:gap-3 md:gap-4 py-2 pt-5">
+        ${startersHtml}
+      </div>
+
+      <!-- Barra de progresso compacta -->
+      <div class="relative z-20 w-full bg-gray-300 h-[6px] rounded-full border border-gray-600 mt-1">
+        <div class="h-[6px] rounded-full ${progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'} transition-all duration-500" style="width: ${progressPercent}%;"></div>
+      </div>
+
+      ${isLocked ? `
+        <div class="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg z-30">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#fefefe" class="bi bi-lock-fill" viewBox="0 0 16 16">
+            <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5M4.5 9.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-6a.5.5 0 0 1-.5-.5z"/>
+          </svg>
+        </div>
+      ` : ''}
+    </div>
+  `;
     }).join('');
+
+
+
 
     const totalCaught = pokedexSet.size;
     const totalAvailable = window.GameConfig.POKEDEX_LIMIT;

@@ -7,7 +7,49 @@ import {
 // Certifique-se de que estas constantes estão disponíveis via importação ou globalmente (do local_poke_data.js)
 // Como estamos em um ambiente modular, vamos assumir que as constantes do local_poke_data
 // estão disponíveis globalmente (como é prática neste projeto) ou que o bundler as injetará.
+function sanitizeForFirestore(input, depth = 0) {
+  if (input === undefined) return undefined;
+  if (input === null) return null;
+  if (depth >= 20) return null; // evita ultrapassar o limite de profundidade
+  const t = typeof input;
 
+  if (t === 'number') return Number.isFinite(input) ? input : null;
+  if (t === 'bigint') return input.toString();
+  if (t === 'string' || t === 'boolean') return input;
+  if (input instanceof Date) return input; // Firestore converte Date para Timestamp
+
+  if (Array.isArray(input)) {
+    const arr = input
+      .map(v => sanitizeForFirestore(v, depth + 1))
+      .filter(v => v !== undefined); // arrays não podem conter undefined
+    return arr;
+  }
+
+  if (input instanceof Set) {
+    return Array.from(input).map(v => sanitizeForFirestore(v, depth + 1));
+  }
+
+  if (input instanceof Map) {
+    const obj = {};
+    for (const [k, v] of input.entries()) {
+      const sv = sanitizeForFirestore(v, depth + 1);
+      if (sv !== undefined) obj[k] = sv;
+    }
+    return obj;
+  }
+
+  if (t === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(input)) {
+      const sv = sanitizeForFirestore(v, depth + 1);
+      if (sv !== undefined) out[k] = sv; // Firestore rejeita undefined
+    }
+    return out;
+  }
+
+  // Funções, símbolos e tipos não serializáveis
+  return null;
+}
 export const GameLogic = {
   // ==== Helpers de evolução ramificada (novos) ====
 
@@ -15,7 +57,7 @@ export const GameLogic = {
   _pendingEvolutionItem: null,
 
   // Consumo simples de item por nome
-  consumeItem: function(itemName) {
+  consumeItem: function (itemName) {
     if (!itemName) return false;
     const inv = window.gameState?.profile?.items || [];
     const it = inv.find(i => i.name?.toLowerCase() === itemName.toLowerCase());
@@ -27,7 +69,7 @@ export const GameLogic = {
   },
 
   // Nome por ID usando POKE_DATA (se exposto) ou PokeAPI
-  _getNameById: function(id) {
+  _getNameById: function (id) {
     const byData = window.POKE_DATA?.[String(id)]?.name;
     if (byData) return byData;
     const byApi = window.PokeAPI?.idToName?.(id);
@@ -36,12 +78,12 @@ export const GameLogic = {
   },
 
   // Resolver alvo quando há ramificação
-  resolveBranchTargetId: function(current, ctx) {
+  resolveBranchTargetId: function (current, ctx) {
     // Usa o novo mapeamento de evoluções
     const hasBranch = window.BRANCHED_EVOS?.[String(current.id)];
-    
+
     if (!hasBranch) return null;
-    
+
     if (typeof window.GameLogic.resolveBranchedEvolution === 'function') {
       // Chama a função auxiliar que está em evolution_rules.js
       return window.GameLogic.resolveBranchedEvolution(current, ctx);
@@ -78,12 +120,12 @@ export const GameLogic = {
       !window.auth.currentUser.isAnonymous
     ) {
       try {
+
         const profileToSave = { ...window.gameState.profile };
         profileToSave.pokedex = Array.from(profileToSave.pokedex);
-
         const docRef = doc(window.db, "users", window.userId);
-        await setDoc(docRef, profileToSave, { merge: true });
-        console.log("Dados salvos no Firestore com sucesso!");
+        const profileSanitized = sanitizeForFirestore(profileToSave);
+        await setDoc(docRef, profileSanitized, { merge: true });
       } catch (error) {
         console.error("Erro ao salvar dados no Firestore:", error);
       }
@@ -94,7 +136,7 @@ export const GameLogic = {
     const { redirectTo = null, showSuccess = true } = options;
 
     // Inputs de EDIÇÃO (quando estiver na tela de editar perfil)
-    const editNameEl   = document.getElementById("newTrainerName");
+    const editNameEl = document.getElementById("newTrainerName");
     const editGenderEl = document.querySelector('input[name="newTrainerGender"]:checked');
 
     // Input INICIAL (tela de criação) — apenas para nome
@@ -399,7 +441,7 @@ export const GameLogic = {
       level: pokemon.level,
       stats: pokemon.stats,
       // Pega o item pendente, se houver
-      item: window.GameLogic._pendingEvolutionItem || null, 
+      item: window.GameLogic._pendingEvolutionItem || null,
       gender: pokemon.gender,
       timeOfDay: window.World?.getTimeOfDay?.(), // "day","evening","night" se aplicável
       ability: pokemon.ability,
@@ -408,7 +450,7 @@ export const GameLogic = {
 
     // 1) Tenta resolver alvo por ramificação
     let nextId = window.GameLogic.resolveBranchTargetId(pokemon, ctx);
-    
+
     // 2) Fallback linear por PokeAPI (se não for ramificado e não tiver item forçado)
     let nextEvolutionName = null;
     if (!nextId) {
@@ -447,7 +489,7 @@ export const GameLogic = {
     // Débito de custo e EXP
     window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
     pokemon.exp -= requiredExp;
-    
+
     let consumedItemName = null;
 
     // Se a evolução foi disparada por item, tenta consumir o item
@@ -456,12 +498,12 @@ export const GameLogic = {
       if (itemToConsume) {
         const ok = window.GameLogic.consumeItem(itemToConsume.name);
         if (!ok) {
-           // Rollback (Embora a UI deva bloquear isso, mantemos a segurança)
-           window.gameState.profile.money += GameConfig.EVOLUTION_COST;
-           pokemon.exp += requiredExp;
-           window.Utils.showModal("errorModal", `Erro: O item ${itemToConsume.name} não foi encontrado na mochila.`);
-           window.Renderer.showScreen("managePokemon");
-           return;
+          // Rollback (Embora a UI deva bloquear isso, mantemos a segurança)
+          window.gameState.profile.money += GameConfig.EVOLUTION_COST;
+          pokemon.exp += requiredExp;
+          window.Utils.showModal("errorModal", `Erro: O item ${itemToConsume.name} não foi encontrado na mochila.`);
+          window.Renderer.showScreen("managePokemon");
+          return;
         }
         consumedItemName = itemToConsume.name;
       }
@@ -478,12 +520,12 @@ export const GameLogic = {
     if (newPokemonDataRaw) {
       // 1. Usar os dados base da nova forma
       const newPokemonData = {
-          ...newPokemonDataRaw,
-          // 2. Preservar Nível e EXP
-          level: pokemon.level,
-          exp: pokemon.exp,
-          // Preservar gênero (necessário para evoluções de ramificação)
-          gender: pokemon.gender,
+        ...newPokemonDataRaw,
+        // 2. Preservar Nível e EXP
+        level: pokemon.level,
+        exp: pokemon.exp,
+        // Preservar gênero (necessário para evoluções de ramificação)
+        gender: pokemon.gender,
       }
 
       // 3. Recalcular o HP Máximo com os novos base stats + nível atual
@@ -494,10 +536,10 @@ export const GameLogic = {
 
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
       window.GameLogic.saveGameData();
-      
+
       let successMessage = `Parabéns! Seu ${pokemon.name} evoluiu para **${newPokemonData.name}**!`;
       if (consumedItemName) {
-          successMessage += ` (Item **${consumedItemName}** utilizado)`;
+        successMessage += ` (Item **${consumedItemName}** utilizado)`;
       }
 
       window.Utils.showModal(
@@ -544,7 +586,7 @@ export const GameLogic = {
       );
       return;
     }
-      
+
     const pokemonArray = window.gameState.profile.pokemon;
     if (index < 0 || index >= pokemonArray.length) {
       return;

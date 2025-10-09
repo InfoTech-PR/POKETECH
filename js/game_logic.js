@@ -125,7 +125,9 @@ export const GameLogic = {
         profileToSave.pokedex = Array.from(profileToSave.pokedex);
         const docRef = doc(window.db, "users", window.userId);
         const profileSanitized = sanitizeForFirestore(profileToSave);
+
         await setDoc(docRef, profileSanitized, { merge: true });
+        console.log("Dados salvos no Firestore com sucesso!");
       } catch (error) {
         console.error("Erro ao salvar dados no Firestore:", error);
       }

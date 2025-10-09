@@ -296,10 +296,10 @@ export const RendererPokemon = {
         evolveButtonText = "Ver Evoluções";
         evolveButtonClass = "bg-yellow-500 hover:bg-yellow-600";
       } else if (!hasMoney) {
-        evolveButtonText = `Falta P$ (${evolutionCost}P$)`;
+        evolveButtonText = `Falta P$ (${evolutionCost - window.gameState.profile.money}P$)`;
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
       } else if (!hasExp) {
-        evolveButtonText = `Falta EXP (${requiredExp}xp)`;
+        evolveButtonText = `Falta EXP (${requiredExp - p.exp}xp)`;
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
       }
       const isDisabledEvolve = !canEvolve && !isMaxEvolution;

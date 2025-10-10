@@ -98,16 +98,24 @@ export const GameLogic = {
       window.gameState.exploreLog = [];
     }
 
+    // Adiciona a nova mensagem
     window.gameState.exploreLog.push(message);
+
+    // Mantém apenas os últimos 3 registros
     if (window.gameState.exploreLog.length > 3) {
-      window.gameState.exploreLog.shift();
+      window.gameState.exploreLog = window.gameState.exploreLog.slice(-3);
     }
+
+    // Atualiza a tela principal (modo clássico)
     if (window.gameState.currentScreen === "mainMenu") {
       const resultBox = document.getElementById("explore-result");
       if (resultBox) {
+        // Exibe apenas a última mensagem para o modo clássico
         resultBox.innerHTML = window.gameState.exploreLog.slice(-1)[0];
       }
     }
+
+    // Se estiver no mapa, o MapCore se encarrega de ler o log completo.
   },
 
   saveGameData: async function () {
@@ -200,6 +208,15 @@ export const GameLogic = {
             window.gameState.profile.pokedex
           );
         }
+        // Garante que o lastLocation exista, para evitar erros no modo Beta
+        if (!window.gameState.profile.lastLocation) {
+          window.gameState.profile.lastLocation = { lat: 0, lng: 0 };
+        }
+        // Garante que o isBetaMode exista
+        if (typeof window.gameState.profile.preferences.isBetaMode === 'undefined') {
+          window.gameState.profile.preferences.isBetaMode = false;
+        }
+
         console.log("Perfil do usuário carregado do Firestore!");
         return true;
       } else {
@@ -214,6 +231,7 @@ export const GameLogic = {
     }
   },
 
+  // MODO CLÁSSICO: Exploração baseada em texto
   explore: async function () {
     const hasLivePokemon = window.gameState.profile.pokemon.some(
       (p) => p.currentHp > 0
@@ -256,6 +274,27 @@ export const GameLogic = {
       window.GameLogic.saveGameData();
       window.Renderer.renderMainMenu(document.getElementById("app-container"));
     }
+  },
+
+  // MODO BETA: Exploração no mapa. A lógica principal está em map_core.js
+  mapExplore: function () {
+    window.MapCore.mapExplore();
+  },
+
+  toggleBetaMode: function () {
+    const prefs = window.gameState.profile.preferences;
+    prefs.isBetaMode = !prefs.isBetaMode;
+    window.GameLogic.saveGameData();
+
+    if (prefs.isBetaMode) {
+      window.Utils.showModal("infoModal", "Modo Beta (Mapa) ativado! Voltando ao Menu Principal para recarregar.");
+    } else {
+      window.Utils.showModal("infoModal", "Modo Clássico (Texto) ativado! Voltando ao Menu Principal.");
+      window.MapCore?.destroyMap();
+    }
+
+    // Força um retorno ao Menu para recarregar a tela correta na próxima vez.
+    setTimeout(() => window.Renderer.showScreen('mainMenu'), 1000);
   },
 
   buyItem: function (itemName, quantity) {

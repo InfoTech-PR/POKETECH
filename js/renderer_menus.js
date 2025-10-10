@@ -4,7 +4,7 @@
 // Garante que o objeto window.Renderer exista para anexar a função auxiliar.
 // Em um sistema modular, isso é um "hack" para o HTML/onclick funcionar diretamente.
 if (typeof window.Renderer === 'undefined') {
-    window.Renderer = {};
+  window.Renderer = {};
 }
 
 /**
@@ -12,61 +12,61 @@ if (typeof window.Renderer === 'undefined') {
  * Exposta diretamente para o HTML/onclick funcionar corretamente.
  */
 window.Renderer.copyPlayerId = function () {
-    const playerId = window.userId;
-    const copyIcon = document.getElementById("copyIdIcon"); 
+  const playerId = window.userId;
+  const copyIcon = document.getElementById("copyIdIcon");
 
-    // 1. Tenta usar a API moderna (navigator.clipboard)
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(playerId).then(() => {
-        // Salva o HTML original para restaurar depois
-        const originalHtml = copyIcon.dataset.originalHtml;
-        
-        copyIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
-        copyIcon.classList.remove("text-blue-600", "hover:text-blue-800");
-        copyIcon.classList.add("text-green-600");
+  // 1. Tenta usar a API moderna (navigator.clipboard)
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(playerId).then(() => {
+      // Salva o HTML original para restaurar depois
+      const originalHtml = copyIcon.dataset.originalHtml;
 
-        setTimeout(() => {
-          copyIcon.innerHTML = originalHtml;
-          copyIcon.classList.remove("text-green-600");
-          copyIcon.classList.add("text-blue-600", "hover:text-blue-800");
-        }, 1500);
-      }).catch(err => {
-        console.error('Falha ao copiar usando navigator.clipboard:', err);
-        // Fallback para document.execCommand
-        RendererMenus.fallbackCopy(playerId, copyIcon);
-      });
-    } else {
-      // 2. Fallback
-      RendererMenus.fallbackCopy(playerId, copyIcon);
-    }
-  };
-
-// A função fallbackCopy ainda pode ficar interna a RendererMenus
-const fallbackCopy = function(text, iconElement) { 
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-      
-      const originalHtml = iconElement.dataset.originalHtml;
-
-      iconElement.innerHTML = `<i class="fa-solid fa-check"></i>`;
-      iconElement.classList.remove("text-blue-600", "hover:text-blue-800");
-      iconElement.classList.add("text-green-600");
+      copyIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
+      copyIcon.classList.remove("text-blue-600", "hover:text-blue-800");
+      copyIcon.classList.add("text-green-600");
 
       setTimeout(() => {
-        iconElement.innerHTML = originalHtml;
-        iconElement.classList.remove("text-green-600");
-        iconElement.classList.add("text-blue-600", "hover:text-blue-800");
+        copyIcon.innerHTML = originalHtml;
+        copyIcon.classList.remove("text-green-600");
+        copyIcon.classList.add("text-blue-600", "hover:text-blue-800");
       }, 1500);
-    } catch (err) {
-      console.error('Falha ao copiar o ID: ', err);
-      window.Utils.showModal("errorModal", "Falha ao copiar o ID. Por favor, copie manualmente.");
-    }
-    document.body.removeChild(textarea);
-  };
+    }).catch(err => {
+      console.error('Falha ao copiar usando navigator.clipboard:', err);
+      // Fallback para document.execCommand
+      RendererMenus.fallbackCopy(playerId, copyIcon);
+    });
+  } else {
+    // 2. Fallback
+    RendererMenus.fallbackCopy(playerId, copyIcon);
+  }
+};
+
+// A função fallbackCopy ainda pode ficar interna a RendererMenus
+const fallbackCopy = function (text, iconElement) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+
+    const originalHtml = iconElement.dataset.originalHtml;
+
+    iconElement.innerHTML = `<i class="fa-solid fa-check"></i>`;
+    iconElement.classList.remove("text-blue-600", "hover:text-blue-800");
+    iconElement.classList.add("text-green-600");
+
+    setTimeout(() => {
+      iconElement.innerHTML = originalHtml;
+      iconElement.classList.remove("text-green-600");
+      iconElement.classList.add("text-blue-600", "hover:text-blue-800");
+    }, 1500);
+  } catch (err) {
+    console.error('Falha ao copiar o ID: ', err);
+    window.Utils.showModal("errorModal", "Falha ao copiar o ID. Por favor, copie manualmente.");
+  }
+  document.body.removeChild(textarea);
+};
 
 
 export const RendererMenus = {
@@ -74,9 +74,9 @@ export const RendererMenus = {
   updateGenderOnly: function (gender) {
     window.gameState.profile.trainerGender = gender;
   },
-  
+
   // Agora apenas referencia a função global para uso interno (embora no seu caso só o HTML use)
-  copyPlayerId: window.Renderer.copyPlayerId, 
+  copyPlayerId: window.Renderer.copyPlayerId,
   fallbackCopy: fallbackCopy, // Define fallbackCopy dentro do objeto RendererMenus
 
   renderInitialMenu: function (app) {
@@ -127,11 +127,10 @@ export const RendererMenus = {
                         <div class="flex justify-center gap-6 sm:gap-10">
                             <div onclick="window.Renderer.selectGender('MALE')" 
                                 class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                ${
-                                  currentGender === "MALE"
-                                    ? "border-blue-600 bg-blue-200 shadow-lg"
-                                    : "border-gray-300 bg-white hover:bg-gray-200"
-                                }">
+                                ${currentGender === "MALE"
+        ? "border-blue-600 bg-blue-200 shadow-lg"
+        : "border-gray-300 bg-white hover:bg-gray-200"
+      }">
                                 <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
                                     alt="Treinador Masculino" 
                                     class="h-24 object-contain" 
@@ -140,11 +139,10 @@ export const RendererMenus = {
                             </div>
                             <div onclick="window.Renderer.selectGender('FEMALE')" 
                                 class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                ${
-                                  currentGender === "FEMALE"
-                                    ? "border-pink-600 bg-pink-200 shadow-lg"
-                                    : "border-gray-300 bg-white hover:bg-gray-200"
-                                }">
+                                ${currentGender === "FEMALE"
+        ? "border-pink-600 bg-pink-200 shadow-lg"
+        : "border-gray-300 bg-white hover:bg-gray-200"
+      }">
                                 <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
                                     alt="Treinadora Feminina" 
                                     class="h-24 object-contain" 
@@ -158,18 +156,17 @@ export const RendererMenus = {
                         <p class="text-xs font-bold gba-font mb-3 mt-6 text-center">Escolha seu Inicial:</p>
                         <div class="flex flex-col sm:flex-row justify-around gap-4"> 
                             ${window.GameConfig.STARTERS.map(
-                              (name) => `
+        (name) => `
                                 <div onclick="window.selectStarter('${name}')" class="flex flex-col items-center flex-1 cursor-pointer">
-                                    <img src="../assets/sprites/pokemon/${
-                                      starterSpriteIds[name]
-                                    }_front.png" alt="${name}" 
+                                    <img src="../assets/sprites/pokemon/${starterSpriteIds[name]
+          }_front.png" alt="${name}" 
                                         class="mx-auto w-20 h-20 sm:w-24 sm:h-24 transition-transform duration-200 hover:scale-125">
                                     <div class="text-xs gba-font text-gray-800 mt-2 text-center">${window.Utils.formatName(
-                                      name
-                                    )}</div>
+            name
+          )}</div>
                                 </div>
                             `
-                            ).join("")}
+      ).join("")}
                         </div>
                     </div>
                 </div>
@@ -187,7 +184,7 @@ export const RendererMenus = {
     // Redesenha para atualizar a seleção visualmente
     window.Renderer.renderStarterSelection(document.getElementById("app-container"));
   },
-  
+
   // Função auxiliar para `renderStarterSelection`
   selectStarter: async function (name) {
     const input = document.getElementById("trainerNameInput");
@@ -228,6 +225,11 @@ export const RendererMenus = {
 
   renderMainMenu: function (app) {
     const profile = window.gameState.profile;
+    const isBetaMode = profile.preferences?.isBetaMode || false;
+    const exploreAction = isBetaMode ? `window.Renderer.showScreen('mapView')` : `window.GameLogic.explore()`;
+    const exploreButtonText = isBetaMode ? "MAPA MUNDIAL (BETA)" : "ANDAR";
+    const exploreButtonColor = isBetaMode ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600";
+
 
     const allFainted =
       profile.pokemon.length > 0 &&
@@ -245,13 +247,11 @@ export const RendererMenus = {
                     <img src="${trainerImage}" alt="Treinador" class="w-12 h-12 rounded-full border-2 border-gray-400 mr-3">
                     <div class="flex flex-col items-start space-y-1 text-xs gba-font">
                         <p><strong>NOME:</strong> ${profile.trainerName}</p>
-                        <p><strong>GÊNERO:</strong> ${
-                          profile.trainerGender === "MALE" ? "M" : "F"
-                        }</p>
+                        <p><strong>GÊNERO:</strong> ${profile.trainerGender === "MALE" ? "M" : "F"
+      }</p>
                         <p><strong>DINHEIRO:</strong> P$${profile.money}</p>
-                        <p><strong>POKÉS:</strong> ${
-                          profile.pokemon.length
-                        } / 1025</p>
+                        <p><strong>POKÉS:</strong> ${profile.pokemon.length
+      } / 1025</p>
                     </div>
                 </div>
             </div>
@@ -266,14 +266,14 @@ export const RendererMenus = {
             </div>
         `;
 
-    const exploreDisabled = allFainted ? "disabled" : "";
+    const exploreDisabled = allFainted && !isBetaMode ? "disabled" : "";
 
     const exploreLog = window.gameState.exploreLog || [];
-    const exploreMsg = allFainted
+    const exploreMsg = allFainted && !isBetaMode
       ? '<span class="text-red-500">TODOS DESMAIADOS! Vá para o Centro Pokémon.</span>'
       : exploreLog.length > 0
-      ? exploreLog.slice(-1)[0]
-      : "O que você fará?";
+        ? exploreLog.slice(-1)[0]
+        : "O que você fará?";
 
     const exploreHtml = `
             <div class="p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner flex-shrink-0">
@@ -281,7 +281,7 @@ export const RendererMenus = {
                 <div id="explore-result" class="h-16 text-xs gba-font mb-2 overflow-y-auto">
                     ${exploreMsg}
                 </div>
-                <button onclick="window.GameLogic.explore()" class="gba-button bg-green-500 hover:bg-green-600 w-full ${exploreDisabled}" ${exploreDisabled}>ANDAR</button>
+                <button onclick="${exploreAction}" class="gba-button ${exploreButtonColor} w-full ${exploreDisabled}" ${exploreDisabled}>${exploreButtonText}</button>
             </div>
         `;
 
@@ -317,7 +317,7 @@ export const RendererMenus = {
     `;
     window.Renderer.renderGbaCard(content);
   },
-  
+
   renderFriendshipMenu: function (app) {
     const content = `
     <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>
@@ -366,11 +366,31 @@ export const RendererMenus = {
     const prefs = window.gameState.profile.preferences;
     const volumePercent = Math.round(prefs.volume * 100);
     const isMuted = prefs.isMuted;
+    const isBetaMode = prefs.isBetaMode; // NOVO: Estado do modo Beta
 
     const content = `
           <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font flex-shrink-0">PREFERÊNCIAS</div>
           
           <div class="p-4 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-6 flex-grow overflow-y-auto">
+              
+              <!-- Opção de Modo Beta -->
+              <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2 flex justify-between items-center">
+                  <span>MODO BETA</span>
+                  <button onclick="window.Utils.toggleBetaMode()" 
+                          class="gba-button w-24 h-8 text-[10px] ${isBetaMode
+        ? "bg-red-500 hover:bg-red-600"
+        : "bg-green-500 hover:bg-green-600"
+      }">
+                      ${isBetaMode ? "DESATIVAR" : "ATIVAR"}
+                  </button>
+              </div>
+              <p class="text-xs gba-font text-gray-500 mb-6">
+                ${isBetaMode
+        ? 'Ativado. A tela "Explorar" agora é o Mapa Mundial (WIP).'
+        : 'Desativado. A navegação será por texto e botões.'
+      }
+              </p>
+
               <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2">CONTROLE DE SOM</div>
               
               <!-- Slider de Volume -->
@@ -378,29 +398,25 @@ export const RendererMenus = {
                   <label for="volumeSlider" class="block text-xs font-bold gba-font mb-2">
                       Volume da Música: ${volumePercent}%
                   </label>
-                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${
-                    prefs.volume
-                  }" 
+                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${prefs.volume
+      }" 
                          oninput="window.updateVolume(this.value)"
                          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
               </div>
 
               <!-- Botão Mute -->
               <button onclick="window.toggleMute()" 
-                      class="gba-button w-full ${
-                        isMuted
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-500 hover:bg-green-600"
-                      }">
-                  ${
-                    isMuted
-                      ? "SOM MUDO (CLIQUE PARA LIGAR)"
-                      : "SOM LIGADO (CLIQUE PARA MUTAR)"
-                  }
+                      class="gba-button w-full ${isMuted
+        ? "bg-red-500 hover:bg-red-600"
+        : "bg-green-500 hover:bg-green-600"
+      }">
+                  ${isMuted
+        ? "SOM MUDO (CLIQUE PARA LIGAR)"
+        : "SOM LIGADO (CLIQUE PARA MUTAR)"
+      }
               </button>
-              <p class="text-xs gba-font text-gray-500 mt-2 text-center">(O volume atual do jogo é ${
-                isMuted ? "MUDO" : "LIGADO"
-              })</p>
+              <p class="text-xs gba-font text-gray-500 mt-2 text-center">(O volume atual do jogo é ${isMuted ? "MUDO" : "LIGADO"
+      })</p>
 
           </div>
           
@@ -427,26 +443,23 @@ export const RendererMenus = {
             <div class="space-y-3 text-sm gba-font flex-grow  p-2">
                 <div>
                     <label for="newTrainerName" class="block text-xs font-bold mb-1">Nome:</label>
-                    <input id="newTrainerName" type="text" value="${
-                      profile.trainerName
-                    }"
+                    <input id="newTrainerName" type="text" value="${profile.trainerName
+      }"
                         class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner uppercase">
                 </div>
                 <div>
                     <p class="text-xs font-bold mb-1">Gênero:</p>
                     <div class="flex justify-center space-x-4 text-xs">
                         <label class="flex items-center space-x-1">
-                            <input type="radio" name="newTrainerGender" value="MALE" ${
-                              profile.trainerGender === "MALE" ? "checked" : ""
-                            } onclick="window.Renderer.updateGenderOnly('MALE')">
+                            <input type="radio" name="newTrainerGender" value="MALE" ${profile.trainerGender === "MALE" ? "checked" : ""
+      } onclick="window.Renderer.updateGenderOnly('MALE')">
                             <span>Homem</span>
                         </label>
                         <label class="flex items-center space-x-1">
-                            <input type="radio" name="newTrainerGender" value="FEMALE" ${
-                              profile.trainerGender === "FEMALE"
-                                ? "checked"
-                                : ""
-                            } onclick="window.Renderer.updateGenderOnly('FEMALE')">
+                            <input type="radio" name="newTrainerGender" value="FEMALE" ${profile.trainerGender === "FEMALE"
+        ? "checked"
+        : ""
+      } onclick="window.Renderer.updateGenderOnly('FEMALE')">
                             <span>Mulher</span>
                         </label>
                     </div>
@@ -479,9 +492,8 @@ export const RendererMenus = {
                 <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 w-full mb-2">Salvar Perfil</button>
             </div>
             
-            ${
-              isAnonymous
-                ? `
+            ${isAnonymous
+        ? `
                 <div class="mt-2 text-center text-xs gba-font text-gray-600">
                     Faça login para salvar na nuvem!
                 </div>
@@ -495,19 +507,18 @@ export const RendererMenus = {
                     </button>
                 </div>
             `
-                : ""
-            }
-            ${
-              !isAnonymous
-                ? `
+        : ""
+      }
+            ${!isAnonymous
+        ? `
     <div class="mt-2 flex-shrink-0">
         <button onclick="window.signOutUser()" class="gba-button bg-red-500 hover:bg-red-600 w-full">
             LOGOUT
         </button>
     </div>
 `
-                : ""
-            }
+        : ""
+      }
 
             <div class="mt-4 border-t-2 border-gray-800 pt-4 flex-shrink-0">
                 <button onclick="window.GameLogic.exportSave()" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2">Exportar Save</button>

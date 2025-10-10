@@ -90,6 +90,13 @@ export async function createConfigAndUtils(v) {
         preferences: {
           volume: 0.5,
           isMuted: false,
+          isBetaMode: false, // NOVO: Flag para o modo Beta
+        },
+        // NOVO: Última Localização (Usado para o mapa)
+        lastLocation: {
+          lat: -25.5317, // Default: Curitiba, PR, Brasil (Ponto central razoável)
+          lng: -49.2707,
+          timestamp: Date.now(),
         },
       },
       pokedexCache: {}, // Garante que o cache é inicializado como objeto vazio
@@ -159,8 +166,22 @@ export async function createConfigAndUtils(v) {
             window.gameState.profile.preferences = {
               volume: 0.5,
               isMuted: false,
+              isBetaMode: false, // Garante que a flag exista ao carregar
+            };
+          } else if (window.gameState.profile.preferences.isBetaMode === undefined) {
+            // Caso tenha preferências mas falte a nova flag
+            window.gameState.profile.preferences.isBetaMode = false;
+          }
+
+          // Garante que a localização exista com defaults se ausente
+          if (!window.gameState.profile.lastLocation) {
+            window.gameState.profile.lastLocation = {
+              lat: -25.5317,
+              lng: -49.2707,
+              timestamp: Date.now(),
             };
           }
+
 
           // Garante que os itens carregados tenham a spriteUrl.
           window.gameState.profile.items = window.gameState.profile.items.map(
@@ -215,7 +236,9 @@ export async function createConfigAndUtils(v) {
           iterablePokedex = window.gameState.profile.pokedex;
         }
 
-        window.gameState.profile.pokedex = new Set(iterablePokedex);
+        window.gameState.profile.pokedex = new Set(
+          iterablePokedex
+        );
         console.warn("Pokedex re-inicializada como Set.");
       }
 
@@ -256,6 +279,19 @@ export async function createConfigAndUtils(v) {
         window.Renderer.renderPreferences(
           document.getElementById("app-container")
         );
+      }
+    },
+
+    // NOVO: Função para alternar o modo Beta
+    toggleBetaMode: function () {
+      const prefs = window.gameState.profile.preferences;
+      prefs.isBetaMode = !prefs.isBetaMode;
+      Utils.saveGame();
+
+      // Redireciona para o menu principal para aplicar a nova navegação
+      if (window.Renderer) {
+        window.Utils.showModal("infoModal", `Modo BETA ${prefs.isBetaMode ? 'ATIVADO' : 'DESATIVADO'}.`);
+        window.Renderer.showScreen('mainMenu');
       }
     },
 

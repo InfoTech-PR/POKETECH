@@ -1,5 +1,8 @@
-// renderer_services.js
-// Renderização das telas de serviços (Centro Pokémon, Loja) e PvP.
+/**
+ * renderer_services.js
+ * Renderização das telas de serviços (Centro Pokémon, Loja) e PvP.
+ * NOVO: Contém a renderização da tela de Mapa (renderMapView).
+ */
 
 // Função auxiliar (global) para atualizar o subtotal na loja
 window.updateSubtotal = function (inputId, itemCost) {
@@ -43,12 +46,73 @@ window.updateSubtotal = function (inputId, itemCost) {
  * @returns {number} A quantidade do item.
  */
 function getItemQuantity(itemName) {
-    const item = window.gameState.profile.items.find(i => i.name === itemName);
-    return item ? item.quantity : 0;
+  const item = window.gameState.profile.items.find((i) => i.name === itemName);
+  return item ? item.quantity : 0;
 }
 
-
 export const RendererServices = {
+  // ====================================================================
+  // NOVO: MAPA MUNDIAL (BETA MODE)
+  // ====================================================================
+
+  renderMapView: function (app, extraData = {}) {
+    window.MapCore.destroyMap(); // Garante que a instância anterior seja removida
+
+    const profile = window.gameState.profile;
+    const location = profile.lastLocation || { lat: 0, lng: 0 };
+    const isReady = profile.lastLocation?.lat !== 0 || profile.lastLocation?.lng !== 0;
+    const exploreBtnClass = isReady ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed';
+
+    // A mensagem da batalha é passada em extraData.battleMessage
+    const battleMessage = extraData.battleMessage || "";
+
+    const content = `
+            <div class="flex flex-col h-full w-full">
+                <div class="text-lg font-bold text-center pt-2 text-red-600 gba-font flex-shrink-0">MAPA MUNDIAL (BETA)</div>
+                <div class="text-center text-[10px] sm:text-xs text-gray-800 gba-font flex-shrink-0 mb-2">
+                    SUA LOCALIZAÇÃO ESTÁ SENDO RASTREADA E SERÁ COMPARTILHADA COM AMIGOS.
+                </div>
+                
+                <!-- CONTAINER DO MAPA -->
+                <div id="map-container" class="flex-grow min-h-[50vh] bg-gray-300 border-4 border-gray-800 rounded-lg shadow-inner mb-2 relative">
+                    <!-- Leaflet irá injetar o mapa aqui -->
+                </div>
+                
+                <!-- LOG DE STATUS/EXPLORAÇÃO E POSIÇÃO -->
+                <div class="flex flex-col space-y-1.5 mb-2 flex-shrink-0">
+                  <div id="current-location-display" class="text-[10px] gba-font text-gray-800 p-1.5 bg-gray-300 border-2 border-gray-500 rounded-md">
+                      ÚLTIMA POSIÇÃO: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}
+                  </div>
+                  <div id="explore-log-display" class="gba-font text-[10px] sm:text-xs p-1.5 bg-gray-100 text-gray-800 border-2 border-gray-500 rounded-md">
+                      Toque em "EXPLORAR" para procurar Pokémons.
+                  </div>
+                </div>
+
+                <!-- BOTÕES DE AÇÃO -->
+                <div class="flex-shrink-0 space-y-2">
+                    <button onclick="window.MapCore.mapExplore()" 
+                            class="gba-button ${exploreBtnClass} w-full"
+                            ${isReady ? '' : 'disabled'}>
+                        EXPLORAR NESTA ÁREA
+                    </button>
+                    <button onclick="window.MapCore.destroyMap(); window.Renderer.showScreen('mainMenu')" 
+                            class="gba-button bg-gray-500 hover:bg-gray-600 w-full">
+                        Voltar ao Menu Principal
+                    </button>
+                </div>
+            </div>
+        `;
+    window.Renderer.renderGbaCard(content);
+
+    // Inicializa o mapa Leaflet APÓS a injeção do HTML
+    // Passa a mensagem de batalha para ser exibida após o carregamento do mapa
+    window.MapCore.initializeMap(profile.lastLocation, battleMessage);
+  },
+
+  // ====================================================================
+  // TELAS DE SERVIÇOS E BATTLE (ORIGINAL)
+  // ====================================================================
+
   renderHealCenter: function (app) {
     const profile = window.gameState.profile;
     const GameConfig = window.GameConfig;
@@ -64,8 +128,8 @@ export const RendererServices = {
     const statusMessage = canHeal
       ? `O custo para curar ${totalHealable} Pokémons é de P$${totalCost}.`
       : totalHealable === 0
-      ? "Todos os seus Pokémons estão saudáveis."
-      : `<span class="text-red-500">Dinheiro insuficiente para curar todos! Custo: P$${totalCost}</span>`;
+        ? "Todos os seus Pokémons estão saudáveis."
+        : `<span class="text-red-500">Dinheiro insuficiente para curar todos! Custo: P$${totalCost}</span>`;
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-red-600 gba-font flex-shrink-0">CENTRO POKÉMON</div>
@@ -77,9 +141,8 @@ export const RendererServices = {
             <div class="p-4 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-4 text-center gba-font text-xs flex-grow overflow-y-auto">
                 ${statusMessage}
             </div>
-            <button onclick="window.GameLogic.healAllPokemon()" class="gba-button bg-pink-500 hover:bg-pink-600 w-full mb-2 flex-shrink-0 ${
-              !canHeal ? "disabled" : ""
-            }" ${!canHeal ? "disabled" : ""}>
+            <button onclick="window.GameLogic.healAllPokemon()" class="gba-button bg-pink-500 hover:bg-pink-600 w-full mb-2 flex-shrink-0 ${!canHeal ? "disabled" : ""
+      }" ${!canHeal ? "disabled" : ""}>
                 CURAR TODOS
             </button>
             <button onclick="window.Renderer.showScreen('serviceMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
@@ -94,13 +157,12 @@ export const RendererServices = {
       const inputId = `qty-${item.name.replace(/\s/g, "")}`;
       const buyBtnId = `buy-btn-${inputId}`;
       const initialSubtotal = item.cost * 1;
-      
+
       // NOVO: Busca a quantidade que o jogador já tem
       const currentQuantity = getItemQuantity(item.name);
-      const quantityText = currentQuantity > 0 
-          ? `<span class="text-blue-700 gba-font text-[10px] ml-1">(Você tem: x${currentQuantity})</span>`
-          : `<span class="text-red-500 gba-font text-[10px] ml-1">(Não possui)</span>`;
-
+      const quantityText = currentQuantity > 0
+        ? `<span class="text-blue-700 gba-font text-[10px] ml-1">(Você tem: x${currentQuantity})</span>`
+        : `<span class="text-red-500 gba-font text-[10px] ml-1">(Não possui)</span>`;
 
       const isAffordable = window.gameState.profile.money >= initialSubtotal;
 
@@ -109,20 +171,17 @@ export const RendererServices = {
               
               <!-- Ícone do Item e Nome -->
               <div class="flex items-center flex-grow min-w-0">
-                ${
-                  item.spriteUrl
-                    ? `<img src="${item.spriteUrl}" alt="${item.name}" class="w-8 h-8 mr-2 flex-shrink-0">`
-                    : ""
-                }
+                ${item.spriteUrl
+          ? `<img src="${item.spriteUrl}" alt="${item.name}" class="w-8 h-8 mr-2 flex-shrink-0">`
+          : ""
+        }
                 <div class="flex-grow min-w-0">
-                    <span class="gba-font text-xs sm:text-sm">${
-                      item.name
-                    }</span>
+                    <span class="gba-font text-xs sm:text-sm">${item.name
+        }</span>
                     <!-- NOVO: Mostra a quantidade atual do item -->
                     <p>${quantityText}</p>
-                    <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${
-                      item.cost
-                    } cada)</span>
+                    <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${item.cost
+        } cada)</span>
                     <!-- Subtotal dinâmico -->
                     <div id="subtotal-${inputId}" class="gba-font text-xs text-yellow-700 font-bold mt-1">
                         Subtotal: P$${initialSubtotal}
@@ -134,9 +193,8 @@ export const RendererServices = {
               <div class="flex items-center space-x-1 flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                 
                 <!-- Botão Decrementar -->
-                <button onclick="document.getElementById('${inputId}').value = Math.max(1, parseInt(document.getElementById('${inputId}').value) - 1); window.updateSubtotal('${inputId}', ${
-        item.cost
-      });"
+                <button onclick="document.getElementById('${inputId}').value = Math.max(1, parseInt(document.getElementById('${inputId}').value) - 1); window.updateSubtotal('${inputId}', ${item.cost
+        });"
                         class="w-8 h-8 gba-button bg-red-400 hover:bg-red-500 p-0 text-xl leading-none">-</button>
                 
                 <!-- Input de Quantidade -->
@@ -145,21 +203,18 @@ export const RendererServices = {
                     class="w-16 p-1 border-2 border-gray-400 rounded gba-font text-sm text-center bg-white shadow-inner">
                 
                 <!-- Botão Incrementar -->
-                <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${
-        item.cost
-      });"
+                <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${item.cost
+        });"
                         class="w-8 h-8 gba-button bg-blue-400 hover:bg-blue-500 p-0 text-xl leading-none">+</button>
 
                 <!-- Botão Comprar -->
                 <button id="${buyBtnId}"
-                        onclick="window.GameLogic.buyItem('${
-                          item.name
-                        }', document.getElementById('${inputId}').value)" 
-                        class="gba-button text-xs w-24 h-8 ${
-                          isAffordable
-                            ? "bg-green-500 hover:bg-green-600"
-                            : "bg-gray-400"
-                        }"
+                        onclick="window.GameLogic.buyItem('${item.name
+        }', document.getElementById('${inputId}').value)" 
+                        class="gba-button text-xs w-24 h-8 ${isAffordable
+          ? "bg-green-500 hover:bg-green-600"
+          : "bg-gray-400"
+        }"
                         ${isAffordable ? "" : "disabled"}>
                     Comprar
                 </button>
@@ -196,15 +251,12 @@ export const RendererServices = {
             <div id="pvp-messages" class="h-16 p-2 mb-4 bg-white border-2 border-gray-400 rounded overflow-y-auto text-sm gba-font flex-grow">
                 ${messages}
             </div>
-            <button onclick="window.PvpCore.createPvpLink()" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${
-      !PvpCore.isPvpEnabled() ? "disabled" : ""
-    }>Criar Sala de Batalha</button>
-            <input id="pvpRoomInput" type="text" placeholder="ID da Sala para Entrar" class="w-full p-2 mb-4 border-2 border-gray-400 rounded gba-font text-sm flex-shrink-0 ${disabledClass}" ${
-      !PvpCore.isPvpEnabled() ? "disabled" : ""
-    }>
-            <button onclick="window.PvpCore.joinPvpBattle(document.getElementById('pvpRoomInput').value.trim())" class="gba-button bg-orange-500 hover:bg-orange-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${
-      !PvpCore.isPvpEnabled() ? "disabled" : ""
-    }>Entrar em Batalha</button>
+            <button onclick="window.PvpCore.createPvpLink()" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+      }>Criar Sala de Batalha</button>
+            <input id="pvpRoomInput" type="text" placeholder="ID da Sala para Entrar" class="w-full p-2 mb-4 border-2 border-gray-400 rounded gba-font text-sm flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+      }>
+            <button onclick="window.PvpCore.joinPvpBattle(document.getElementById('pvpRoomInput').value.trim())" class="gba-button bg-orange-500 hover:bg-orange-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+      }>Entrar em Batalha</button>
             <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
@@ -225,7 +277,7 @@ export const RendererServices = {
                 Aguardando um oponente entrar na Sala ${roomId}.
             </div>
             <input id="pvpLink" type="text" value="${url}" readonly class="w-full p-1 mb-4 text-xs border border-gray-300 rounded flex-shrink-0" onclick="window.PvpCore.copyPvpLink()">
-            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar ao Menu</button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     gbaScreen.innerHTML = content;
   },
@@ -237,7 +289,7 @@ export const RendererServices = {
       window.Renderer.showScreen("mainMenu");
       return;
     }
-    
+
     // Adicionado um pequeno cabeçalho visualmente menos intrusivo
     const battleType = battle.type === 'pvp' ? 'PVP' : 'SELVA';
 

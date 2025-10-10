@@ -38,25 +38,25 @@ export async function createRenderer(v) {
         renderServiceMenu: RendererMenus.renderServiceMenu,
         renderProfileMenu: RendererMenus.renderProfileMenu,
         renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
-        
+
         // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
-        copyPlayerId: RendererMenus.copyPlayerId, 
+        copyPlayerId: RendererMenus.copyPlayerId,
 
         // Funções de Gênero
-        selectGender: RendererMenus.selectGender, 
-        updateGenderOnly: RendererMenus.updateGenderOnly, 
-        
+        selectGender: RendererMenus.selectGender,
+        updateGenderOnly: RendererMenus.updateGenderOnly,
+
         // Pokémon Functions (from renderer_pokemon.js)
         renderPokemonList: RendererPokemon.renderPokemonList,
         renderManagePokemon: RendererPokemon.renderManagePokemon,
         renderBag: RendererPokemon.renderBag,
-        
+
         // CORREÇÃO E NOVIDADE: renderPokedex agora é a tela que exibe a lista de regiões
         // A função detalhada é chamada internamente.
         renderPokedex: RendererPokemon.renderPokedex,
-        
+
         // NOVA FUNÇÃO (para ser chamada via showScreen('pokedex'))
-        renderPokedexRegionList: RendererPokemon.renderPokedexRegionList, 
+        renderPokedexRegionList: RendererPokemon.renderPokedexRegionList,
 
         showPokemonStats: RendererPokemon.showPokemonStats,
         showPokedexStats: RendererPokemon.showPokedexStats,
@@ -67,8 +67,9 @@ export async function createRenderer(v) {
         renderShop: RendererServices.renderShop,
         renderPvpSetup: RendererServices.renderPvpSetup,
         renderPvpWaiting: RendererServices.renderPvpWaiting,
-        renderBattleScreen: RendererServices.renderBattleScreen, 
+        renderBattleScreen: RendererServices.renderBattleScreen,
         renderSwitchPokemon: RendererServices.renderSwitchPokemon,
+        renderMapView: RendererServices.renderMapView, // NOVO: Mapeamento de tela de mapa
     };
 
     return Renderer;

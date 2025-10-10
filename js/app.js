@@ -1,3 +1,8 @@
+/**
+ * js/app.js
+ * Ponto de entrada da aplicação.
+ */
+
 let GameConfig,
   initializeGameState,
   Utils,
@@ -8,7 +13,9 @@ let GameConfig,
   Renderer,
   AuthSetup,
   registerExistingPokemonOnLoad,
-  PokeFriendship;
+  PokeFriendship,
+  MapCore,
+  PokeChat; // NOVO: Módulo de Chat
 
 /**
  * Função principal de inicialização da aplicação.
@@ -24,9 +31,8 @@ export async function init(cacheBuster = Date.now()) {
     const statusElement = document.getElementById("error-status");
     if (statusElement) {
       statusElement.textContent = message;
-      statusElement.className = `text-[8px] gba-font text-center mt-2 ${
-        isError ? "text-red-500" : "text-green-500"
-      }`;
+      statusElement.className = `text-[8px] gba-font text-center mt-2 ${isError ? "text-red-500" : "text-green-500"
+        }`;
     }
   }
 
@@ -131,19 +137,26 @@ export async function init(cacheBuster = Date.now()) {
     const pvpModule = await import(`./pvp_core.js?v=${Date.now()}`);
     PvpCore = pvpModule.PvpCore;
 
-    // 5. Carregamento da Fábrica do Renderer e Inicialização
+    // 5. Carregamento do Core do Mapa (NOVO)
+    const mapModule = await import(`./map_core.js?v=${Date.now()}`);
+    MapCore = mapModule.MapCore;
+
+    // 6. Carregamento da Fábrica do Renderer e Inicialização
     const rendererModule = await import(`./renderer.js?v=${Date.now()}`);
     // Chama a função de fábrica do Renderer, passando o versionamento
     Renderer = await rendererModule.createRenderer(cacheBuster);
 
-    // 6. Carregamento do Setup de Autenticação
+    // 7. Carregamento do Setup de Autenticação
     const authModule = await import(`./auth_setup.js?v=${Date.now()}`);
     AuthSetup = authModule.AuthSetup;
 
-    // 7. Carregamento do Sistema de Amizade
+    // 8. Carregamento do Sistema de Amizade
     const friendshipModule = await import(`./poke_friendship.js?v=${Date.now()}`);
     PokeFriendship = friendshipModule.PokeFriendship;
-    window.PokeFriendship = PokeFriendship; // Expõe para uso em onclick/eventos
+
+    // 9. Carregamento do Sistema de Chat (NOVO)
+    const chatModule = await import(`./poke_chat.js?v=${Date.now()}`);
+    PokeChat = chatModule.PokeChat;
 
     // --- Exposição para o escopo global (window) ---
     window.GameConfig = GameConfig;
@@ -155,6 +168,7 @@ export async function init(cacheBuster = Date.now()) {
     window.Utils = Utils;
     window.initializeGameState = initializeGameState;
     window.registerExistingPokemonOnLoad = registerExistingPokemonOnLoad;
+    window.MapCore = MapCore; // EXPONDO O NOVO CORE
 
     // --- Exposição de funções de tela e lógica ---
     window.showScreen = Renderer.showScreen;
@@ -193,6 +207,9 @@ export async function init(cacheBuster = Date.now()) {
     window.updateVolume = Utils.updateVolume;
     window.toggleMute = Utils.toggleMute;
     window.resetGameData = Utils.resetGameData;
+    window.toggleBetaMode = GameLogic.toggleBetaMode; // NOVO
+    window.mapExplore = GameLogic.mapExplore; // NOVO
+    window.PokeChat = PokeChat; // EXPONDO O NOVO CHAT
 
     // LOGIN
     window.signInWithGoogle = AuthSetup.signInWithGoogle;
@@ -223,9 +240,9 @@ export async function init(cacheBuster = Date.now()) {
                             Ocorreu um erro ao carregar os arquivos principais.
                             <br>
                             <strong>Detalhe:</strong> ${errorMessage.substring(
-                              0,
-                              150
-                            )}
+        0,
+        150
+      )}
                         </div>
                     </div>
 

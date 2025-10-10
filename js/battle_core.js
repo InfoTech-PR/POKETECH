@@ -458,15 +458,19 @@ export const BattleCore = {
       // 3. Salva os dados
       window.GameLogic.saveGameData();
 
-      // 4. Volta ao menu
+      // 4. LÓGICA DE RETORNO DO MAPA (BETA MODE)
+      if (window.gameState.profile.preferences?.isBetaMode) {
+        window.AuthSetup?.handleBattleMusic(false);
+        // Chama a função no MapCore para voltar ao mapa e exibir o modal
+        window.MapCore.handleBattleReturn(finalMessage);
+        return;
+      }
+
+      // 5. Fallback para o Menu Principal (Modo Clássico)
       window.AuthSetup?.handleBattleMusic(false);
       window.Renderer.showScreen("mainMenu");
     }
   },
-
-  // =======================================================
-  // FUNÇÕES DE FLUXO E LÓGICA (playerTurn, opponentTurn, etc.)
-  // =======================================================
 
   /**
    * Calcula e aplica XP e dinheiro ao vencedor da batalha selvagem.
@@ -1009,10 +1013,16 @@ export const BattleCore = {
         if (finalMessage) {
           BattleCore._endBattleAndSyncLog(finalMessage);
         } else {
-          // Caso contrário, limpe o estado e volte (caso de falha na captura que não resultou em fuga/KO)
+          // Caso contrário, limpe o estado e volte
           window.gameState.battle = null;
           window.AuthSetup?.handleBattleMusic(false);
-          window.Renderer.showScreen("mainMenu");
+
+          // LÓGICA DE RETORNO DO MAPA (BETA MODE)
+          if (window.gameState.profile.preferences?.isBetaMode) {
+            window.MapCore.handleBattleReturn("Fim de Batalha (Inesperado).");
+          } else {
+            window.Renderer.showScreen("mainMenu");
+          }
           window.GameLogic.saveGameData();
         }
       }, 2000);

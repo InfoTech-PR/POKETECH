@@ -3,32 +3,32 @@
 
 export const RendererCore = {
   showScreen: function (screenId, extraData = null) {
-    
+
     // CORREÇÃO ESSENCIAL: Garante que extraData é um objeto, mesmo que 'null' seja passado.
     let safeExtraData = extraData && typeof extraData === 'object' ? extraData : {};
-    
+
     // NOVO: TRATAMENTO DE STRING JSON (mantido por segurança, mas o bug o evita)
     if (typeof extraData === 'string' && screenId === 'pokedex') {
-        try {
-            safeExtraData = JSON.parse(extraData);
-            console.log(`[NAV] DADOS EXTRAS RESTAURADOS (JSON.parse):`, safeExtraData);
-        } catch (e) {
-            console.error('[NAV] Erro ao fazer JSON.parse do extraData. Usando objeto vazio.', e);
-            safeExtraData = {};
-        }
+      try {
+        safeExtraData = JSON.parse(extraData);
+        console.log(`[NAV] DADOS EXTRAS RESTAURADOS (JSON.parse):`, safeExtraData);
+      } catch (e) {
+        console.error('[NAV] Erro ao fazer JSON.parse do extraData. Usando objeto vazio.', e);
+        safeExtraData = {};
+      }
     }
 
     // CORREÇÃO FINAL ROBUSTA: Se o argumento direto falhou (objeto vazio ou nulo),
     // verifica a variável global temporária setada pela função openPokedexRegion.
     if (Object.keys(safeExtraData).length === 0 && window.nextScreenPayload) {
-        safeExtraData = window.nextScreenPayload;
-        window.nextScreenPayload = null; // Limpa imediatamente após o uso
-        console.log(`[NAV] DADOS EXTRAS RESTAURADOS (GLOBAL):`, safeExtraData);
+      safeExtraData = window.nextScreenPayload;
+      window.nextScreenPayload = null; // Limpa imediatamente após o uso
+      console.log(`[NAV] DADOS EXTRAS RESTAURADOS (GLOBAL):`, safeExtraData);
     }
-    
+
     // [LOG A] Adicionado log para rastrear a navegação e dados extras (agora usando safeExtraData)
     console.log(`[NAV] Tentativa de navegar para: ${screenId}. Dados extras:`, safeExtraData);
-    
+
     window.gameState.currentScreen = screenId;
     const app = document.getElementById("app-container");
 
@@ -94,6 +94,9 @@ export const RendererCore = {
         break;
       case "updates": // CORREÇÃO: Novo case para a tela de updates
         window.Renderer.renderUpdates(app);
+        break;
+      case "mapView": // NOVO: Tela do Mapa
+        window.Renderer.renderMapView(app);
         break;
       // NOVOS SUBMENUS
       case "pokemonMenu":

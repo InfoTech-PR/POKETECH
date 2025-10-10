@@ -1,6 +1,14 @@
 {
   "updates": [
     {
+      "date": "10/10/2025 18:40",
+      "text": "O Mapa Mundial no Modo Beta agora reage ao tempo real! Se for noite, o mapa fica escuro para imersão. Ele também mostra a temperatura e as condições de clima da sua localização."
+    },
+    {
+      "date": "10/10/2025 18:35",
+      "text": "Tema do Mapa Dinâmico: O Mapa Mundial alterna automaticamente para um tema escuro (night mode) quando o sol se põe na sua localização (baseado no is_day da API de clima)."
+    },
+    {
       "date": "10/10/2025 13:15",
       "text": "Mapa adicionado em beta para utilizar só ir em preferencias e ativar o BETA"
     },

@@ -60,11 +60,28 @@ export const RendererServices = {
 
     const profile = window.gameState.profile;
     const location = profile.lastLocation || { lat: 0, lng: 0 };
-    const isReady = profile.lastLocation?.lat !== 0 || profile.lastLocation?.lng !== 0;
+    // CORRIGIDO: Uso de optional chaining para garantir que a leitura de lat/lng não falhe
+    const isReady = location.lat !== 0 || location.lng !== 0;
     const exploreBtnClass = isReady ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed';
 
     // A mensagem da batalha é passada em extraData.battleMessage
     const battleMessage = extraData.battleMessage || "";
+
+    // Pega o estado do clima para exibição inicial
+    // CORRIGIDO: Fallback para um objeto de clima padrão seguro, evitando 'undefined'
+    const weather = window.gameState.currentWeather || {
+      temperature: null,
+      condition: 'Carregando...',
+      icon: 'fa-question-circle',
+      color: 'text-gray-800',
+      isDay: true
+    };
+
+    const tempDisplay = weather.temperature !== null && weather.temperature !== undefined ? `${weather.temperature}°C` : '---';
+    const conditionIcon = weather.icon || "fa-question-circle";
+    const conditionColor = weather.color || 'text-gray-800';
+    const dayNightIcon = weather.isDay ? 'fa-sun' : 'fa-moon';
+    const dayNightText = weather.isDay ? 'DIA' : 'NOITE';
 
     const content = `
             <div class="flex flex-col h-full w-full">
@@ -73,6 +90,17 @@ export const RendererServices = {
                     SUA LOCALIZAÇÃO ESTÁ SENDO RASTREADA E SERÁ COMPARTILHADA COM AMIGOS.
                 </div>
                 
+                <!-- PAINEL DE CLIMA -->
+                <div id="current-weather-display" 
+                     class="gba-font text-[10px] sm:text-xs bg-white border-2 border-gray-800 rounded-lg shadow-inner p-1.5 mb-2 text-center flex items-center justify-center space-x-2 flex-shrink-0">
+                    <i class="fa-solid ${dayNightIcon} mr-1 text-yellow-500"></i>
+                    <span class="mr-3">${dayNightText}</span>
+                    <i class="fa-solid ${conditionIcon} mr-1 ${conditionColor}"></i>
+                    <span class="mr-3 ${conditionColor}">${weather.condition || 'Carregando...'}</span>
+                    <i class="fa-solid fa-temperature-half mr-1 text-red-500"></i>
+                    <span>${tempDisplay}</span>
+                </div>
+
                 <!-- CONTAINER DO MAPA -->
                 <div id="map-container" class="flex-grow min-h-[50vh] bg-gray-300 border-4 border-gray-800 rounded-lg shadow-inner mb-2 relative">
                     <!-- Leaflet irá injetar o mapa aqui -->
@@ -81,7 +109,7 @@ export const RendererServices = {
                 <!-- LOG DE STATUS/EXPLORAÇÃO E POSIÇÃO -->
                 <div class="flex flex-col space-y-1.5 mb-2 flex-shrink-0">
                   <div id="current-location-display" class="text-[10px] gba-font text-gray-800 p-1.5 bg-gray-300 border-2 border-gray-500 rounded-md">
-                      ÚLTIMA POSIÇÃO: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}
+                      POSIÇÃO: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}
                   </div>
                   <div id="explore-log-display" class="gba-font text-[10px] sm:text-xs p-1.5 bg-gray-100 text-gray-800 border-2 border-gray-500 rounded-md">
                       Toque em "EXPLORAR" para procurar Pokémons.
@@ -105,7 +133,7 @@ export const RendererServices = {
     window.Renderer.renderGbaCard(content);
 
     // Inicializa o mapa Leaflet APÓS a injeção do HTML
-    // Passa a mensagem de batalha para ser exibida após o carregamento do mapa
+    // Passa a mensagem de batalha para ser exibida após o mapa carregar
     window.MapCore.initializeMap(profile.lastLocation, battleMessage);
   },
 

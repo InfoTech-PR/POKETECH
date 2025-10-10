@@ -71,7 +71,32 @@ export async function createConfigAndUtils(v) {
       { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
       { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
       { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
-    ]
+    ],
+
+    // ====================================================================
+    // NOVO: CONFIGURAÇÃO DE CLIMA
+    // ====================================================================
+    WEATHER_API_URL: "https://api.open-meteo.com/v1/forecast",
+    // Mapeamento WMO Code -> Nome no Jogo e Ícone FontAwesome
+    WEATHER_MAP: {
+      0: { name: "Céu Limpo", icon: "fa-sun", color: "text-yellow-500" }, // Clear sky
+      1: { name: "Parcialmente Nublado", icon: "fa-cloud-sun", color: "text-yellow-400" }, // Mostly clear
+      2: { name: "Nublado", icon: "fa-cloud-sun-rain", color: "text-gray-400" }, // Partly cloudy
+      3: { name: "Céu Encoberto", icon: "fa-cloud", color: "text-gray-600" }, // Overcast
+      45: { name: "Névoa", icon: "fa-smog", color: "text-gray-500" }, // Fog
+      48: { name: "Névoa Congelante", icon: "fa-icicles", color: "text-blue-200" }, // Depositing rime fog
+      51: { name: "Chuvisco Leve", icon: "fa-cloud-drizzle", color: "text-blue-500" }, // Drizzle: Light
+      53: { name: "Chuvisco Moderado", icon: "fa-cloud-drizzle", color: "text-blue-600" }, // Drizzle: Moderate
+      55: { name: "Chuvisco Intenso", icon: "fa-cloud-showers-heavy", color: "text-blue-700" }, // Drizzle: Dense
+      61: { name: "Chuva Leve", icon: "fa-cloud-rain", color: "text-blue-500" }, // Rain: Slight
+      63: { name: "Chuva Moderada", icon: "fa-cloud-showers-heavy", color: "text-blue-600" }, // Rain: Moderate
+      65: { name: "Chuva Forte", icon: "fa-cloud-showers-heavy", color: "text-blue-700" }, // Rain: Heavy
+      71: { name: "Neve Leve", icon: "fa-snowflakes", color: "text-blue-300" }, // Snow fall: Slight
+      73: { name: "Neve Moderada", icon: "fa-snowflake", color: "text-blue-400" }, // Snow fall: Moderate
+      75: { name: "Neve Forte", icon: "fa-icicles", color: "text-blue-500" }, // Snow fall: Heavy
+      95: { name: "Trovoada", icon: "fa-bolt", color: "text-yellow-600" }, // Thunderstorm: Slight or moderate
+      99: { name: "Trovoada Forte", icon: "fa-cloud-bolt", color: "text-yellow-700" }, // Thunderstorm with heavy hail
+    },
   };
 
   // 2. Definição do initializeGameState
@@ -104,6 +129,16 @@ export async function createConfigAndUtils(v) {
       battle: null,
       pvpRoomId: null,
       exploreLog: ["Bem-vindo ao Pokémon GBA RPG!"],
+
+      // NOVO: Estado do clima
+      currentWeather: {
+        isDay: true,
+        temperature: null, // Celsius
+        condition: "Céu Limpo", // Nome legível
+        icon: "fa-sun", // Ícone FontAwesome
+        rawCode: 0,
+        lastFetch: 0,
+      }
     };
   }
 
@@ -179,6 +214,18 @@ export async function createConfigAndUtils(v) {
               lat: -25.5317,
               lng: -49.2707,
               timestamp: Date.now(),
+            };
+          }
+
+          // Garante que o estado do clima exista com defaults
+          if (!window.gameState.currentWeather) {
+            window.gameState.currentWeather = {
+              isDay: true,
+              temperature: null,
+              condition: "Céu Limpo",
+              icon: "fa-sun",
+              rawCode: 0,
+              lastFetch: 0,
             };
           }
 
@@ -300,7 +347,7 @@ export async function createConfigAndUtils(v) {
       if (!modal) return;
       const messageElement = modal.querySelector(".modal-message");
       if (messageElement) {
-        messageElement.textContent = message;
+        messageElement.innerHTML = message; // Usando innerHTML para suportar HTML no modal
       }
       modal.classList.remove("hidden");
     },

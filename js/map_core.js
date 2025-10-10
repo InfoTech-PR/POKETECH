@@ -8,11 +8,116 @@
 let mapInstance = null;
 let playerMarker = null;
 let locationWatcherId = null;
+let currentTileLayer = null; // Para armazenar a camada ativa e removê-la
+
+// URLs de Estilo do Mapa
+const MAP_LAYERS = {
+    DAY: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    NIGHT: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png' // Tema escuro do CartoDB
+};
 
 // Localização padrão: Los Angeles (para evitar NaN/null na primeira renderização)
 const DEFAULT_LOCATION = { lat: 34.0522, lng: -118.2437 };
+const WEATHER_FETCH_INTERVAL = 300000; // 5 minutos em milissegundos (Ajustado para testes)
 
 export const MapCore = {
+    /**
+     * Função auxiliar para trocar a camada do mapa (dia/noite).
+     * @param {boolean} isDay Se o mapa deve usar o tema de dia.
+     */
+    _updateMapLayer: function (isDay) {
+        if (!mapInstance) return;
+
+        // 1. Remove a camada atual, se existir
+        if (currentTileLayer) {
+            mapInstance.removeLayer(currentTileLayer);
+        }
+
+        // 2. Define o URL e cria a nova camada
+        const layerUrl = isDay ? MAP_LAYERS.DAY : MAP_LAYERS.NIGHT;
+        currentTileLayer = L.tileLayer(layerUrl, {
+            maxZoom: 19,
+            attribution: isDay ? '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>' : '&copy; <a href="http://carto.com/attributions">CartoDB</a>, &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(mapInstance);
+
+        // Garante que o marcador do jogador permaneça no topo da nova camada
+        if (playerMarker) {
+            playerMarker.setZIndexOffset(1000);
+        }
+    },
+
+
+    /**
+     * Função para buscar dados de clima da Open-Meteo API.
+     * Armazena os dados em window.gameState.currentWeather.
+     * @param {number} lat Latitude
+     * @param {number} lng Longitude
+     */
+    fetchWeather: async function (lat, lng) {
+        const { WEATHER_API_URL, WEATHER_MAP } = window.GameConfig;
+        const now = Date.now();
+
+        // Garante que currentWeather é inicializado de forma segura
+        window.gameState.currentWeather = window.gameState.currentWeather || { lastFetch: 0, rawCode: -1 };
+        let currentWeather = window.gameState.currentWeather;
+
+        // 1. Verifica o limite de taxa de requisição
+        if (now - (currentWeather.lastFetch || 0) < WEATHER_FETCH_INTERVAL) {
+            console.log("[CLIMA] Usando dados em cache. Última busca: ", new Date(currentWeather.lastFetch).toLocaleTimeString());
+            // Chama a atualização da camada mesmo no cache
+            MapCore._updateMapLayer(currentWeather.isDay);
+            return;
+        }
+
+        try {
+            const url = `${WEATHER_API_URL}?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=1`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const current = data.current;
+
+            const wmoCode = current.weather_code;
+            const isDay = current.is_day === 1;
+            const temp = Math.round(current.temperature_2m);
+
+            const conditionData = WEATHER_MAP[wmoCode] || WEATHER_MAP[0];
+
+            const newWeatherState = {
+                isDay: isDay,
+                temperature: temp,
+                condition: conditionData.name,
+                icon: conditionData.icon,
+                rawCode: wmoCode,
+                lastFetch: now,
+                color: conditionData.color,
+            };
+
+            window.gameState.currentWeather = newWeatherState;
+            window.GameLogic.saveGameData();
+            console.log("[CLIMA] Dados de clima atualizados:", newWeatherState);
+
+            // NOVIDADE CRÍTICA: Troca a camada do mapa imediatamente após buscar o clima
+            MapCore._updateMapLayer(newWeatherState.isDay);
+
+        } catch (error) {
+            console.error("[CLIMA] Erro ao buscar dados de clima:", error);
+            window.gameState.currentWeather = {
+                isDay: true, // Fallback para dia em caso de erro de API
+                temperature: null,
+                condition: "Dados Indisponíveis",
+                icon: "fa-question-circle",
+                rawCode: -1,
+                lastFetch: now,
+                color: "text-red-500",
+            };
+        }
+    },
+
+
     /**
      * 1. Destrói a instância atual do mapa Leaflet para evitar o erro de reutilização.
      */
@@ -20,6 +125,7 @@ export const MapCore = {
         if (mapInstance) {
             mapInstance.remove();
             mapInstance = null;
+            currentTileLayer = null; // Limpa a referência da camada
             console.log("[MAPA] Instância do mapa Leaflet destruída.");
         }
         // Para o rastreamento de localização se estiver ativo
@@ -28,14 +134,10 @@ export const MapCore = {
             locationWatcherId = null;
             console.log("[MAPA] Rastreamento de localização parado.");
         }
-        // Limpa os dados de localização (opcional)
-        window.gameState.profile.lastLocation = { ...DEFAULT_LOCATION };
     },
 
     /**
      * 2. Inicializa o mapa Leaflet e o marcador do jogador.
-     * @param {object} initialLocation - Localização inicial (lat, lng).
-     * @param {string|null} battleMessage - Mensagem para exibir no modal após a batalha.
      */
     initializeMap: function (initialLocation, battleMessage = null) {
         // 1. Garante que qualquer instância anterior seja destruída
@@ -53,17 +155,16 @@ export const MapCore = {
         try {
             // Cria a instância Leaflet
             mapInstance = L.map(mapContainer, {
-                zoomControl: false, // Controlado via botões customizados
+                zoomControl: false,
                 attributionControl: false,
             }).setView([location.lat, location.lng], 13);
 
-            // Adiciona a camada de mapa (OpenStreetMap)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(mapInstance);
+            // 3. Inicializa a camada do mapa como padrão (DAY) até que o clima seja carregado
+            const initialIsDay = window.gameState.currentWeather?.isDay ?? true;
+            MapCore._updateMapLayer(initialIsDay);
 
-            // Ícone Customizado para o Jogador (usando um emoji ou HTML para ser simples)
+
+            // Ícone Customizado para o Jogador 
             const playerIconHtml = `
           <div class="flex items-center justify-center bg-blue-600 rounded-full w-6 h-6 border-2 border-white shadow-lg text-white font-bold text-xs">
               ${window.gameState.profile.trainerName.charAt(0)}
@@ -85,56 +186,56 @@ export const MapCore = {
             // Popup de Identificação
             playerMarker.bindPopup(`<strong>${window.gameState.profile.trainerName}</strong> (Você)`).openPopup();
 
-            // 3. Inicia o rastreamento de localização após a inicialização
-            MapCore.startLocationTracking();
+            // 4. Inicia o rastreamento de localização e o fetch do clima
+            MapCore.startLocationTracking(battleMessage);
 
-            // 4. Se houver mensagem de batalha, exibe-a no modal
+            // 5. Se houver mensagem de batalha, exibe-a no modal
             if (battleMessage) {
                 window.Utils.showModal("infoModal", `<div class="text-left"><h3 class="font-bold gba-font text-base mb-2">FIM DA BATALHA</h3>${battleMessage}</div>`);
-                // O log principal deve refletir o fim da batalha
-                MapCore.updateStatusLog(battleMessage);
-            } else {
-                // Atualiza o log com a última mensagem salva (ou padrão)
-                MapCore.updateStatusLog();
             }
 
-            console.log("[MAPA] Mapa e rastreamento inicializados.");
+            // 6. Atualiza o log e o display do clima
+            MapCore.updateStatusLog(battleMessage);
 
 
         } catch (error) {
             console.error("[MAPA] Erro ao inicializar o mapa Leaflet:", error);
-            MapCore.updateStatusLog(`ERRO: Falha ao carregar o mapa. Recarregue a página. Detalhe: ${error.message}`, true);
+            MapCore.updateStatusLog(`ERRO: Falha ao carregar o mapa. Detalhe: ${error.message.substring(0, 50)}. Recarregue a página.`, true);
         }
     },
 
     /**
      * 3. Inicia o rastreamento em tempo real da geolocalização do jogador.
      */
-    startLocationTracking: function () {
+    startLocationTracking: function (initialBattleMessage = null) {
         if (!navigator.geolocation) {
             MapCore.updateStatusLog("ERRO DE GEOLOCALIZAÇÃO: Navegador não suporta.", true);
+            // Tenta carregar o clima com o último ponto conhecido (pode estar desatualizado)
+            if (window.gameState.profile.lastLocation.lat !== DEFAULT_LOCATION.lat) {
+                MapCore.fetchWeather(window.gameState.profile.lastLocation.lat, window.gameState.profile.lastLocation.lng)
+                    .then(() => MapCore.updateStatusLog(initialBattleMessage));
+            }
             return;
         }
 
         const updatePlayerLocation = (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
             const newLatlng = L.latLng(lat, lng);
 
             // Atualiza o marcador do jogador
             playerMarker.setLatLng(newLatlng);
 
-            // Mantém o centro do mapa no jogador (opcionalmente)
-            // mapInstance.setView(newLatlng); 
-
             // Salva a nova localização no estado e Firestore
             window.gameState.profile.lastLocation = { lat, lng };
             window.GameLogic.saveGameData();
 
-            // Apenas atualiza a posição, mas mantém a mensagem do log
-            MapCore.updateStatusLog();
+            // Busca o clima (com limitação de taxa) e atualiza o display
+            MapCore.fetchWeather(lat, lng).then(() => {
+                MapCore.updateStatusLog(initialBattleMessage);
+                // Limpa a mensagem de batalha após o primeiro update
+                if (initialBattleMessage) { initialBattleMessage = null; }
+            });
 
             // Após a primeira atualização, centraliza o mapa
             if (mapInstance && mapInstance._playerMovedOnce !== true) {
@@ -166,9 +267,10 @@ export const MapCore = {
             const location = window.gameState.profile.lastLocation || DEFAULT_LOCATION;
             MapCore.updateStatusLog(`ERRO DE GEOLOCALIZAÇÃO: ${errorMsg}. Usando última posição salva.`, true);
 
-            // Garante que o mapa esteja visível mesmo com erro
-            if (!mapInstance) {
-                MapCore.initializeMap(location);
+            // Tenta carregar o clima com o último ponto conhecido (pode estar desatualizado)
+            if (location.lat !== DEFAULT_LOCATION.lat) {
+                MapCore.fetchWeather(location.lat, location.lng)
+                    .then(() => MapCore.updateStatusLog(initialBattleMessage));
             }
         };
 
@@ -248,6 +350,7 @@ export const MapCore = {
     updateStatusLog: function (overrideMessage = null, isError = false) {
         const logElement = document.getElementById("explore-log-display");
         const posElement = document.getElementById("current-location-display");
+        const weatherElement = document.getElementById("current-weather-display");
 
         // 1. Determina a mensagem principal
         let displayMessage;
@@ -275,7 +378,30 @@ export const MapCore = {
             const location = window.gameState.profile.lastLocation || DEFAULT_LOCATION;
             const latDisplay = location.lat ? location.lat.toFixed(4) : '---';
             const lngDisplay = location.lng ? location.lng.toFixed(4) : '---';
-            posElement.innerHTML = `ÚLTIMA POSIÇÃO: ${latDisplay}, ${lngDisplay}`;
+            posElement.innerHTML = `POSIÇÃO: ${latDisplay}, ${lngDisplay}`;
+        }
+
+        // 4. Atualiza o clima (CORRIGIDO: Leitura segura de gameState.currentWeather)
+        if (weatherElement) {
+            // Força um objeto de clima seguro para a UI, caso não esteja definido
+            const weather = window.gameState.currentWeather || {};
+
+            const tempDisplay = weather.temperature !== null && weather.temperature !== undefined ? `${weather.temperature}°C` : '---';
+            const conditionIcon = weather.icon || "fa-question-circle";
+            const conditionColor = weather.color || 'text-gray-800';
+            const dayNightIcon = weather.isDay ? 'fa-sun' : 'fa-moon';
+            // A transição é gerenciada pela API (is_day = 0 é noite)
+            const dayNightText = weather.isDay ? 'DIA' : 'NOITE';
+
+            // Re-injeta o HTML de clima aqui para que as atualizações em tempo real funcionem.
+            weatherElement.innerHTML = `
+                <i class="fa-solid ${dayNightIcon} mr-1 text-yellow-500"></i>
+                <span class="mr-3">${dayNightText}</span>
+                <i class="fa-solid ${conditionIcon} mr-1 ${conditionColor}"></i>
+                <span class="mr-3 ${conditionColor}">${weather.condition || 'Carregando...'}</span>
+                <i class="fa-solid fa-temperature-half mr-1 text-red-500"></i>
+                <span>${tempDisplay}</span>
+            `;
         }
     },
 
@@ -296,11 +422,11 @@ export const MapCore = {
         const modalHtml = `
           <div class="text-lg font-bold gba-font mb-4">Interagir com ${friendName}</div>
           <p class="text-sm gba-font mb-4">O que você gostaria de fazer?</p>
-          <button onclick="window.closeModal('friendInteractionModal'); window.PokeChat.startChat('${friendId}', '${friendName}')" 
+          <button onclick="window.Utils.hideModal('infoModal'); window.PokeChat.startChat('${friendId}', '${friendName}')" 
                   class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2">
               Chat
           </button>
-          <button onclick="window.closeModal('friendInteractionModal'); window.GameLogic.startTrade('${friendId}')" 
+          <button onclick="window.Utils.hideModal('infoModal'); window.GameLogic.startTrade('${friendId}')" 
                   class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2">
               Trocar Pokémon (Beta)
           </button>

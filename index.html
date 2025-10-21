@@ -26,16 +26,14 @@
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
-      /* Estilo inspirado no GBA */
       .gba-font {
         font-family: "Press Start 2P", cursive;
         text-transform: uppercase;
       }
 
       .gba-button {
-        /* AJUSTES PARA PADRONIZAR O TAMANHO DO TEXTO */
-        padding: 8px 12px; /* Diminui o padding */
-        font-size: 10px; /* Padroniza o tamanho da fonte para 10px em todos os botões */
+        padding: 8px 12px;
+        font-size: 10px; 
         font-weight: bold;
         color: #ffffff;
         border: 3px solid #000;
@@ -44,8 +42,8 @@
         transition: background-color 0.1s;
         box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
         width: 100%;
-        height: 40px; /* Mantém a altura */
-        line-height: 20px; /* Ajusta a altura da linha */
+        height: 40px;
+        line-height: 20px; 
       }
 
       .gba-button:hover:not(:disabled) {
@@ -58,13 +56,11 @@
         cursor: not-allowed;
       }
 
-      /* Esta classe já estava definida e é a chave para a rolagem interna */
       .pokemon-list-container {
-        flex-grow: 1; /* Permite que o container da lista cresça e preencha o espaço */
-        overflow-y: auto; /* Adiciona scrollbar se necessário */
+        flex-grow: 1;
+        overflow-y: auto;
       }
 
-      /* Animação de balanço da pokébola */
       @keyframes shake {
         0%,
         100% {
@@ -83,7 +79,6 @@
         animation: shake 1.2s infinite ease-in-out;
       }
 
-      /* 1. Dano (Flash Vermelho/Branco) */
       @keyframes damage-flash {
         0% {
           filter: brightness(1);
@@ -105,7 +100,6 @@
         animation: damage-flash 0.5s ease-out;
       }
 
-      /* 2. Cura (Flash Verde/Branco) */
       @keyframes heal-flash {
         0% {
           filter: brightness(1);
@@ -121,7 +115,6 @@
         animation: heal-flash 0.5s ease-out;
       }
 
-      /* 3. Ataque (Ligeiro empurrão para frente) */
       @keyframes attack-pulse {
         0% {
           transform: translate(0, 0) scale(1.5);
@@ -137,7 +130,6 @@
         animation: attack-pulse 0.3s ease-out;
       }
 
-      /* 4. Ataque do Oponente (Ligeiro empurrão para baixo) */
       @keyframes opponent-attack-pulse {
         0% {
           transform: translate(0, 0) scale(1.5);
@@ -153,7 +145,6 @@
         animation: opponent-attack-pulse 0.3s ease-out;
       }
 
-      /* Impede seleção de texto e ajusta touch */
       body,
       html {
         margin: 0;
@@ -163,34 +154,32 @@
         user-select: none;
         touch-action: manipulation;
         background-color: #2d3748;
-        overflow: auto; /* Scroll normal */
+        overflow: auto;
       }
 
       #app-container {
         width: 100%;
-        height: 100vh; /* altura da viewport */
+        height: 100vh; 
         padding: 0;
         box-sizing: border-box;
       }
 
-      /* Wrapper do card */
       .gba-card-wrapper {
         display: flex;
         flex-direction: column;
         width: 100%;
-        max-width: 768px; /* limitar largura em telas grandes */
+        max-width: 768px; 
         height: 100%;
         padding: 1rem;
         box-sizing: border-box;
       }
 
-      /* Tela do jogo */
       .gba-screen {
-        width: 100vw; /* ocupa toda a largura da viewport */
-        height: 100vh; /* ocupa toda a altura da viewport */
+        width: 100vw;
+        height: 100vh;
         background-color: #c6c6c6;
-        border-radius: 0; /* remove bordas arredondadas se quiser tela completa */
-        box-shadow: none; /* opcional: remove sombra */
+        border-radius: 0; 
+        box-shadow: none; 
         display: flex;
         flex-direction: column;
         overflow-y: auto;
@@ -198,7 +187,6 @@
         box-sizing: border-box;
       }
 
-      /* NOVO ESTILO: Garante que o mapa dentro do GBA-Screen funcione */
       #map-container {
         height: 100%;
         width: 100%;
@@ -250,7 +238,7 @@
       ⓘ
     </button>
 
-    <!-- Loader global do Firebase -->
+    <!-- LOADING -->
     <div id="firebase-loader" class="fixed inset-0 z-50">
       <img
         src="https://i.pinimg.com/originals/23/0c/68/230c68295a086b46a3bd01d03bef7719.gif"
@@ -263,7 +251,7 @@
       <!-- Conteúdo do jogo aqui -->
     </div>
 
-    <!-- Modals (Mantidos aqui para simplificar) -->
+    <!-- INFO MODAL -->
     <div
       id="infoModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -283,6 +271,7 @@
       </div>
     </div>
 
+    <!-- ERROR MODAL -->
     <div
       id="errorModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -300,6 +289,7 @@
       </div>
     </div>
 
+    <!-- STATS MODAL -->
     <div
       id="pokemonStatsModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -309,6 +299,7 @@
       </div>
     </div>
 
+    <!-- PVP MODAL -->
     <div
       id="pvpModal"
       class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
@@ -326,29 +317,12 @@
       </div>
     </div>
 
-    <!-- NOVO: Modal dedicado para a lista de amizades (para usar o listener onSnapshot) -->
-    <div
-      id="friendshipModal"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50">
-      <div
-        class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm text-center max-h-[90vh] overflow-y-auto">
-        <div class="text-lg font-bold text-gray-800 gba-font mb-4">
-          LISTA DE AMIGOS
-        </div>
-        <div id="friendship-list-container" class="text-left">
-          <!-- Conteúdo dinâmico da lista de amizades será injetado aqui -->
-          <p class="text-sm gba-font text-gray-500">Carregando...</p>
-        </div>
-        <button
-          onclick="window.PokeFriendship.stopFriendshipListener(); window.Utils.hideModal('friendshipModal')"
-          class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 mx-auto w-full">
-          FECHAR
-        </button>
-      </div>
-    </div>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 
-    <!-- FULLSCREEN E UPDATE -->
+    <!-- FULLSCREEN E UPDATE E ERUDA -->
     <script>
+      eruda.init();
+
       const fullscreenBtn = document.getElementById("fullscreen-btn");
       fullscreenBtn.addEventListener("click", () => {
         if (!document.fullscreenElement) {
@@ -507,11 +481,6 @@
           );
         }
       };
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>
-      eruda.init();
     </script>
   </body>
 </html>

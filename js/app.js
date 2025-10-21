@@ -24,6 +24,23 @@ let GameConfig,
  */
 export async function init(cacheBuster = Date.now()) {
   // Variável global para ser usada em carregamentos de assets estáticos (ex: game_updates.json)
+
+  const params = new URLSearchParams(window.location.search);
+  const friendshipId = params.get('friend');
+
+  if (friendshipId && window.userId && !window.userId.startsWith("anonimo")) {
+    // Remove o parâmetro do URL para evitar reprocessamento
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, '', newUrl);
+
+    // Processa o aceite
+    const result = await window.PokeFriendship.processFriendshipAcceptance(friendshipId);
+    window.Utils.showModal(result.success ? "infoModal" : "errorModal", result.message);
+
+    // Continua para a tela principal (Menu ou Map)
+    window.Renderer.showScreen('mainMenu');
+  } else {
+  }
   window.cacheBuster = cacheBuster;
   const v = `?v=${cacheBuster}`;
 

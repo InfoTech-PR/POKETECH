@@ -1,24 +1,15 @@
-// renderer_menus.js
-// Renderização das telas de menu principal, perfil e preferências.
-
-// Garante que o objeto window.Renderer exista para anexar a função auxiliar.
-// Em um sistema modular, isso é um "hack" para o HTML/onclick funcionar diretamente.
+// js/renderer_menus.js
 if (typeof window.Renderer === 'undefined') {
   window.Renderer = {};
 }
 
-/**
- * NOVO: Função para copiar o ID do jogador para a área de transferência.
- * Exposta diretamente para o HTML/onclick funcionar corretamente.
- */
 window.Renderer.copyPlayerId = function () {
   const playerId = window.userId;
   const copyIcon = document.getElementById("copyIdIcon");
 
-  // 1. Tenta usar a API moderna (navigator.clipboard)
   if (navigator.clipboard) {
     navigator.clipboard.writeText(playerId).then(() => {
-      // Salva o HTML original para restaurar depois
+
       const originalHtml = copyIcon.dataset.originalHtml;
 
       copyIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
@@ -41,7 +32,6 @@ window.Renderer.copyPlayerId = function () {
   }
 };
 
-// A função fallbackCopy ainda pode ficar interna a RendererMenus
 const fallbackCopy = function (text, iconElement) {
   const textarea = document.createElement("textarea");
   textarea.value = text;
@@ -68,17 +58,15 @@ const fallbackCopy = function (text, iconElement) {
   document.body.removeChild(textarea);
 };
 
-
 export const RendererMenus = {
-  // NOVO: Função para atualizar APENAS o gênero no estado.
   updateGenderOnly: function (gender) {
     window.gameState.profile.trainerGender = gender;
   },
 
-  // Agora apenas referencia a função global para uso interno (embora no seu caso só o HTML use)
   copyPlayerId: window.Renderer.copyPlayerId,
-  fallbackCopy: fallbackCopy, // Define fallbackCopy dentro do objeto RendererMenus
+  fallbackCopy: fallbackCopy,
 
+  // MUDAR O TITULO
   renderInitialMenu: function (app) {
     const content = `
             <div class="h-full w-full flex flex-col justify-between relative">
@@ -175,17 +163,11 @@ export const RendererMenus = {
     window.Renderer.renderGbaCard(content);
   },
 
-  /**
-   * Função usada SOMENTE na seleção inicial para atualizar o estado E redesenhar a tela
-   * para mostrar a seleção visual.
-   */
   selectGender: function (gender) {
     window.gameState.profile.trainerGender = gender;
-    // Redesenha para atualizar a seleção visualmente
     window.Renderer.renderStarterSelection(document.getElementById("app-container"));
   },
 
-  // Função auxiliar para `renderStarterSelection`
   selectStarter: async function (name) {
     const input = document.getElementById("trainerNameInput");
     const trainerName = input.value.trim();
@@ -230,7 +212,6 @@ export const RendererMenus = {
     const exploreButtonText = isBetaMode ? "MAPA MUNDIAL (BETA)" : "ANDAR";
     const exploreButtonColor = isBetaMode ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600";
 
-
     const allFainted =
       profile.pokemon.length > 0 &&
       profile.pokemon.every((p) => p.currentHp <= 0);
@@ -241,21 +222,75 @@ export const RendererMenus = {
         : "https://placehold.co/100x100/f87171/fff?text=F";
 
     const statsHtml = `
-            <div class="p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-4 sm:mb-0 sm:h-full flex-shrink-0 sm:flex-shrink">
-                <div class="text-sm font-bold text-gray-800 gba-font border-b border-gray-300 pb-1 mb-2">TREINADOR</div>
-                <div class="flex items-start">
-                    <img src="${trainerImage}" alt="Treinador" class="w-12 h-12 rounded-full border-2 border-gray-400 mr-3">
-                    <div class="flex flex-col items-start space-y-1 text-xs gba-font">
-                        <p><strong>NOME:</strong> ${profile.trainerName}</p>
-                        <p><strong>GÊNERO:</strong> ${profile.trainerGender === "MALE" ? "M" : "F"
-      }</p>
-                        <p><strong>DINHEIRO:</strong> P$${profile.money}</p>
-                        <p><strong>POKÉS:</strong> ${profile.pokemon.length
-      } / 1025</p>
-                    </div>
-                </div>
-            </div>
-        `;
+  <div class="p-4 bg-gray-900 border-4 border-yellow-400 rounded-xl shadow-2xl transition-all duration-300 hover:shadow-yellow-400/50 transform hover:scale-[1.01]">
+      <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+          
+          <div class="relative flex-shrink-0">
+              <img src="${trainerImage}" alt="Treinador" 
+                  class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-yellow-400 object-cover shadow-lg hover:shadow-xl transition-shadow duration-300 animate-pulse-once">
+              <span class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></span>
+          </div>
+          
+          <div class="flex-grow text-white text-center sm:text-left">
+              <h2 class="text-3xl font-extrabold text-yellow-400 mb-2 tracking-wider uppercase">
+                  ${profile.trainerName}
+              </h2>
+              <p class="text-sm text-gray-400 mb-4 border-b border-gray-700 pb-2">
+                  O(A) lendário(a) treinador(a) de Kanto
+              </p>
+              
+              <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm md:text-base">
+                  
+                  <div class="flex items-center space-x-2">
+                      <span class="text-yellow-400">
+                          ${profile.trainerGender === "MALE" ? '♂️' : '♀️'}
+                      </span>
+                      <p>
+                          <strong class="text-gray-300">GÊNERO:</strong> 
+                          ${profile.trainerGender === "MALE" ? "MASCULINO" : "FEMININO"}
+                      </p>
+                  </div>
+                  
+                  <div class="flex items-center space-x-2">
+                      <span class="text-green-500">💰</span>
+                      <p>
+                          <strong class="text-gray-300">DINHEIRO:</strong> 
+                          P$${profile.money.toLocaleString('pt-BR')}
+                      </p>
+                  </div>
+                  
+                  <div class="flex items-center space-x-2">
+                      <span class="text-red-500">🔴</span>
+                      <p>
+                          <strong class="text-gray-300">POKÉS:</strong> 
+                          ${profile.pokemon.length} / 1025
+                      </p>
+                  </div>
+
+                  <div class="flex items-center space-x-2">
+                      <span class="text-blue-400">🏅</span>
+                      <p>
+                          <strong class="text-gray-300">INSÍGNIAS:</strong> 
+                          8
+                      </p>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <style>
+      /* Exemplo de keyframes para uma animação sutil */
+      @keyframes pulse-once {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.03); }
+          100% { transform: scale(1); }
+      }
+      .animate-pulse-once:hover {
+          animation: pulse-once 0.5s ease-in-out;
+      }
+  </style>
+          `;
 
     const menuHtml = `
             <div class="space-y-2 p-2 h-full flex flex-col justify-start">
@@ -286,7 +321,6 @@ export const RendererMenus = {
         `;
 
     const combinedHtml = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MENU POKÉTECH</div>
             <div class="flex flex-col sm:flex-row gap-4 mb-4 flex-grow">
                 <div class="sm:w-2/5 w-full flex-shrink-0">
                     ${statsHtml}
@@ -308,9 +342,9 @@ export const RendererMenus = {
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL E OPÇÕES</div>
     
       <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-      <button onclick="window.Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600">PERFIL DO TREINADOR</button>
-      <button onclick="window.Renderer.showScreen('friendshipMenu')" class="gba-button bg-orange-500 hover:bg-orange-600">AMIZADES</button>
-      <button onclick="window.Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600">PREFERÊNCIAS</button>
+        <button onclick="window.Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600">PERFIL DO TREINADOR</button>
+        <button onclick="window.PokeFriendship.showFriendListModal()" class="gba-button bg-orange-500 hover:bg-orange-600">AMIZADES</button>
+        <button onclick="window.Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600">PREFERÊNCIAS</button>
       </div>
     
       <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
@@ -319,18 +353,18 @@ export const RendererMenus = {
   },
 
   renderFriendshipMenu: function (app) {
-    const content = `
-    <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>
-    
-    <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-      <button onclick="window.showFriendListModal()" class="gba-button bg-blue-500 hover:bg-blue-600">LISTA DE AMIGOS</button>
-      <input id="friendIdInput" type="text" placeholder="ID do Amigo para Enviar" class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner">
-      <button onclick="window.sendFriendRequest(document.getElementById('friendIdInput').value)" class="gba-button bg-green-500 hover:bg-green-600">ENVIAR PEDIDO</button>
-    </div>
-    
-    <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+    // A chamada para showFriendListModal agora renderiza o modal diretamente (com o input para link)
+    window.PokeFriendship.showFriendListModal();
+
+    // Renderiza um placeholder na tela principal enquanto o modal é exibido
+    const placeholder = `
+      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">AMIGOS</div>
+      <div class="space-y-4 p-4 flex-grow overflow-y-auto flex items-center justify-center">
+        <p class="gba-font text-xs text-gray-600">Carregando lista de amigos...</p>
+      </div>
+      <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
     `;
-    window.Renderer.renderGbaCard(content);
+    window.Renderer.renderGbaCard(placeholder);
   },
 
   renderPokemonMenu: function (app) {
@@ -366,14 +400,13 @@ export const RendererMenus = {
     const prefs = window.gameState.profile.preferences;
     const volumePercent = Math.round(prefs.volume * 100);
     const isMuted = prefs.isMuted;
-    const isBetaMode = prefs.isBetaMode; // NOVO: Estado do modo Beta
+    const isBetaMode = prefs.isBetaMode;
 
     const content = `
           <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font flex-shrink-0">PREFERÊNCIAS</div>
           
           <div class="p-4 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-6 flex-grow overflow-y-auto">
               
-              <!-- Opção de Modo Beta -->
               <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2 flex justify-between items-center">
                   <span>MODO BETA</span>
                   <button onclick="window.Utils.toggleBetaMode()" 
@@ -393,7 +426,6 @@ export const RendererMenus = {
 
               <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2">CONTROLE DE SOM</div>
               
-              <!-- Slider de Volume -->
               <div class="mb-6">
                   <label for="volumeSlider" class="block text-xs font-bold gba-font mb-2">
                       Volume da Música: ${volumePercent}%
@@ -404,7 +436,6 @@ export const RendererMenus = {
                          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
               </div>
 
-              <!-- Botão Mute -->
               <button onclick="window.toggleMute()" 
                       class="gba-button w-full ${isMuted
         ? "bg-red-500 hover:bg-red-600"
@@ -432,7 +463,7 @@ export const RendererMenus = {
         ? "https://placehold.co/100x100/38bdf8/fff?text=TREINADOR"
         : "https://placehold.co/100x100/f87171/fff?text=TREINADORA";
 
-    const isAnonymous = window.userId.startsWith("anonimo"); // Correção de verificação
+    const isAnonymous = window.userId.startsWith("anonimo");
 
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL DO TREINADOR</div>
@@ -467,14 +498,11 @@ export const RendererMenus = {
                 <p><strong>Dinheiro:</strong> P$${profile.money}</p>
                 <p><strong>Pokémons:</strong> ${profile.pokemon.length}</p>
                 
-                <!-- ID de Jogador com Ícone de cópia discreto e funcional -->
                 <div class="mb-4">
                   <p class="text-xs font-bold mb-1">ID de Jogador (Para Amigos):</p>
                   <div class="flex items-center space-x-1 border-2 border-gray-800 rounded bg-white shadow-inner px-2 py-1">
-                      <!-- O ID agora ocupa a maior parte do espaço e tem melhor legibilidade -->
                       <p style="font-size:7px;" class="gba-font truncate flex-grow text-gray-400 text-center select-all">${window.userId}</p>
                       
-                      <!-- Ícone de cópia discreto e clicável -->
                       <span 
                           id="copyIdIcon"
                           onclick="window.Renderer.copyPlayerId()" 

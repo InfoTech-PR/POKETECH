@@ -1,6 +1,22 @@
 {
   "updates": [
     {
+      "date": "09/11/2025 01:30",
+      "text": "Avatares de perfil agora usam um link fixo configurável (GameConfig.TRAINER_AVATAR_BASE_URL ou window.CUSTOM_TRAINER_AVATAR_BASE), facilitando apontar para um CDN próprio."
+    },
+    {
+      "date": "09/11/2025 01:15",
+      "text": "Perfil do treinador agora exibe avatares oficiais da PokéAPI com galeria estilizada e seleção rápida sincronizada no save."
+    },
+    {
+      "date": "09/11/2025 00:45",
+      "text": "Centro de Amizades & PvP redesenhado com visual inspirado em Pokémon, convites Firestore revitalizados, ações rápidas (aceitar, compartilhar, remover) e atalhos para criar/joinar batalhas."
+    },
+    {
+      "date": "09/11/2025 00:00",
+      "text": "Música de fundo agora continua ao trocar de telas, ataques ganharam efeitos sonoros e o menu principal foi redesenhado com ícones em layout lado a lado."
+    },
+    {
       "date": "10/10/2025 18:40",
       "text": "O Mapa Mundial no Modo Beta agora reage ao tempo real! Se for noite, o mapa fica escuro para imersão. Ele também mostra a temperatura e as condições de clima da sua localização."
     },
@@ -88,15 +104,5 @@
       "date": "05/10/2025 23:00",
       "text": "Correção de bug de 'deslogar' ao mudar o gênero na tela de perfil."
     }
-  ],
-  "todos": [
-    "Balancear HP e Nível dos Pokémons selvagens (diminuindo Pokémons evoluídos no explorar) (Concluído, precisa de testes).",
-    "Implementar tela de Amizades (Friendship) e PvP com suporte a Firestore.",
-    "Adicionar mais itens e efeitos de itens (Status/Boosts).",
-    "Reduzir spawns de evoluídos, priorizar formas básicas.",
-    "Balancear nível dos selvagens; criar eventos raros com Pokémon fortes.",
-    "Musica deve se manter e nao reiniciar ao sair e entrar nas telas",
-    "Ataques especiais têm 10 usos; recarrega com poção ou no Centro Pokémon.",
-    ""
   ]
 }

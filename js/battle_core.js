@@ -253,6 +253,59 @@ const MOVES_TO_TYPE_MAPPING = {
   liquidation: "water",
 };
 
+const TYPE_SOUND_FREQUENCIES = {
+  normal: 360,
+  fire: 660,
+  water: 260,
+  grass: 420,
+  electric: 880,
+  ice: 310,
+  fighting: 520,
+  poison: 470,
+  ground: 300,
+  flying: 640,
+  psychic: 560,
+  bug: 400,
+  rock: 240,
+  ghost: 330,
+  dragon: 610,
+  steel: 520,
+  dark: 280,
+  fairy: 700,
+  default: 360,
+};
+
+const TYPE_SOUND_WAVEFORMS = {
+  fire: "sawtooth",
+  electric: "square",
+  water: "sine",
+  ice: "triangle",
+  ghost: "sine",
+  dragon: "sawtooth",
+  steel: "square",
+  fairy: "triangle",
+};
+
+let attackAudioCtx = null;
+
+const ensureAttackAudioContext = async () => {
+  if (typeof window.AudioContext === "undefined") {
+    return null;
+  }
+  if (!attackAudioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    attackAudioCtx = new AudioCtx();
+  }
+  if (attackAudioCtx.state === "suspended") {
+    try {
+      await attackAudioCtx.resume();
+    } catch (err) {
+      console.warn("Falha ao retomar contexto de áudio:", err);
+    }
+  }
+  return attackAudioCtx;
+};
+
 export const BattleCore = {
   opponentPokemon: null,
 
@@ -281,6 +334,51 @@ export const BattleCore = {
         element.classList.remove(animationClass);
       }, duration);
     }
+  },
+
+  _playMoveSound: async function (moveName) {
+    const prefs = window.gameState?.profile?.preferences;
+    const isMuted = prefs?.isMuted;
+    const volume =
+      prefs?.effectsVolume !== undefined
+        ? prefs.effectsVolume
+        : prefs?.volume ?? 0.5;
+
+    if (isMuted || volume <= 0) {
+      return;
+    }
+
+    const ctx = await ensureAttackAudioContext();
+    if (!ctx) return;
+
+    const type =
+      MOVES_TO_TYPE_MAPPING[moveName?.toLowerCase?.()] || "default";
+
+    const baseFrequency = TYPE_SOUND_FREQUENCIES[type] ?? TYPE_SOUND_FREQUENCIES.default;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    const waveform = TYPE_SOUND_WAVEFORMS[type] || "triangle";
+    oscillator.type = waveform;
+
+    const now = ctx.currentTime;
+    const duration = 0.4;
+
+    oscillator.frequency.setValueAtTime(baseFrequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(
+      Math.max(120, baseFrequency * 0.6),
+      now + duration
+    );
+
+    const adjustedVolume = Math.min(0.7, Math.max(0.05, volume * 0.5));
+    gainNode.gain.setValueAtTime(adjustedVolume, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.05);
   },
 
   startWildBattle: async function () {
@@ -838,6 +936,7 @@ export const BattleCore = {
       }
 
       BattleCore._animateBattleAction(".player-sprite", "animate-attack", 300);
+    BattleCore._playMoveSound(moveName);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const damageResult = BattleCore.calculateDamage(
@@ -929,15 +1028,15 @@ export const BattleCore = {
     ) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      const randomOpponentMove =
+        opponent.moves[Math.floor(Math.random() * opponent.moves.length)];
       BattleCore._animateBattleAction(
         ".opponent-sprite",
         "animate-opponent-attack",
         300
       );
+      BattleCore._playMoveSound(randomOpponentMove);
       await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const randomOpponentMove =
-        opponent.moves[Math.floor(Math.random() * opponent.moves.length)];
       const damageResult = BattleCore.calculateDamage(
         opponent,
         randomOpponentMove,

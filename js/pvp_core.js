@@ -331,6 +331,7 @@ export const PvpCore = {
         
         // ANIMAÇÃO: Ataque
         window.BattleCore._animateBattleAction(attackerSprite, attackAnimation, 300);
+        window.BattleCore._playMoveSound(action.move);
 
         const damageResult = window.BattleCore.calculateDamage(pokemon, action.move, target); // Usa window.BattleCore
         

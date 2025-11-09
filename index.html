@@ -380,31 +380,45 @@
           const data = await response.json();
           const updatesContent = document.getElementById("updatesContent");
 
-          const updatesHTML = `
-            <div>
-                <strong class="gba-font text-green-700">Updates:</strong>
-                <ul class="list-disc list-inside">
-                    ${data.updates
-                      .map(
-                        (u) =>
-                          `<li class="text-green-600">[${u.date}] ${u.text}</li>`
-                      )
-                      .join("")}
-                </ul>
-            </div>
-            <div class="mt-3">
-                <strong class="gba-font text-blue-700">Novidades / Pendências:</strong>
-                <ul class="list-disc list-inside">
-                    ${data.todos
-                      .map((t) =>
-                        t ? `<li class="text-blue-600">${t}</li>` : ""
-                      )
-                      .join("")}
-                </ul>
-            </div>
-        `;
+          let htmlSections = [];
 
-          updatesContent.innerHTML = updatesHTML;
+          if (Array.isArray(data.updates) && data.updates.length > 0) {
+            const updatesList = data.updates
+              .map(
+                (u) =>
+                  `<li class="text-green-600">[${u.date}] ${u.text}</li>`
+              )
+              .join("");
+            htmlSections.push(`
+              <div>
+                  <strong class="gba-font text-green-700">Updates:</strong>
+                  <ul class="list-disc list-inside">
+                      ${updatesList}
+                  </ul>
+              </div>
+            `);
+          }
+
+          if (Array.isArray(data.todos) && data.todos.length > 0) {
+            const todosList = data.todos
+              .map((t) => (t ? `<li class="text-blue-600">${t}</li>` : ""))
+              .join("");
+            if (todosList.trim()) {
+              htmlSections.push(`
+                <div class="mt-3">
+                    <strong class="gba-font text-blue-700">Novidades / Pendências:</strong>
+                    <ul class="list-disc list-inside">
+                        ${todosList}
+                    </ul>
+                </div>
+              `);
+            }
+          }
+
+          updatesContent.innerHTML =
+            htmlSections.length > 0
+              ? htmlSections.join("")
+              : "<span class='text-gray-600'>Nenhuma atualização disponível no momento.</span>";
         } catch (err) {
           document.getElementById("updatesContent").innerHTML =
             "<span class='text-red-600'>Falha ao carregar updates.</span>";

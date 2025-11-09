@@ -20,6 +20,18 @@ import {
 // Importa GameLogic para garantir que os dados sejam salvos.
 import { GameLogic } from './game_logic.js';
 
+const refreshFriendshipScreen = () => {
+  if (
+    window.gameState?.currentScreen === "friendshipMenu" &&
+    window.Renderer?.renderFriendshipMenu
+  ) {
+    const app = document.getElementById("app-container");
+    if (app) {
+      window.Renderer.renderFriendshipMenu(app);
+    }
+  }
+};
+
 export const PokeFriendship = {
   /**
    * Obtém o ID da sala de chat (baseado no UID dos dois usuários, ordenado para ser único).
@@ -126,7 +138,7 @@ export const PokeFriendship = {
         status: "accepted",
         acceptedAt: Timestamp.now()
       });
-
+      refreshFriendshipScreen();
       return { success: true, message: "Amizade estabelecida com sucesso! Vocês já podem batalhar!" };
     } catch (error) {
       console.error("Erro ao aceitar pedido via URL:", error);
@@ -159,8 +171,7 @@ export const PokeFriendship = {
       const ref = doc(window.db, "friendships", friendshipId);
       await updateDoc(ref, { status: "accepted" });
       window.Utils.showModal("infoModal", "Pedido de amizade aceito!");
-      // Re-renderiza o modal de lista de amizades para atualizar o status
-      PokeFriendship.showFriendListModal();
+      refreshFriendshipScreen();
     } catch (error) {
       console.error("Erro ao aceitar pedido:", error);
       window.Utils.showModal("errorModal", "Erro ao aceitar amizade.");
@@ -175,8 +186,7 @@ export const PokeFriendship = {
     try {
       await deleteDoc(doc(window.db, "friendships", friendshipId));
       window.Utils.showModal("infoModal", "Amizade removida.");
-      // Re-renderiza o modal de lista de amizades para atualizar a lista
-      PokeFriendship.showFriendListModal();
+      refreshFriendshipScreen();
     } catch (error) {
       console.error("Erro ao remover amizade:", error);
       window.Utils.showModal("errorModal", "Erro ao remover amizade.");

@@ -1145,7 +1145,7 @@ export const BattleCore = {
     }
 
     BattleCore.addBattleLog(`Você joga a ${ballName}!`);
-    BattleCore.setBattleMenu("disabled");
+    BattleCore.setBattleMenu("disabled", true);
 
     const battleEnded = await BattleCore.animateCapture(
       ballName,
@@ -1174,27 +1174,10 @@ export const BattleCore = {
     let ended = false;
     let finalMessage = "";
 
-    const ensureSpecialCounters = (pokemon) => {
-      if (!pokemon) return;
-      const max =
-        pokemon.specialMoveMaxUses ||
-        window.GameConfig?.SPECIAL_MOVE_MAX_USES ||
-        10;
-      pokemon.specialMoveMaxUses = max;
-      if (typeof pokemon.specialMoveRemaining !== "number") {
-        pokemon.specialMoveRemaining = max;
-      } else {
-        pokemon.specialMoveRemaining = Math.max(
-          0,
-          Math.min(pokemon.specialMoveRemaining, max)
-        );
-      }
-    };
+    window.Utils.ensureMoveCounters(playerPokemon);
+    window.Utils.ensureMoveCounters(opponent);
 
-    ensureSpecialCounters(playerPokemon);
-    ensureSpecialCounters(opponent);
-
-    BattleCore.setBattleMenu("disabled");
+    BattleCore.setBattleMenu("disabled", true);
     BattleCore.updateBattleScreen();
 
     const item = window.gameState.profile.items.find(
@@ -1206,7 +1189,7 @@ export const BattleCore = {
         BattleCore.addBattleLog(
           "Pokébolas não podem ser usadas em batalhas PvP."
         );
-        BattleCore.setBattleMenu("main");
+        BattleCore.setBattleMenu("main", true);
         return;
       }
       window.PvpCore.sendPvpAction(action, moveName);
@@ -1227,7 +1210,7 @@ export const BattleCore = {
         BattleCore.addBattleLog(
           `${playerPokemon.name} desmaiou e não pode atacar!`
         );
-        BattleCore.setBattleMenu("main");
+        BattleCore.setBattleMenu("main", true);
         return;
       }
 
@@ -1235,13 +1218,24 @@ export const BattleCore = {
         playerPokemon,
         moveName
       );
+      const isNormalMove = !isSpecialMove;
       if (isSpecialMove && playerPokemon.specialMoveRemaining <= 0) {
         BattleCore.addBattleLog(
           `${playerPokemon.name} está sem energia para ${window.Utils.formatName(
             moveName
           )}!`
         );
-        BattleCore.setBattleMenu("fight");
+        BattleCore.setBattleMenu("fight", true);
+        BattleCore.updateBattleScreen();
+        return;
+      }
+      if (!isSpecialMove && playerPokemon.normalMoveRemaining <= 0) {
+        BattleCore.addBattleLog(
+          `${playerPokemon.name} está sem PA para ${window.Utils.formatName(
+            moveName
+          )}!`
+        );
+        BattleCore.setBattleMenu("fight", true);
         BattleCore.updateBattleScreen();
         return;
       }
@@ -1283,6 +1277,11 @@ export const BattleCore = {
           0,
           (playerPokemon.specialMoveRemaining || 0) - 1
         );
+      } else {
+        playerPokemon.normalMoveRemaining = Math.max(
+          0,
+          (playerPokemon.normalMoveRemaining || 0) - 1
+        );
       }
 
       let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
@@ -1297,6 +1296,8 @@ export const BattleCore = {
       }
       if (isSpecialMove) {
         logMessage += ` Energia especial: ${playerPokemon.specialMoveRemaining}/${playerPokemon.specialMoveMaxUses}.`;
+      } else {
+        logMessage += ` PA: ${playerPokemon.normalMoveRemaining}/${playerPokemon.normalMoveMaxUses}.`;
       }
       BattleCore.addBattleLog(logMessage);
 
@@ -1317,9 +1318,10 @@ export const BattleCore = {
       }
 
       const isHealing = item.healAmount;
+      const isPpRestore = item.ppRestore;
       window.GameLogic.useItem(moveName);
 
-      if (isHealing) {
+      if (isHealing || isPpRestore) {
         const activeIndex = window.gameState.profile.pokemon.findIndex(
           (p) => p.name === playerPokemon.name
         );
@@ -1329,13 +1331,13 @@ export const BattleCore = {
 
         await new Promise((resolve) => setTimeout(resolve, 500));
         BattleCore.updateBattleScreen();
-        BattleCore.setBattleMenu("disabled");
+        BattleCore.setBattleMenu("disabled", true);
         action = "opponent_attack";
       }
     } else if (action === "opponent_attack") {
       // segue para o turno do oponente
     } else {
-      BattleCore.setBattleMenu("main");
+      BattleCore.setBattleMenu("main", true);
       return;
     }
 
@@ -1349,23 +1351,33 @@ export const BattleCore = {
       !ended &&
       (action === "move" ||
         action === "opponent_attack" ||
-        (action === "item" && item?.healAmount))
+        (action === "item" && (item?.healAmount || item?.ppRestore)))
     ) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const opponentMoves = Array.isArray(opponent.moves)
         ? opponent.moves.slice()
         : [];
-      let selectableMoves = opponentMoves.filter(
-        (move) =>
-          !window.Utils.isSpecialMove(opponent, move) ||
-          opponent.specialMoveRemaining > 0
-      );
+      let selectableMoves = opponentMoves.filter((move) => {
+        const isSpecial = window.Utils.isSpecialMove(opponent, move);
+        if (isSpecial) {
+          return (opponent.specialMoveRemaining || 0) > 0;
+        }
+        return (opponent.normalMoveRemaining || 0) > 0;
+      });
       if (selectableMoves.length === 0) {
-        selectableMoves = opponentMoves.length ? opponentMoves : ["tackle"];
+        BattleCore.addBattleLog(
+          `${opponent.name} está sem energia para atacar!`
+        );
       }
       const randomOpponentMove =
         selectableMoves[Math.floor(Math.random() * selectableMoves.length)];
+      if (!randomOpponentMove) {
+        window.GameLogic.saveGameData();
+        BattleCore.updateBattleScreen();
+        BattleCore.setBattleMenu("main", true);
+        return;
+      }
 
       const opponentSpecial = window.Utils.isSpecialMove(
         opponent,
@@ -1375,6 +1387,13 @@ export const BattleCore = {
         opponent.specialMoveRemaining = Math.max(
           0,
           opponent.specialMoveRemaining - 1
+        );
+      }
+      const opponentNormal = !opponentSpecial;
+      if (opponentNormal && opponent.normalMoveRemaining > 0) {
+        opponent.normalMoveRemaining = Math.max(
+          0,
+          opponent.normalMoveRemaining - 1
         );
       }
 
@@ -1507,17 +1526,17 @@ export const BattleCore = {
 
     // 5. Continua o fluxo de batalha.
     if (battle.type === "pvp") {
-      BattleCore.setBattleMenu("disabled"); // Desabilita o menu
+      BattleCore.setBattleMenu("disabled", true); // Desabilita o menu
       window.PvpCore.sendPvpAction("switch", null);
     } else {
       // No PvE, a troca gasta o turno. O oponente ataca em seguida.
-      BattleCore.setBattleMenu("disabled");
+      BattleCore.setBattleMenu("disabled", true);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await BattleCore.playerTurn("opponent_attack");
     }
   },
 
-  setBattleMenu: function (menu) {
+  setBattleMenu: function (menu, force = false) {
     if (
       window.gameState.battle.type === "pvp" &&
       window.gameState.battle.currentMenu === "disabled" &&
@@ -1527,7 +1546,7 @@ export const BattleCore = {
     }
     const current = window.gameState.battle.currentMenu;
     let nextMenu = menu;
-    if (menu !== "disabled" && menu !== "main" && current === menu) {
+    if (!force && menu !== "disabled" && menu !== "main" && current === menu) {
       nextMenu = "main";
     }
     window.gameState.battle.currentMenu = nextMenu;
@@ -1545,6 +1564,8 @@ export const BattleCore = {
     const opponent = battle.opponent;
 
     if (!playerPokemon) return;
+    window.Utils.ensureMoveCounters(playerPokemon);
+    window.Utils.ensureMoveCounters(opponent);
 
     // O backSprite (e a sprite do oponente) agora usam o índice correto que está em window.Utils.getActivePokemon()
     const playerBackSprite =
@@ -1555,6 +1576,12 @@ export const BattleCore = {
       (playerPokemon.currentHp / playerPokemon.maxHp) * 100;
     const opponentHpPercent = (opponent.currentHp / opponent.maxHp) * 100;
 
+    const playerNormalMax =
+      playerPokemon.normalMoveMaxUses ||
+      window.GameConfig?.NORMAL_MOVE_MAX_USES ||
+      25;
+    const playerNormalRemaining =
+      playerPokemon.normalMoveRemaining ?? playerNormalMax;
     const playerSpecialMax =
       playerPokemon.specialMoveMaxUses ||
       window.GameConfig?.SPECIAL_MOVE_MAX_USES ||
@@ -1590,7 +1617,10 @@ export const BattleCore = {
     const disableInteractions = isDisabled;
 
     const battleItems = (window.gameState.profile.items || []).filter(
-      (i) => (i.catchRate && battle.type === "wild") || i.healAmount
+      (i) =>
+        (i.catchRate && battle.type === "wild") ||
+        i.healAmount ||
+        i.ppRestore
     );
 
     const escapeMove = (move) =>
@@ -1629,11 +1659,13 @@ export const BattleCore = {
       const movesHtml = (playerPokemon.moves || [])
         .map((move) => {
           const isSpecial = window.Utils.isSpecialMove(playerPokemon, move);
-          const disabled = isSpecial && playerSpecialRemaining <= 0;
+          const disabled =
+            (isSpecial && playerSpecialRemaining <= 0) ||
+            (!isSpecial && playerNormalRemaining <= 0);
           const label = window.Utils.formatName(move);
           const meta = isSpecial
             ? `<span class="battle-move-meta">Energia ${playerSpecialRemaining}/${playerSpecialMax}</span>`
-            : "";
+            : `<span class="battle-move-meta">PA ${playerNormalRemaining}/${playerNormalMax}</span>`;
           return `<button onclick="BattleCore.playerTurn('move', '${escapeMove(
             move
           )}')" class="gba-button battle-move-btn ${
@@ -1657,12 +1689,19 @@ export const BattleCore = {
             const disabled = item.quantity <= 0;
             const typeClass = item.catchRate
               ? "bg-yellow-400 hover:bg-yellow-500"
+              : item.ppRestore
+              ? "bg-purple-400 hover:bg-purple-500"
               : "bg-green-400 hover:bg-green-500";
+            const effectLabel = item.catchRate
+              ? "Capturar"
+              : item.ppRestore
+              ? "Recupera PA"
+              : `Cura ${item.healAmount} HP`;
             return `<button onclick="BattleCore.playerTurn('item', '${item.name}')" class="gba-button battle-move-btn ${typeClass}${
               disabled ? " battle-move-disabled" : ""
             }" ${disabled ? "disabled" : ""}>
                 <span>${item.name}</span>
-                <span class="battle-move-meta">x${item.quantity}</span>
+                <span class="battle-move-meta">${effectLabel} • x${item.quantity}</span>
               </button>`;
           })
           .join("");
@@ -1673,9 +1712,16 @@ export const BattleCore = {
         `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
     }
 
+    const normalMoveName = window.Utils.formatName(
+      playerPokemon.normalMove || playerPokemon.moves?.[0] || "Golpe"
+    );
     const specialMoveName = window.Utils.formatName(
       playerPokemon.specialMove || playerPokemon.moves?.[1] || "Especial"
     );
+    const normalHtml = `<div class="battle-special gba-font">
+            <span><i class="fa-solid fa-sword text-red-500"></i> Golpe</span>
+            <span>${normalMoveName} • ${playerNormalRemaining}/${playerNormalMax} PA</span>
+         </div>`;
     const specialHtml = playerPokemon.specialMove
       ? `<div class="battle-special gba-font">
             <span><i class="fa-solid fa-star text-yellow-500"></i> Especial</span>
@@ -1761,6 +1807,7 @@ export const BattleCore = {
                     <span>${playerPokemon.currentHp}/${playerPokemon.maxHp}</span>
                   </div>
                 </div>
+                ${normalHtml}
                 ${specialHtml}
               </div>
             </div>

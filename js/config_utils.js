@@ -14,11 +14,14 @@ export async function createConfigAndUtils(v) {
   const { BRANCHED_EVOS } = branchedEvosModule; // Importa as regras de ramificação
 
   // 1. Definição do GameConfig
+  const DEFAULT_NORMAL_MOVE_MAX_USES = 25;
+
   const GameConfig = {
     POKEBALL_BASE_CATCH_RATE: 100,
     STARTERS: ["bulbasaur", "charmander", "squirtle"],
     EVOLUTION_COST: 500,
     HEAL_COST_PER_POKE: 50,
+    NORMAL_MOVE_MAX_USES: 25,
     SHOP_ITEMS: [
       {
         name: "Pokébola",
@@ -51,6 +54,15 @@ export async function createConfigAndUtils(v) {
         cost: 300,
         spriteUrl:
           "../assets/sprites/items/potion.png",
+      },
+      {
+        name: "Éter",
+        quantity: 0,
+        ppRestore: true,
+        cost: 500,
+        spriteUrl:
+          "../assets/sprites/items/potion.png",
+        defaultQuantity: 2,
       },
     ],
     // Limite da Pokédex baseado nos dados locais
@@ -134,7 +146,12 @@ export async function createConfigAndUtils(v) {
         money: 3000,
         items: GameConfig.SHOP_ITEMS.map((item) => ({
           ...item,
-          quantity: item.name === "Pokébola" ? 10 : 5,
+          quantity:
+            item.defaultQuantity !== undefined
+              ? item.defaultQuantity
+              : item.name === "Pokébola"
+              ? 10
+              : 5,
         })),
         pokemon: [],
         trainerGender: "MALE",
@@ -265,15 +282,31 @@ export async function createConfigAndUtils(v) {
               );
               return {
                 ...savedItem,
-                spriteUrl: configItem?.spriteUrl || "", // Adiciona a URL do sprite se existir
+                spriteUrl: configItem?.spriteUrl || "",
+                ppRestore: configItem?.ppRestore || savedItem.ppRestore,
+                healAmount:
+                  savedItem.healAmount ?? configItem?.healAmount ?? 0,
               };
             }
           );
 
+          GameConfig.SHOP_ITEMS.forEach((shopItem) => {
+            const exists = window.gameState.profile.items.some(
+              (item) => item.name === shopItem.name
+            );
+            if (!exists) {
+              window.gameState.profile.items.push({
+                ...shopItem,
+                quantity: 0,
+              });
+            }
+          });
+
           window.gameState.profile.pokemon =
             (window.gameState.profile.pokemon || []).map((poke) => {
               const hasTracking =
-                typeof poke?.specialMoveRemaining === "number";
+                typeof poke?.specialMoveRemaining === "number" &&
+                typeof poke?.normalMoveRemaining === "number";
               return Utils.applyMoveTemplate(poke, {
                 forceResetUses: !hasTracking,
               });
@@ -393,31 +426,66 @@ export async function createConfigAndUtils(v) {
       }
       pokemon.moves = moves;
 
-      const maxUses =
-        GameConfig.SPECIAL_MOVE_MAX_USES || SPECIAL_MOVE_MAX_USES;
-      pokemon.specialMoveMaxUses = maxUses;
-
-      if (
-        forceResetUses ||
-        typeof pokemon.specialMoveRemaining !== "number"
-      ) {
-        pokemon.specialMoveRemaining = maxUses;
-      } else {
-        pokemon.specialMoveRemaining = Math.max(
-          0,
-          Math.min(pokemon.specialMoveRemaining, maxUses)
-        );
-      }
+      Utils.ensureMoveCounters(pokemon, { forceReset: forceResetUses });
 
       return pokemon;
     },
 
-    restoreSpecialMoveCharges: function (pokemon) {
+    ensureMoveCounters: function (pokemon, options = {}) {
       if (!pokemon) return;
-      const maxUses =
-        pokemon.specialMoveMaxUses || GameConfig.SPECIAL_MOVE_MAX_USES || SPECIAL_MOVE_MAX_USES;
-      pokemon.specialMoveMaxUses = maxUses;
-      pokemon.specialMoveRemaining = maxUses;
+      const { forceReset = false } = options;
+
+      const normalMax =
+        pokemon.normalMoveMaxUses ||
+        GameConfig.NORMAL_MOVE_MAX_USES ||
+        DEFAULT_NORMAL_MOVE_MAX_USES;
+      pokemon.normalMoveMaxUses = normalMax;
+      if (forceReset || typeof pokemon.normalMoveRemaining !== "number") {
+        pokemon.normalMoveRemaining = normalMax;
+      } else {
+        pokemon.normalMoveRemaining = Math.max(
+          0,
+          Math.min(pokemon.normalMoveRemaining, normalMax)
+        );
+      }
+
+      const specialMax =
+        pokemon.specialMoveMaxUses ||
+        GameConfig.SPECIAL_MOVE_MAX_USES ||
+        SPECIAL_MOVE_MAX_USES;
+      pokemon.specialMoveMaxUses = specialMax;
+      if (forceReset || typeof pokemon.specialMoveRemaining !== "number") {
+        pokemon.specialMoveRemaining = specialMax;
+      } else {
+        pokemon.specialMoveRemaining = Math.max(
+          0,
+          Math.min(pokemon.specialMoveRemaining, specialMax)
+        );
+      }
+    },
+
+    restoreMoveCharges: function (pokemon, scope = "all") {
+      if (!pokemon) return;
+      const applyNormal = scope === "all" || scope === "normal";
+      const applySpecial = scope === "all" || scope === "special";
+
+      if (applyNormal) {
+        const normalMax =
+          pokemon.normalMoveMaxUses ||
+          GameConfig.NORMAL_MOVE_MAX_USES ||
+          DEFAULT_NORMAL_MOVE_MAX_USES;
+        pokemon.normalMoveMaxUses = normalMax;
+        pokemon.normalMoveRemaining = normalMax;
+      }
+
+      if (applySpecial) {
+        const specialMax =
+          pokemon.specialMoveMaxUses ||
+          GameConfig.SPECIAL_MOVE_MAX_USES ||
+          SPECIAL_MOVE_MAX_USES;
+        pokemon.specialMoveMaxUses = specialMax;
+        pokemon.specialMoveRemaining = specialMax;
+      }
     },
 
     isSpecialMove: function (pokemon, moveName) {
@@ -497,7 +565,8 @@ export async function createConfigAndUtils(v) {
           Utils.registerPokemon(p.id);
         }
         const hasTracking =
-          typeof p?.specialMoveRemaining === "number";
+          typeof p?.specialMoveRemaining === "number" &&
+          typeof p?.normalMoveRemaining === "number";
         Utils.applyMoveTemplate(p, { forceResetUses: !hasTracking });
       });
     }

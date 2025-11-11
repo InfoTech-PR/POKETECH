@@ -210,6 +210,7 @@ export const RendererServices = {
                     <p>${quantityText}</p>
                     <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${item.cost
         } cada)</span>
+                    ${item.healAmount > 0 ? `<span class="gba-font text-[10px] text-green-600 block">Cura ${item.healAmount} HP</span>` : item.ppRestore ? `<span class="gba-font text-[10px] text-purple-600 block">Recupera PAs dos golpes</span>` : ""}
                     <!-- Subtotal dinâmico -->
                     <div id="subtotal-${inputId}" class="gba-font text-xs text-yellow-700 font-bold mt-1">
                         Subtotal: P$${initialSubtotal}

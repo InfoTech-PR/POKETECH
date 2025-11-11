@@ -399,47 +399,77 @@ export const GameLogic = {
     }
 
     if (window.gameState.currentScreen !== "battle") {
-      if (!item.healAmount) {
-        window.Utils.showModal(
-          "errorModal",
-          `O item ${itemName} não pode ser usado fora da batalha.`
-        );
-        return;
-      }
-
       const targetPokemon =
         window.gameState.profile.pokemon[targetPokemonIndex];
       if (!targetPokemon) return;
+      window.Utils.ensureMoveCounters(targetPokemon);
 
-      if (targetPokemon.currentHp >= targetPokemon.maxHp) {
+      if (item.healAmount) {
+        if (targetPokemon.currentHp >= targetPokemon.maxHp) {
+          window.Utils.showModal(
+            "infoModal",
+            `${targetPokemon.name} já está com HP máximo.`
+          );
+          return;
+        }
+
+        const actualHeal = Math.min(
+          item.healAmount,
+          targetPokemon.maxHp - targetPokemon.currentHp
+        );
+        targetPokemon.currentHp += actualHeal;
+        item.quantity--;
+
         window.Utils.showModal(
           "infoModal",
-          `${targetPokemon.name} já está com HP máximo.`
+          `Você usou ${itemName}. ${targetPokemon.name} curou ${actualHeal} HP. Restam x${item.quantity}.`
         );
+        window.GameLogic.saveGameData();
+        window.Renderer.showScreen("pokemonList");
         return;
       }
 
-      const actualHeal = Math.min(
-        item.healAmount,
-        targetPokemon.maxHp - targetPokemon.currentHp
-      );
-      targetPokemon.currentHp += actualHeal;
-      window.Utils.restoreSpecialMoveCharges(targetPokemon);
-      item.quantity--;
+      if (item.ppRestore) {
+        window.Utils.ensureMoveCounters(targetPokemon);
+        const normalFull =
+          targetPokemon.normalMoveRemaining >=
+          targetPokemon.normalMoveMaxUses;
+        const specialFull =
+          targetPokemon.specialMoveRemaining >=
+          targetPokemon.specialMoveMaxUses;
+
+        if (normalFull && specialFull) {
+          window.Utils.showModal(
+            "infoModal",
+            `${targetPokemon.name} já está com todos os PAs carregados.`
+          );
+          return;
+        }
+
+        window.Utils.restoreMoveCharges(targetPokemon);
+        item.quantity--;
+
+        window.Utils.showModal(
+          "infoModal",
+          `${targetPokemon.name} recuperou todos os PAs dos golpes. Restam x${item.quantity}.`
+        );
+        window.GameLogic.saveGameData();
+        window.Renderer.showScreen("pokemonList");
+        return;
+      }
 
       window.Utils.showModal(
-        "infoModal",
-        `Você usou ${itemName}. ${targetPokemon.name} curou ${actualHeal} HP e recuperou o ataque especial. Restam x${item.quantity}.`
+        "errorModal",
+        `O item ${itemName} não pode ser usado fora da batalha.`
       );
-      window.GameLogic.saveGameData();
-      window.Renderer.showScreen("pokemonList");
       return;
     }
 
+    const playerPokemon = window.Utils.getActivePokemon();
+    window.Utils.ensureMoveCounters(playerPokemon);
+
     if (item.healAmount) {
       item.quantity--;
-      const playerPokemon = window.Utils.getActivePokemon();
-
       if (playerPokemon.currentHp >= playerPokemon.maxHp) {
         window.BattleCore.addBattleLog(
           `${playerPokemon.name} já está com HP máximo!`
@@ -452,9 +482,8 @@ export const GameLogic = {
           playerPokemon.maxHp - playerPokemon.currentHp
         );
         playerPokemon.currentHp += actualHeal;
-        window.Utils.restoreSpecialMoveCharges(playerPokemon);
         window.BattleCore.addBattleLog(
-          `Você usou ${itemName}. ${playerPokemon.name} curou ${actualHeal} HP e recarregou o ataque especial.`
+          `Você usou ${itemName}. ${playerPokemon.name} curou ${actualHeal} HP.`
         );
         window.BattleCore._animateBattleAction(
           ".player-sprite",
@@ -462,6 +491,37 @@ export const GameLogic = {
           500
         );
       }
+      window.GameLogic.saveGameData();
+      return;
+    }
+
+    if (item.ppRestore) {
+      const normalFull =
+        playerPokemon.normalMoveRemaining >=
+        playerPokemon.normalMoveMaxUses;
+      const specialFull =
+        playerPokemon.specialMoveRemaining >=
+        playerPokemon.specialMoveMaxUses;
+
+      if (normalFull && specialFull) {
+        BattleCore.addBattleLog(
+          `${playerPokemon.name} já está com todos os PAs carregados!`
+        );
+        return;
+      }
+
+      item.quantity--;
+      window.Utils.restoreMoveCharges(playerPokemon);
+      BattleCore.addBattleLog(
+        `Você usou ${itemName}. ${playerPokemon.name} recuperou todos os PAs dos golpes.`
+      );
+      BattleCore._animateBattleAction(
+        ".player-sprite",
+        "animate-heal",
+        500
+      );
+      window.GameLogic.saveGameData();
+      return;
     }
   },
 
@@ -472,20 +532,19 @@ export const GameLogic = {
     let healedCount = 0;
 
     profile.pokemon.forEach((p) => {
-      const maxUses =
-        p.specialMoveMaxUses || window.GameConfig?.SPECIAL_MOVE_MAX_USES || 10;
+      window.Utils.ensureMoveCounters(p);
       const specialNeeds =
-        typeof p.specialMoveRemaining === "number"
-          ? p.specialMoveRemaining < maxUses
-          : true;
+        p.specialMoveRemaining < p.specialMoveMaxUses;
+      const normalNeeds =
+        p.normalMoveRemaining < p.normalMoveMaxUses;
       const hpNeeds = p.currentHp < p.maxHp;
 
       if (hpNeeds) {
         p.currentHp = p.maxHp;
       }
-      window.Utils.restoreSpecialMoveCharges(p);
+      window.Utils.restoreMoveCharges(p);
 
-      if (hpNeeds || specialNeeds) {
+      if (hpNeeds || specialNeeds || normalNeeds) {
         totalCost += GameConfig.HEAL_COST_PER_POKE;
         healedCount++;
       }
@@ -494,7 +553,7 @@ export const GameLogic = {
     if (healedCount === 0) {
       window.Utils.showModal(
         "infoModal",
-        "Todos os seus Pokémons já estavam saudáveis e com ataques especiais carregados!"
+        "Todos os seus Pokémons já estavam saudáveis e com PAs completos!"
       );
       return;
     }
@@ -521,7 +580,7 @@ export const GameLogic = {
 
     window.Utils.showModal(
       "infoModal",
-      `Obrigado por esperar! ${healedCount} Pokémons cuidados e com ataques especiais recarregados por P$${totalCost}.`
+      `Obrigado por esperar! ${healedCount} Pokémons cuidados e com PAs recarregados por P$${totalCost}.`
     );
     window.GameLogic.saveGameData();
     window.Renderer.showScreen("healCenter");

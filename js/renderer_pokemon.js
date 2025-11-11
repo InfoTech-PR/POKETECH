@@ -83,34 +83,54 @@ export const RendererPokemon = {
 
   _renderHealUi: function (p, pokemonIndex) {
     const profile = window.gameState.profile;
-    const healItems = (profile.items || []).filter(i => i.quantity > 0 && i.healAmount > 0);
-    const canHealNow = healItems.length > 0 && p.currentHp < p.maxHp;
+    window.Utils.ensureMoveCounters(p);
+    const supportItems = (profile.items || []).filter(
+      (i) => i.quantity > 0 && (i.healAmount > 0 || i.ppRestore)
+    );
+    const canUseNow = supportItems.some((item) => {
+      if (item.healAmount > 0) {
+        return p.currentHp < p.maxHp;
+      }
+      if (item.ppRestore) {
+        return !(
+          p.normalMoveRemaining >= p.normalMoveMaxUses &&
+          p.specialMoveRemaining >= p.specialMoveMaxUses
+        );
+      }
+      return false;
+    });
 
     const selectId = `healItemSelect-${pokemonIndex}`;
-    const options = healItems.map(i =>
-      `<option value="${i.name}">${i.name} (+${i.healAmount} HP) x${i.quantity}</option>`
-    ).join("");
+    const options = supportItems
+      .map((item) => {
+        const effect =
+          item.healAmount > 0
+            ? `+${item.healAmount} HP`
+            : "Recupera PA";
+        return `<option value="${item.name}">${item.name} (${effect}) x${item.quantity}</option>`;
+      })
+      .join("");
 
     return `
     <div class="mt-2 p-2 border-t border-gray-400">
-      <h3 class="font-bold gba-font text-sm mb-2 text-center text-green-700">ITENS DE CURA</h3>
+      <h3 class="font-bold gba-font text-sm mb-2 text-center text-green-700">ITENS DE SUPORTE</h3>
 
-      ${healItems.length ? `
+      ${supportItems.length ? `
         <div class="flex items-center space-x-2">
           <select id="${selectId}" class="flex-grow p-1 border-2 border-gray-800 rounded gba-font text-xs bg-white shadow-inner">
             ${options}
           </select>
           <button
             onclick="RendererPokemon._useHealItemOnPokemon(${pokemonIndex})"
-            class="gba-button ${canHealNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
-            ${canHealNow ? '' : 'disabled'}
+            class="gba-button ${canUseNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
+            ${canUseNow ? '' : 'disabled'}
             data-select="${selectId}">
             Usar
           </button>
         </div>
-        <p class="text-[10px] gba-font text-gray-600 mt-1">Cura limitada ao máximo de HP.</p>
+        <p class="text-[10px] gba-font text-gray-600 mt-1">Poções recuperam HP. Éteres recarregam PAs.</p>
       ` : `
-        <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de cura disponíveis.</div>
+        <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de suporte disponíveis.</div>
         <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.Renderer.showScreen('bag')"
                 class="gba-button bg-blue-500 hover:bg-blue-600 w-full mt-2">
           Ir à Mochila
@@ -118,65 +138,6 @@ export const RendererPokemon = {
       `}
     </div>
   `;
-  },
-
-  _useHealItemOnPokemon: function (pokemonIndex) {
-    try {
-      const profile = window.gameState.profile;
-      const p = profile?.pokemon?.[pokemonIndex];
-      if (!p) return;
-
-      // Recupera o select pelo data-select acoplado no botão "Usar"
-      // (suporta casos de múltiplos modais ou re-render)
-      const modal = document.getElementById('pokemonStatsModal');
-      const useBtn = modal?.querySelector(`button[onclick="RendererPokemon._useHealItemOnPokemon(${pokemonIndex})"]`);
-      const selectId = useBtn?.getAttribute('data-select');
-      const select = selectId ? document.getElementById(selectId) : null;
-      if (!select) {
-        window.Utils.showModal('errorModal', 'Seletor de item não encontrado.');
-        return;
-      }
-
-      const itemName = select.value;
-      const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
-      if (!item) {
-        window.Utils.showModal('errorModal', 'Item indisponível.');
-        return;
-      }
-
-      if (p.currentHp <= 0) {
-        window.Utils.showModal('infoModal', `${p.name} está desmaiado e não pode ser curado por poções.`);
-        return;
-      }
-
-      if (p.currentHp >= p.maxHp) {
-        window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
-        return;
-      }
-
-      const before = p.currentHp;
-      p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
-
-      item.quantity -= 1;
-      if (item.quantity <= 0) {
-        profile.items = (profile.items || []).filter(i => i.quantity > 0);
-      }
-
-      window.Utils.restoreSpecialMoveCharges(p);
-
-      window.GameLogic.saveGameData();
-
-      const healed = p.currentHp - before;
-      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
-
-      // Re-render do modal para refletir novo HP/itens
-      setTimeout(() => {
-        RendererPokemon.showPokemonStats(p.name, pokemonIndex);
-      }, 120);
-    } catch (e) {
-      console.error('Erro ao usar item de cura:', e);
-      window.Utils.showModal('errorModal', 'Falha ao usar item.');
-    }
   },
 
   // ====================================================================
@@ -364,17 +325,18 @@ export const RendererPokemon = {
     const profile = window.gameState.profile;
     // Filtra itens com quantidade > 0 e ordena
     const items = (profile.items || []).filter(i => i.quantity > 0).sort((a, b) => {
-      // Cura primeiro, depois alfabeticamente
-      if (a.healAmount > 0 && b.healAmount === 0) return -1;
-      if (a.healAmount === 0 && b.healAmount > 0) return 1;
+      const aSupport = (a.healAmount > 0) || a.ppRestore;
+      const bSupport = (b.healAmount > 0) || b.ppRestore;
+      if (aSupport && !bSupport) return -1;
+      if (!aSupport && bSupport) return 1;
       return a.name.localeCompare(b.name);
     });
 
-    const hasHealItem = items.some(i => i.healAmount > 0);
+    const hasSupportItem = items.some(i => (i.healAmount > 0) || i.ppRestore);
 
     const itemsHtml = items.map(item => {
-      const isUsable = item.healAmount > 0;
-      const actionText = isUsable ? "Usar" : "Detalhes"; // Mantido para referência no HTML
+      const isUsable = item.healAmount > 0 || item.ppRestore;
+      const actionText = item.healAmount > 0 ? "Curar" : item.ppRestore ? "Recarregar PA" : "Detalhes";
       const isPokeball = item.name.toLowerCase().includes("ball");
       const itemConfig = window.GameConfig.SHOP_ITEMS.find(i => i.name === item.name);
       const spriteUrl = itemConfig ? itemConfig.spriteUrl : "";
@@ -382,8 +344,8 @@ export const RendererPokemon = {
       // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
       const useButton = isUsable
         ? `<button onclick="window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name}' })" 
-                        class="gba-button bg-green-500 hover:bg-green-600 w-full">
-                        Usar
+                        class="gba-button ${item.ppRestore ? "bg-purple-500 hover:bg-purple-600" : "bg-green-500 hover:bg-green-600"} w-full">
+                        ${actionText}
                     </button>`
         : `<button disabled class="gba-button bg-gray-400 w-full cursor-not-allowed">
                         ${isPokeball ? "Apenas em batalha" : "Sem uso fora de batalha"}
@@ -411,8 +373,8 @@ export const RendererPokemon = {
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MOCHILA</div>
             <p class="text-center text-sm gba-font mb-4 flex-shrink-0 text-gray-600">
-                ${hasHealItem
-        ? "Poções podem ser usadas aqui. Pokébolas apenas em batalha."
+                ${hasSupportItem
+        ? "Itens de cura e PA podem ser usados aqui. Pokébolas apenas em batalha."
         : "Sua mochila contém seus tesouros."
       }
             </p>
@@ -565,32 +527,48 @@ export const RendererPokemon = {
       }
 
       // Seção de cura (responsiva, botão sempre visível em mobile)
-      const healItems = (profile?.items || []).filter(i => i.quantity > 0 && i.healAmount > 0);
-      const canHealNow = healItems.length > 0 && p.currentHp < p.maxHp;
+      window.Utils.ensureMoveCounters(p);
+      const supportItems = (profile?.items || []).filter(
+        (i) => i.quantity > 0 && (i.healAmount > 0 || i.ppRestore)
+      );
+      const canUseNow = supportItems.some((item) => {
+        if (item.healAmount > 0) {
+          return p.currentHp < p.maxHp;
+        }
+        if (item.ppRestore) {
+          return !(
+            p.normalMoveRemaining >= p.normalMoveMaxUses &&
+            p.specialMoveRemaining >= p.specialMoveMaxUses
+          );
+        }
+        return false;
+      });
       const selectId = `healItemSelect-${pokemonIndex}`;
       const useBtnId = `healUseBtn-${pokemonIndex}`;
 
-      const healOptions = healItems.map(i =>
-        `<option value="${i.name}">${i.name} (+${i.healAmount} HP) x${i.quantity}</option>`
-      ).join("");
+      const healOptions = supportItems.map(i => {
+        const effect =
+          i.healAmount > 0 ? `+${i.healAmount} HP` : "Recupera PA";
+        return `<option value="${i.name}">${i.name} (${effect}) x${i.quantity}</option>`;
+      }).join("");
 
       const healSection = `
       <div class="mt-2 p-2 border-t border-gray-400">
         <h3 class="font-bold gba-font text-sm mb-2 text-center text-green-700">ITENS DE CURA</h3>
-        ${healItems.length ? `
+        ${supportItems.length ? `
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <select id="${selectId}" class="w-full sm:flex-grow p-1 border-2 border-gray-800 rounded gba-font text-xs bg-white shadow-inner">
               ${healOptions}
             </select>
             <button id="${useBtnId}"
-                    class="w-full sm:w-auto flex-shrink-0 gba-button ${canHealNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
-                    ${canHealNow ? '' : 'disabled'}>
+                    class="w-full sm:w-auto flex-shrink-0 gba-button ${canUseNow ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-400 cursor-not-allowed'}"
+                    ${canUseNow ? '' : 'disabled'}>
               Usar
             </button>
           </div>
-          <p class="text-[10px] gba-font text-gray-600 mt-1 text-center sm:text-left">Cura limitada ao máximo de HP.</p>
+          <p class="text-[10px] gba-font text-gray-600 mt-1 text-center sm:text-left">Poções recuperam HP. Éteres recarregam PAs.</p>
         ` : `
-          <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de cura disponíveis.</div>
+          <div class="text-center text-[10px] gba-font text-gray-600">Sem itens de suporte disponíveis.</div>
           <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.Renderer?.showScreen?.('bag')"
                   class="gba-button bg-blue-500 hover:bg-blue-600 w-full mt-2">
             Ir à Mochila
@@ -673,38 +651,14 @@ export const RendererPokemon = {
             }
 
             const itemName = select.value;
-            const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
-            if (!item) {
-              window.Utils.showModal('errorModal', 'Item indisponível.');
-              return;
-            }
-            if (p.currentHp <= 0) {
-              window.Utils.showModal('infoModal', `${p.name} está desmaiado e não pode ser curado.`);
-              return;
-            }
-            if (p.currentHp >= p.maxHp) {
-              window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
-              return;
-            }
+            window.GameLogic.useItem(itemName, pokemonIndex);
 
-            const before = p.currentHp;
-            p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
-
-            item.quantity -= 1;
-            if (item.quantity <= 0) {
-              profile.items = (profile.items || []).filter(i => i.quantity > 0);
-            }
-
-            window.GameLogic.saveGameData();
-
-            const healed = p.currentHp - before;
-            window.Utils.restoreSpecialMoveCharges(p);
-            window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
-
-            // Re-render
             setTimeout(() => {
-              showPokemonStats(p.name, pokemonIndex);
-            }, 120);
+              const refreshed = window.gameState.profile.pokemon[pokemonIndex];
+              if (refreshed) {
+                showPokemonStats(refreshed.name, pokemonIndex);
+              }
+            }, 150);
           } catch (err) {
             console.error('Erro ao usar item de cura:', err);
             window.Utils.showModal('errorModal', 'Falha ao usar item.');
@@ -983,46 +937,41 @@ export const RendererPokemon = {
   // Dentro de export const RendererPokemon = { ... }
   _useHealItemOnPokemon: function (pokemonIndex) {
     try {
-      const select = document.getElementById('healItemSelect');
-      if (!select) return;
+      const modal = document.getElementById("pokemonStatsModal");
+      const useBtn =
+        modal?.querySelector(
+          `button[onclick="RendererPokemon._useHealItemOnPokemon(${pokemonIndex})"]`
+        ) || null;
+      let select = null;
+      if (useBtn) {
+        const selectId = useBtn.getAttribute("data-select");
+        if (selectId) {
+          select = document.getElementById(selectId);
+        }
+      }
+      if (!select) {
+        select = document.getElementById("healItemSelect");
+      }
+      if (!select) {
+        window.Utils.showModal(
+          "errorModal",
+          "Seletor de item não encontrado."
+        );
+        return;
+      }
 
       const itemName = select.value;
-      const profile = window.gameState.profile;
-      const p = profile?.pokemon?.[pokemonIndex];
-      if (!p) return;
-
-      const item = (profile.items || []).find(i => i.name === itemName && i.quantity > 0 && i.healAmount > 0);
-      if (!item) {
-        window.Utils.showModal('errorModal', 'Item indisponível.');
-        return;
-      }
-
-      if (p.currentHp >= p.maxHp) {
-        window.Utils.showModal('infoModal', `${p.name} já está com HP cheio.`);
-        return;
-      }
-
-      const before = p.currentHp;
-      p.currentHp = Math.min(p.maxHp, p.currentHp + item.healAmount);
-
-      item.quantity -= 1;
-      if (item.quantity <= 0) {
-        profile.items = (profile.items || []).filter(i => i.quantity > 0);
-      }
-
-      window.Utils.restoreSpecialMoveCharges(p);
-
-      window.GameLogic.saveGameData();
-
-      const healed = p.currentHp - before;
-      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
+      window.GameLogic.useItem(itemName, pokemonIndex);
 
       setTimeout(() => {
-        RendererPokemon.showPokemonStats(p.name, pokemonIndex);
+        const refreshed = window.gameState.profile.pokemon[pokemonIndex];
+        if (refreshed) {
+          RendererPokemon.showPokemonStats(refreshed.name, pokemonIndex);
+        }
       }, 150);
     } catch (e) {
-      console.error('Erro ao usar item de cura:', e);
-      window.Utils.showModal('errorModal', 'Falha ao usar item.');
+      console.error("Erro ao usar item de suporte:", e);
+      window.Utils.showModal("errorModal", "Falha ao usar item.");
     }
   },
 

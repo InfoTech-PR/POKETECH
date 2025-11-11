@@ -395,13 +395,13 @@ export const GameLogic = {
       if (window.gameState.currentScreen !== "battle") {
         window.Utils.showModal("errorModal", `Você não tem mais ${itemName}!`);
       }
-      return;
+      return false;
     }
 
     if (window.gameState.currentScreen !== "battle") {
       const targetPokemon =
         window.gameState.profile.pokemon[targetPokemonIndex];
-      if (!targetPokemon) return;
+      if (!targetPokemon) return false;
       window.Utils.ensureMoveCounters(targetPokemon);
 
       if (item.healAmount) {
@@ -410,7 +410,14 @@ export const GameLogic = {
             "infoModal",
             `${targetPokemon.name} já está com HP máximo.`
           );
-          return;
+          return false;
+        }
+        if (targetPokemon.currentHp <= 0) {
+          window.Utils.showModal(
+            "infoModal",
+            `${targetPokemon.name} está desmaiado e não pode ser curado agora.`
+          );
+          return false;
         }
 
         const actualHeal = Math.min(
@@ -426,7 +433,7 @@ export const GameLogic = {
         );
         window.GameLogic.saveGameData();
         window.Renderer.showScreen("pokemonList");
-        return;
+        return true;
       }
 
       if (item.ppRestore) {
@@ -443,7 +450,7 @@ export const GameLogic = {
             "infoModal",
             `${targetPokemon.name} já está com todos os PAs carregados.`
           );
-          return;
+          return false;
         }
 
         window.Utils.restoreMoveCharges(targetPokemon);
@@ -455,14 +462,14 @@ export const GameLogic = {
         );
         window.GameLogic.saveGameData();
         window.Renderer.showScreen("pokemonList");
-        return;
+        return true;
       }
 
       window.Utils.showModal(
         "errorModal",
         `O item ${itemName} não pode ser usado fora da batalha.`
       );
-      return;
+      return false;
     }
 
     const playerPokemon = window.Utils.getActivePokemon();
@@ -475,7 +482,7 @@ export const GameLogic = {
           `${playerPokemon.name} já está com HP máximo!`
         );
         item.quantity++;
-        return;
+        return false;
       } else {
         const actualHeal = Math.min(
           item.healAmount,
@@ -492,7 +499,7 @@ export const GameLogic = {
         );
       }
       window.GameLogic.saveGameData();
-      return;
+      return true;
     }
 
     if (item.ppRestore) {
@@ -507,7 +514,7 @@ export const GameLogic = {
         BattleCore.addBattleLog(
           `${playerPokemon.name} já está com todos os PAs carregados!`
         );
-        return;
+        return false;
       }
 
       item.quantity--;
@@ -521,8 +528,10 @@ export const GameLogic = {
         500
       );
       window.GameLogic.saveGameData();
-      return;
+      return true;
     }
+
+    return false;
   },
 
   healAllPokemon: function () {

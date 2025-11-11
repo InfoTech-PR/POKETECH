@@ -87,18 +87,27 @@ export const RendererPokemon = {
     const supportItems = (profile.items || []).filter(
       (i) => i.quantity > 0 && (i.healAmount > 0 || i.ppRestore)
     );
-    const canUseNow = supportItems.some((item) => {
+
+    const pending = window.gameState.pendingSupportItem;
+    const defaultItemName = pending && supportItems.find((i) => i.name === pending)
+      ? pending
+      : supportItems[0]?.name;
+
+    const canUseNow = (() => {
+      if (!defaultItemName) return false;
+      const item = supportItems.find((i) => i.name === defaultItemName);
+      if (!item) return false;
       if (item.healAmount > 0) {
         return p.currentHp < p.maxHp;
       }
       if (item.ppRestore) {
-        return !(
-          p.normalMoveRemaining >= p.normalMoveMaxUses &&
-          p.specialMoveRemaining >= p.specialMoveMaxUses
+        return (
+          p.normalMoveRemaining < p.normalMoveMaxUses ||
+          p.specialMoveRemaining < p.specialMoveMaxUses
         );
       }
       return false;
-    });
+    })();
 
     const selectId = `healItemSelect-${pokemonIndex}`;
     const options = supportItems
@@ -107,7 +116,9 @@ export const RendererPokemon = {
           item.healAmount > 0
             ? `+${item.healAmount} HP`
             : "Recupera PA";
-        return `<option value="${item.name}">${item.name} (${effect}) x${item.quantity}</option>`;
+        const selected =
+          defaultItemName && item.name === defaultItemName ? "selected" : "";
+        return `<option value="${item.name}" ${selected}>${item.name} (${effect}) x${item.quantity}</option>`;
       })
       .join("");
 
@@ -144,7 +155,13 @@ export const RendererPokemon = {
   // FUNÇÕES DE RENDERIZAÇÃO PÚBLICAS
   // ====================================================================
 
-  renderPokemonList: function () {
+  renderPokemonList: function (app, extraData = {}) {
+    const pendingSupportItem =
+      extraData?.action === "useItem" && extraData?.item
+        ? extraData.item
+        : null;
+    window.gameState.pendingSupportItem = pendingSupportItem || null;
+
     const pokemonArray = window.gameState.profile.pokemon;
 
     const pokemonHtml = pokemonArray
@@ -199,8 +216,17 @@ export const RendererPokemon = {
       })
       .join("");
 
+    const actionBanner = pendingSupportItem
+      ? `<div class="gba-font text-xs text-center text-indigo-700 bg-indigo-100 border border-indigo-300 rounded-md px-3 py-2 mb-3">
+          Selecione um Pokémon para usar <strong>${window.Utils.formatName(
+            pendingSupportItem
+          )}</strong>.
+        </div>`
+      : "";
+
     const content = `
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
+      ${actionBanner}
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
         ${pokemonHtml ||
       '<p class="text-center text-gray-500 gba-font">Você não tem Pokémons!</p>'
@@ -962,6 +988,9 @@ export const RendererPokemon = {
 
       const itemName = select.value;
       window.GameLogic.useItem(itemName, pokemonIndex);
+      window.gameState.pendingSupportItem = null;
+      window.GameLogic.useItem(itemName, pokemonIndex);
+      window.gameState.pendingSupportItem = null;
 
       setTimeout(() => {
         const refreshed = window.gameState.profile.pokemon[pokemonIndex];

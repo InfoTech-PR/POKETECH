@@ -173,6 +173,7 @@ export async function createConfigAndUtils(v) {
       battle: null,
       pvpRoomId: null,
       exploreLog: ["Bem-vindo ao Pokémon GBA RPG!"],
+      pendingSupportItem: null,
 
       // NOVO: Estado do clima
       currentWeather: {
@@ -315,6 +316,7 @@ export async function createConfigAndUtils(v) {
           if (savedExploreLog) {
             window.gameState.exploreLog = JSON.parse(savedExploreLog);
           }
+          window.gameState.pendingSupportItem = null;
           console.log("Jogo Carregado com Sucesso!");
           return true;
         }

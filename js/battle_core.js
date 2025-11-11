@@ -351,18 +351,17 @@ const ensureBattleStyles = () => {
     }
     #battle-area .battle-row {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      width: 100%;
     }
     #battle-area .battle-row-opponent {
       flex-direction: row;
-      justify-content: flex-end;
     }
     #battle-area .battle-row-player {
       flex-direction: row;
-      justify-content: flex-start;
     }
     #battle-area .battle-card {
       background: rgba(255, 255, 255, 0.88);
@@ -370,7 +369,7 @@ const ensureBattleStyles = () => {
       border-radius: 14px;
       padding: 10px 12px;
       box-shadow: 0 6px 0 rgba(17, 24, 39, 0.18);
-      width: clamp(200px, 60vw, 320px);
+      width: clamp(200px, 60%, 320px);
       font-size: 0.55rem;
       line-height: 1.3;
     }
@@ -451,6 +450,7 @@ const ensureBattleStyles = () => {
       align-items: center;
       justify-content: flex-end;
       min-width: 120px;
+      flex: 0 0 34%;
     }
     #battle-area .battle-sprite-wrap .battle-platform {
       margin-top: 6px;
@@ -557,6 +557,20 @@ const ensureBattleStyles = () => {
       font-size: 0.5rem;
       font-weight: 600;
       letter-spacing: 0.04em;
+      display: block;
+      width: 100%;
+      background: rgba(17, 24, 39, 0.9);
+      color: #f8fafc;
+      padding: 3px 6px;
+      border-radius: 8px 8px 4px 4px;
+      text-align: left;
+    }
+    #battle-area .battle-move-label {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      font-weight: 600;
+      color: #111827;
     }
     #battle-area .battle-sprite.capture-shake-position,
     #battle-area .capture-shake-position {
@@ -578,15 +592,13 @@ const ensureBattleStyles = () => {
       }
       #battle-area .battle-entity.player,
       #battle-area .battle-entity.opponent {
-        align-items: center;
+        align-items: stretch;
       }
-      #battle-area .battle-row-opponent,
-      #battle-area .battle-row-player {
-        justify-content: center;
+      #battle-area .battle-row {
+        gap: 8px;
       }
       #battle-area .battle-card {
-        width: 100%;
-        max-width: 320px;
+        width: clamp(60%, 70vw, 320px);
       }
       #battle-area .battle-main-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1319,9 +1331,13 @@ export const BattleCore = {
 
       const isHealing = item.healAmount;
       const isPpRestore = item.ppRestore;
-      window.GameLogic.useItem(moveName);
+      const itemUsed = window.GameLogic.useItem(moveName);
 
       if (isHealing || isPpRestore) {
+        if (!itemUsed) {
+          BattleCore.setBattleMenu("main", true);
+          return;
+        }
         const activeIndex = window.gameState.profile.pokemon.findIndex(
           (p) => p.name === playerPokemon.name
         );
@@ -1673,8 +1689,8 @@ export const BattleCore = {
           }${disabled ? " battle-move-disabled" : ""}" ${
             disabled ? "disabled" : ""
           }>
-              <span>${label}</span>
               ${meta}
+              <span class="battle-move-label">${label}</span>
             </button>`;
         })
         .join("");

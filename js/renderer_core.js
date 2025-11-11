@@ -58,7 +58,7 @@ export const RendererCore = {
         window.Renderer.renderProfile(app);
         break;
       case "pokemonList":
-        window.Renderer.renderPokemonList(app);
+        window.Renderer.renderPokemonList(app, safeExtraData);
         break;
       case "bag":
         // Passa o objeto seguro

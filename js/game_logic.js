@@ -233,6 +233,43 @@ export const GameLogic = {
 
   // MODO CLÁSSICO: Exploração baseada em texto
   explore: async function () {
+    const toggleExploreLoading = (isLoading, message) => {
+      const button = document.getElementById("explore-action-btn");
+      if (button) {
+        if (isLoading) {
+          button.disabled = true;
+          button.classList.add("cursor-wait");
+        } else {
+          button.disabled = false;
+          button.classList.remove("cursor-wait");
+          const defaultLabel = button.dataset.defaultLabel || "ANDAR";
+          const label = button.querySelector(".explore-label");
+          if (label) {
+            label.textContent = defaultLabel;
+          }
+        }
+        const label = button?.querySelector(".explore-label");
+        const spinner = button?.querySelector(".explore-spinner");
+        if (label) {
+          label.textContent = isLoading
+            ? button.dataset.loadingLabel || "Explorando..."
+            : button.dataset.defaultLabel || "ANDAR";
+        }
+        if (spinner) {
+          spinner.classList.toggle("hidden", !isLoading);
+        }
+      }
+      const resultBox = document.getElementById("explore-result");
+      if (resultBox && isLoading) {
+        resultBox.innerHTML = `
+          <div class="flex items-center gap-2 text-gray-700 gba-font text-xs">
+            <span class="inline-flex h-4 w-4 border-[3px] border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+            <span>${message || "Procurando aventuras..."}</span>
+          </div>
+        `;
+      }
+    };
+
     const hasLivePokemon = window.gameState.profile.pokemon.some(
       (p) => p.currentHp > 0
     );
@@ -243,6 +280,8 @@ export const GameLogic = {
       window.Renderer.renderMainMenu(document.getElementById("app-container"));
       return;
     }
+
+    toggleExploreLoading(true, "Procurando aventuras...");
 
     const roll = Math.random();
     let resultMessage = "";
@@ -273,6 +312,11 @@ export const GameLogic = {
       GameLogic.addExploreLog(resultMessage);
       window.GameLogic.saveGameData();
       window.Renderer.renderMainMenu(document.getElementById("app-container"));
+      toggleExploreLoading(false);
+    }
+
+    if (startedBattle) {
+      toggleExploreLoading(false);
     }
   },
 
@@ -380,11 +424,12 @@ export const GameLogic = {
         targetPokemon.maxHp - targetPokemon.currentHp
       );
       targetPokemon.currentHp += actualHeal;
+      window.Utils.restoreSpecialMoveCharges(targetPokemon);
       item.quantity--;
 
       window.Utils.showModal(
         "infoModal",
-        `Você usou ${itemName}. ${targetPokemon.name} curou ${actualHeal} HP. Restam x${item.quantity}.`
+        `Você usou ${itemName}. ${targetPokemon.name} curou ${actualHeal} HP e recuperou o ataque especial. Restam x${item.quantity}.`
       );
       window.GameLogic.saveGameData();
       window.Renderer.showScreen("pokemonList");
@@ -407,8 +452,9 @@ export const GameLogic = {
           playerPokemon.maxHp - playerPokemon.currentHp
         );
         playerPokemon.currentHp += actualHeal;
+        window.Utils.restoreSpecialMoveCharges(playerPokemon);
         window.BattleCore.addBattleLog(
-          `Você usou ${itemName}. ${playerPokemon.name} curou ${actualHeal} HP.`
+          `Você usou ${itemName}. ${playerPokemon.name} curou ${actualHeal} HP e recarregou o ataque especial.`
         );
         window.BattleCore._animateBattleAction(
           ".player-sprite",
@@ -426,8 +472,20 @@ export const GameLogic = {
     let healedCount = 0;
 
     profile.pokemon.forEach((p) => {
-      if (p.currentHp < p.maxHp) {
+      const maxUses =
+        p.specialMoveMaxUses || window.GameConfig?.SPECIAL_MOVE_MAX_USES || 10;
+      const specialNeeds =
+        typeof p.specialMoveRemaining === "number"
+          ? p.specialMoveRemaining < maxUses
+          : true;
+      const hpNeeds = p.currentHp < p.maxHp;
+
+      if (hpNeeds) {
         p.currentHp = p.maxHp;
+      }
+      window.Utils.restoreSpecialMoveCharges(p);
+
+      if (hpNeeds || specialNeeds) {
         totalCost += GameConfig.HEAL_COST_PER_POKE;
         healedCount++;
       }
@@ -436,7 +494,7 @@ export const GameLogic = {
     if (healedCount === 0) {
       window.Utils.showModal(
         "infoModal",
-        "Todos os seus Pokémons já estão saudáveis!"
+        "Todos os seus Pokémons já estavam saudáveis e com ataques especiais carregados!"
       );
       return;
     }
@@ -463,7 +521,7 @@ export const GameLogic = {
 
     window.Utils.showModal(
       "infoModal",
-      `Obrigado por esperar! ${healedCount} Pokémons curados por P$${totalCost}.`
+      `Obrigado por esperar! ${healedCount} Pokémons cuidados e com ataques especiais recarregados por P$${totalCost}.`
     );
     window.GameLogic.saveGameData();
     window.Renderer.showScreen("healCenter");

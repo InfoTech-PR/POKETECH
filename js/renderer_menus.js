@@ -382,7 +382,12 @@ export const RendererMenus = {
                 <div id="explore-result" class="h-16 text-xs gba-font mb-2 overflow-y-auto">
                     ${exploreMsg}
                 </div>
-                <button onclick="${exploreAction}" class="gba-button ${exploreButtonColor} w-full ${exploreDisabled}" ${exploreDisabled}>${exploreButtonText}</button>
+                <button id="explore-action-btn" data-default-label="${exploreButtonText}" data-loading-label="Explorando..." onclick="${exploreAction}" class="gba-button ${exploreButtonColor} w-full ${exploreDisabled} flex items-center justify-center gap-2" ${exploreDisabled}>
+                  <span class="explore-label">${exploreButtonText}</span>
+                  <span class="explore-spinner hidden">
+                    <span class="inline-flex h-4 w-4 border-[3px] border-white/80 border-t-transparent rounded-full animate-spin"></span>
+                  </span>
+                </button>
             </div>
         `;
 

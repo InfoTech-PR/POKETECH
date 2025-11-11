@@ -99,6 +99,33 @@ export async function createConfigAndUtils(v) {
     },
   };
 
+  const DEFAULT_NORMAL_MOVE = "tackle";
+  const SPECIAL_MOVE_MAX_USES = 10;
+  const TYPE_SPECIAL_MOVES = {
+    normal: "headbutt",
+    fire: "ember",
+    water: "water-gun",
+    grass: "vine-whip",
+    electric: "thunder-shock",
+    ground: "mud-slap",
+    rock: "rock-throw",
+    ice: "ice-beam",
+    bug: "bug-bite",
+    psychic: "confusion",
+    dark: "bite",
+    ghost: "night-shade",
+    steel: "iron-head",
+    fighting: "karate-chop",
+    poison: "poison-sting",
+    flying: "gust",
+    dragon: "dragon-breath",
+    fairy: "disarming-voice",
+  };
+
+  GameConfig.TYPE_SPECIAL_MOVES = TYPE_SPECIAL_MOVES;
+  GameConfig.SPECIAL_MOVE_MAX_USES = SPECIAL_MOVE_MAX_USES;
+  GameConfig.DEFAULT_NORMAL_MOVE = DEFAULT_NORMAL_MOVE;
+
   // 2. Definição do initializeGameState
   function initializeGameState() {
     window.gameState = {
@@ -243,6 +270,15 @@ export async function createConfigAndUtils(v) {
             }
           );
 
+          window.gameState.profile.pokemon =
+            (window.gameState.profile.pokemon || []).map((poke) => {
+              const hasTracking =
+                typeof poke?.specialMoveRemaining === "number";
+              return Utils.applyMoveTemplate(poke, {
+                forceResetUses: !hasTracking,
+              });
+            });
+
           if (savedExploreLog) {
             window.gameState.exploreLog = JSON.parse(savedExploreLog);
           }
@@ -329,6 +365,66 @@ export async function createConfigAndUtils(v) {
       }
     },
 
+    getTypeSpecialMove: function (typesOrPrimary) {
+      if (!typesOrPrimary) {
+        return TYPE_SPECIAL_MOVES.normal;
+      }
+      let primaryType = Array.isArray(typesOrPrimary)
+        ? typesOrPrimary[0]
+        : typesOrPrimary;
+      primaryType = String(primaryType || "normal").toLowerCase();
+      return TYPE_SPECIAL_MOVES[primaryType] || TYPE_SPECIAL_MOVES.normal;
+    },
+
+    applyMoveTemplate: function (pokemon, options = {}) {
+      if (!pokemon) return pokemon;
+      const { forceResetUses = false } = options;
+      const normalMove = GameConfig.DEFAULT_NORMAL_MOVE || DEFAULT_NORMAL_MOVE;
+      const specialMove = Utils.getTypeSpecialMove(pokemon.types);
+
+      pokemon.normalMove = normalMove;
+      pokemon.specialMove = specialMove;
+
+      const moves = [normalMove];
+      if (specialMove && specialMove !== normalMove) {
+        moves.push(specialMove);
+      } else if (moves.length < 2) {
+        moves.push("quick-attack");
+      }
+      pokemon.moves = moves;
+
+      const maxUses =
+        GameConfig.SPECIAL_MOVE_MAX_USES || SPECIAL_MOVE_MAX_USES;
+      pokemon.specialMoveMaxUses = maxUses;
+
+      if (
+        forceResetUses ||
+        typeof pokemon.specialMoveRemaining !== "number"
+      ) {
+        pokemon.specialMoveRemaining = maxUses;
+      } else {
+        pokemon.specialMoveRemaining = Math.max(
+          0,
+          Math.min(pokemon.specialMoveRemaining, maxUses)
+        );
+      }
+
+      return pokemon;
+    },
+
+    restoreSpecialMoveCharges: function (pokemon) {
+      if (!pokemon) return;
+      const maxUses =
+        pokemon.specialMoveMaxUses || GameConfig.SPECIAL_MOVE_MAX_USES || SPECIAL_MOVE_MAX_USES;
+      pokemon.specialMoveMaxUses = maxUses;
+      pokemon.specialMoveRemaining = maxUses;
+    },
+
+    isSpecialMove: function (pokemon, moveName) {
+      if (!pokemon || !moveName) return false;
+      return pokemon.specialMove === moveName;
+    },
+
     // NOVO: Função para alternar o modo Beta
     toggleBetaMode: function () {
       const prefs = window.gameState.profile.preferences;
@@ -400,6 +496,9 @@ export async function createConfigAndUtils(v) {
         if (p.id) {
           Utils.registerPokemon(p.id);
         }
+        const hasTracking =
+          typeof p?.specialMoveRemaining === "number";
+        Utils.applyMoveTemplate(p, { forceResetUses: !hasTracking });
       });
     }
   }
@@ -524,6 +623,10 @@ export async function createConfigAndUtils(v) {
         moves: data.moves.slice(0, 4),
         types: data.types,
       };
+
+      if (!isPokedexView) {
+        Utils.applyMoveTemplate(result, { forceResetUses: true });
+      }
 
       if (window.gameState && window.gameState.pokedexCache) {
         if (result.id) {

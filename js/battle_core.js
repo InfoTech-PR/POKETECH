@@ -173,6 +173,7 @@ const MOVES_TO_TYPE_MAPPING = {
   "body-slam": "normal",
   "pay-day": "normal",
   "sand-attack": "ground",
+  "mud-slap": "ground",
   "double-kick": "fighting",
   "horn-attack": "normal",
   pound: "normal",
@@ -222,6 +223,7 @@ const MOVES_TO_TYPE_MAPPING = {
   "cosmic-power": "psychic",
   "water-gun": "water",
   "rock-throw": "rock",
+  "dragon-breath": "dragon",
   "jump-kick": "fighting",
   "rolling-kick": "fighting",
   recover: "normal",
@@ -250,6 +252,7 @@ const MOVES_TO_TYPE_MAPPING = {
   scratch: "normal",
   strength: "normal",
   "iron-head": "steel",
+  "disarming-voice": "fairy",
   liquidation: "water",
 };
 
@@ -287,6 +290,321 @@ const TYPE_SOUND_WAVEFORMS = {
 };
 
 let attackAudioCtx = null;
+
+const ensureBattleStyles = () => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  if (document.getElementById("battle-style")) {
+    return;
+  }
+  const style = document.createElement("style");
+  style.id = "battle-style";
+  style.textContent = `
+    #battle-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+    }
+    #battle-area .battle-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      height: 100%;
+    }
+    #battle-area .battle-scene {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 240px;
+      background: linear-gradient(145deg, #dfe9ff 0%, #fbfdff 55%, #f8f1ff 100%);
+      border: 3px solid #111827;
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      overflow: hidden;
+    }
+    #battle-area .battle-scene::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+      background-size: 22px 22px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    #battle-area .battle-entity {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 1;
+    }
+    #battle-area .battle-entity.player {
+      align-items: flex-start;
+    }
+    #battle-area .battle-entity.opponent {
+      align-items: flex-end;
+    }
+    #battle-area .battle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    #battle-area .battle-row-opponent {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+    #battle-area .battle-row-player {
+      flex-direction: row;
+      justify-content: flex-start;
+    }
+    #battle-area .battle-card {
+      background: rgba(255, 255, 255, 0.88);
+      border: 2px solid #111827;
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 6px 0 rgba(17, 24, 39, 0.18);
+      width: clamp(200px, 60vw, 320px);
+      font-size: 0.55rem;
+      line-height: 1.3;
+    }
+    #battle-area .battle-name-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.6rem;
+      letter-spacing: 0.05em;
+    }
+    #battle-area .battle-type-row {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    #battle-area .battle-type-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border: 2px solid rgba(17, 24, 39, 0.8);
+      background: rgba(255, 255, 255, 0.85);
+      color: #111827;
+      text-transform: uppercase;
+    }
+    #battle-area .battle-hp-bar {
+      margin-top: 8px;
+    }
+    #battle-area .battle-hp-bar-track {
+      width: 100%;
+      height: 9px;
+      background: rgba(17, 24, 39, 0.15);
+      border-radius: 9999px;
+      overflow: hidden;
+      border: 2px solid rgba(17, 24, 39, 0.75);
+    }
+    #battle-area .battle-hp-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.35s ease;
+    }
+    #battle-area .battle-hp-text {
+      margin-top: 4px;
+      font-size: 0.55rem;
+      color: #1f2937;
+      display: flex;
+      justify-content: space-between;
+    }
+    #battle-area .battle-special {
+      margin-top: 6px;
+      font-size: 0.55rem;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    #battle-area .battle-special span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #battle-area .battle-platform {
+      align-self: center;
+      width: 160px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.08) 60%, transparent 70%);
+      box-shadow: 0 18px 24px rgba(17, 24, 39, 0.22);
+    }
+    #battle-area .battle-sprite-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 120px;
+    }
+    #battle-area .battle-sprite-wrap .battle-platform {
+      margin-top: 6px;
+    }
+    #battle-area .battle-sprite {
+      width: 120px;
+      max-width: 32vw;
+      position: relative;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 8px 8px rgba(17, 24, 39, 0.35));
+    }
+    #battle-area .battle-log {
+      background: #1f2937;
+      border: 3px solid #111827;
+      border-radius: 14px;
+      padding: 12px;
+      color: #f9fafb;
+      font-size: 0.6rem;
+      min-height: 90px;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06);
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    #battle-area .battle-log-line + .battle-log-line {
+      margin-top: 4px;
+      opacity: 0.85;
+    }
+    #battle-area .battle-menu {
+      background: #f9fafb;
+      border: 3px solid #111827;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 6px 0 rgba(17, 24, 39, 0.15);
+    }
+    #battle-area .battle-main-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    #battle-area .battle-action-btn {
+      font-size: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 12px;
+      letter-spacing: 0.04em;
+      position: relative;
+    }
+    #battle-area .battle-action-btn i {
+      font-size: 0.8rem;
+    }
+    #battle-area .battle-action-btn.active {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(30, 64, 175, 0.4);
+    }
+    #battle-area .battle-secondary {
+      display: block;
+    }
+    #battle-area .battle-secondary--moves,
+    #battle-area .battle-secondary--items {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    #battle-area .battle-secondary-message {
+      font-size: 0.65rem;
+      color: #374151;
+      background: rgba(255, 255, 255, 0.85);
+      border: 2px solid #cbd5f5;
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    #battle-area .battle-move-btn {
+      font-size: 0.7rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 10px 12px;
+    }
+    #battle-area .battle-move-btn.battle-move-special {
+      background: #c084fc;
+      border-color: #7c3aed;
+    }
+    #battle-area .battle-move-btn.battle-move-special:hover:not([disabled]) {
+      background: #a855f7;
+    }
+    #battle-area .battle-move-btn.battle-move-normal {
+      background: #f87171;
+      border-color: #b91c1c;
+    }
+    #battle-area .battle-move-btn.battle-move-normal:hover:not([disabled]) {
+      background: #ef4444;
+    }
+    #battle-area .battle-move-btn.battle-move-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    #battle-area .battle-move-meta {
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    #battle-area .battle-sprite.capture-shake-position,
+    #battle-area .capture-shake-position {
+      top: -18px;
+      right: 0;
+      transform: translateY(-10%) scale(1.5);
+      z-index: 10;
+    }
+    @media (min-width: 768px) {
+      #battle-area .battle-sprite.capture-shake-position,
+      #battle-area .capture-shake-position {
+        right: -12px;
+      }
+    }
+    @media (max-width: 640px) {
+      #battle-area .battle-scene {
+        padding: 12px;
+        min-height: 220px;
+      }
+      #battle-area .battle-entity.player,
+      #battle-area .battle-entity.opponent {
+        align-items: center;
+      }
+      #battle-area .battle-row-opponent,
+      #battle-area .battle-row-player {
+        justify-content: center;
+      }
+      #battle-area .battle-card {
+        width: 100%;
+        max-width: 320px;
+      }
+      #battle-area .battle-main-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #battle-area .battle-secondary--moves,
+      #battle-area .battle-secondary--items {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #battle-area .battle-action-btn {
+        font-size: 0.68rem;
+      }
+      #battle-area .battle-move-btn {
+        font-size: 0.68rem;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+};
 
 const ensureAttackAudioContext = async () => {
   if (typeof window.AudioContext === "undefined") {
@@ -409,32 +727,7 @@ export const BattleCore = {
     );
     wildPokemonData.currentHp = wildPokemonData.maxHp;
 
-    // --- Define apenas 2 ataques (um comum e um especial do tipo) ---
-    const type = (wildPokemonData.types?.[0] || "normal").toLowerCase();
-
-    const typeSpecialMove = {
-      fire: "ember",
-      water: "water-gun",
-      grass: "vine-whip",
-      electric: "thunder-shock",
-      ground: "mud-slap",
-      rock: "rock-throw",
-      ice: "ice-beam",
-      bug: "bug-bite",
-      psychic: "confusion",
-      dark: "bite",
-      ghost: "night-shade",
-      steel: "iron-head",
-      fighting: "karate-chop",
-      poison: "poison-sting",
-      flying: "gust",
-      dragon: "dragon-breath",
-      fairy: "disarming-voice",
-      normal: "tackle",
-    };
-
-    // Ataque comum + ataque do tipo
-    wildPokemonData.moves = ["tackle", typeSpecialMove[type] || "tackle"];
+    window.Utils.applyMoveTemplate(wildPokemonData, { forceResetUses: true });
 
     // NOVO: Adiciona o status de captura (capturado/novo)
     const isCaught = window.gameState.profile.pokedex.has(wildPokemonData.id);
@@ -797,15 +1090,9 @@ export const BattleCore = {
 
             setTimeout(() => {
               // Lógica de adicionar Pokémon
-              const type = (wildPokemon.types?.[0] || "normal").toLowerCase();
-              const typeSpecialMove = {
-                fire: "ember", water: "water-gun", grass: "vine-whip", electric: "thunder-shock",
-                ground: "mud-slap", rock: "rock-throw", ice: "ice-beam", bug: "bug-bite",
-                psychic: "confusion", dark: "bite", ghost: "night-shade", steel: "iron-head",
-                fighting: "karate-chop", poison: "poison-sting", flying: "gust", dragon: "dragon-breath",
-                fairy: "disarming-voice", normal: "tackle",
-              };
-              wildPokemon.moves = ["tackle", typeSpecialMove[type] || "tackle"];
+              window.Utils.applyMoveTemplate(wildPokemon, {
+                forceResetUses: true,
+              });
               window.gameState.profile.pokemon.push(wildPokemon);
               // // AÇÃO DE CAPTURA BEM-SUCEDIDA
               const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
@@ -885,9 +1172,28 @@ export const BattleCore = {
     const playerPokemon = window.Utils.getActivePokemon();
     const opponent = battle.opponent;
     let ended = false;
-    let finalMessage = ""; // Mensagem de saída, se aplicável
+    let finalMessage = "";
 
-    // Bloqueia o menu
+    const ensureSpecialCounters = (pokemon) => {
+      if (!pokemon) return;
+      const max =
+        pokemon.specialMoveMaxUses ||
+        window.GameConfig?.SPECIAL_MOVE_MAX_USES ||
+        10;
+      pokemon.specialMoveMaxUses = max;
+      if (typeof pokemon.specialMoveRemaining !== "number") {
+        pokemon.specialMoveRemaining = max;
+      } else {
+        pokemon.specialMoveRemaining = Math.max(
+          0,
+          Math.min(pokemon.specialMoveRemaining, max)
+        );
+      }
+    };
+
+    ensureSpecialCounters(playerPokemon);
+    ensureSpecialCounters(opponent);
+
     BattleCore.setBattleMenu("disabled");
     BattleCore.updateBattleScreen();
 
@@ -907,8 +1213,6 @@ export const BattleCore = {
       return;
     }
 
-    // --- Lógica PvE (Wild Battle) ---
-
     if (action === "run") {
       if (Math.random() < 0.5) {
         finalMessage = `Você fugiu com sucesso!`;
@@ -927,7 +1231,21 @@ export const BattleCore = {
         return;
       }
 
-      // LÓGICA DE REGISTRO DE PARTICIPANTE
+      const isSpecialMove = window.Utils.isSpecialMove(
+        playerPokemon,
+        moveName
+      );
+      if (isSpecialMove && playerPokemon.specialMoveRemaining <= 0) {
+        BattleCore.addBattleLog(
+          `${playerPokemon.name} está sem energia para ${window.Utils.formatName(
+            moveName
+          )}!`
+        );
+        BattleCore.setBattleMenu("fight");
+        BattleCore.updateBattleScreen();
+        return;
+      }
+
       const activeIndex = window.gameState.profile.pokemon.findIndex(
         (p) => p.name === playerPokemon.name
       );
@@ -936,7 +1254,7 @@ export const BattleCore = {
       }
 
       BattleCore._animateBattleAction(".player-sprite", "animate-attack", 300);
-    BattleCore._playMoveSound(moveName);
+      BattleCore._playMoveSound(moveName);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const damageResult = BattleCore.calculateDamage(
@@ -952,7 +1270,6 @@ export const BattleCore = {
       );
       const opponentTookDamage = opponentHpBefore > opponent.currentHp;
 
-      // LÓGICA DE MENSAGEM DE EFICÁCIA (PLAYER)
       let effectivenessMessage = "";
       if (damageResult.effectiveness === 0)
         effectivenessMessage = " Não teve efeito!";
@@ -960,6 +1277,13 @@ export const BattleCore = {
         effectivenessMessage = " Não é muito eficaz.";
       else if (damageResult.effectiveness >= 2)
         effectivenessMessage = " É super eficaz!";
+
+      if (isSpecialMove) {
+        playerPokemon.specialMoveRemaining = Math.max(
+          0,
+          (playerPokemon.specialMoveRemaining || 0) - 1
+        );
+      }
 
       let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
         moveName
@@ -970,6 +1294,9 @@ export const BattleCore = {
 
       if (damageResult.isCritical) {
         logMessage += ` É UM ACERTO CRÍTICO!`;
+      }
+      if (isSpecialMove) {
+        logMessage += ` Energia especial: ${playerPokemon.specialMoveRemaining}/${playerPokemon.specialMoveMaxUses}.`;
       }
       BattleCore.addBattleLog(logMessage);
 
@@ -993,7 +1320,6 @@ export const BattleCore = {
       window.GameLogic.useItem(moveName);
 
       if (isHealing) {
-        // LÓGICA DE REGISTRO DE PARTICIPANTE (Cura)
         const activeIndex = window.gameState.profile.pokemon.findIndex(
           (p) => p.name === playerPokemon.name
         );
@@ -1007,7 +1333,7 @@ export const BattleCore = {
         action = "opponent_attack";
       }
     } else if (action === "opponent_attack") {
-      // Continua para o ataque do oponente
+      // segue para o turno do oponente
     } else {
       BattleCore.setBattleMenu("main");
       return;
@@ -1019,7 +1345,6 @@ export const BattleCore = {
       finalMessage = `${opponent.name} desmaiou! Batalha vencida!`;
     }
 
-    // 2. Turno do Oponente
     if (
       !ended &&
       (action === "move" ||
@@ -1028,8 +1353,31 @@ export const BattleCore = {
     ) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      const opponentMoves = Array.isArray(opponent.moves)
+        ? opponent.moves.slice()
+        : [];
+      let selectableMoves = opponentMoves.filter(
+        (move) =>
+          !window.Utils.isSpecialMove(opponent, move) ||
+          opponent.specialMoveRemaining > 0
+      );
+      if (selectableMoves.length === 0) {
+        selectableMoves = opponentMoves.length ? opponentMoves : ["tackle"];
+      }
       const randomOpponentMove =
-        opponent.moves[Math.floor(Math.random() * opponent.moves.length)];
+        selectableMoves[Math.floor(Math.random() * selectableMoves.length)];
+
+      const opponentSpecial = window.Utils.isSpecialMove(
+        opponent,
+        randomOpponentMove
+      );
+      if (opponentSpecial && opponent.specialMoveRemaining > 0) {
+        opponent.specialMoveRemaining = Math.max(
+          0,
+          opponent.specialMoveRemaining - 1
+        );
+      }
+
       BattleCore._animateBattleAction(
         ".opponent-sprite",
         "animate-opponent-attack",
@@ -1037,6 +1385,7 @@ export const BattleCore = {
       );
       BattleCore._playMoveSound(randomOpponentMove);
       await new Promise((resolve) => setTimeout(resolve, 300));
+
       const damageResult = BattleCore.calculateDamage(
         opponent,
         randomOpponentMove,
@@ -1050,7 +1399,6 @@ export const BattleCore = {
       );
       const playerTookDamage = playerHpBefore > playerPokemon.currentHp;
 
-      // LÓGICA DE MENSAGEM DE EFICÁCIA (OPONENTE)
       let effectivenessMessage = "";
       if (damageResult.effectiveness === 0)
         effectivenessMessage = " Não teve efeito!";
@@ -1087,7 +1435,6 @@ export const BattleCore = {
           (p) => p.currentHp > 0
         );
 
-        // CORREÇÃO CRÍTICA: Se desmaiou e há substituto, força a troca
         if (hasLivePokemon) {
           BattleCore.addBattleLog(
             `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`
@@ -1095,28 +1442,25 @@ export const BattleCore = {
           window.Renderer.showScreen("switchPokemon");
           return;
         } else {
-          finalMessage = "Todos os seus Pokémons desmaiados! Você perdeu a batalha.";
+          finalMessage =
+            "Todos os seus Pokémons desmaiados! Você perdeu a batalha.";
           BattleCore.addBattleLog(finalMessage);
           ended = true;
         }
       }
     }
 
-    // 3. Fim do Turno / Batalha
-    window.GameLogic.saveGameData(); // Salva o estado atual (HP, XP)
+    window.GameLogic.saveGameData();
     BattleCore.updateBattleScreen();
 
     if (ended) {
       setTimeout(() => {
-        // Se a mensagem final foi definida (fuga, derrota, vitória por KO), use a função de sincronização
         if (finalMessage) {
           BattleCore._endBattleAndSyncLog(finalMessage);
         } else {
-          // Caso contrário, limpe o estado e volte
           window.gameState.battle = null;
           window.AuthSetup?.handleBattleMusic(false);
 
-          // LÓGICA DE RETORNO DO MAPA (BETA MODE)
           if (window.gameState.profile.preferences?.isBetaMode) {
             window.MapCore.handleBattleReturn("Fim de Batalha (Inesperado).");
           } else {
@@ -1128,7 +1472,6 @@ export const BattleCore = {
     }
 
     if (!ended && playerPokemon.currentHp > 0) {
-      // Se não terminou e o Pokémon está vivo
       BattleCore.setBattleMenu("main");
     }
   },
@@ -1182,13 +1525,20 @@ export const BattleCore = {
     ) {
       return;
     }
-    window.gameState.battle.currentMenu = menu;
+    const current = window.gameState.battle.currentMenu;
+    let nextMenu = menu;
+    if (menu !== "disabled" && menu !== "main" && current === menu) {
+      nextMenu = "main";
+    }
+    window.gameState.battle.currentMenu = nextMenu;
     BattleCore.updateBattleScreen();
   },
 
   updateBattleScreen: function () {
     const battleArea = document.getElementById("battle-area");
     if (!battleArea || !window.gameState.battle) return;
+
+    ensureBattleStyles();
 
     const battle = window.gameState.battle;
     const playerPokemon = window.Utils.getActivePokemon();
@@ -1205,138 +1555,226 @@ export const BattleCore = {
       (playerPokemon.currentHp / playerPokemon.maxHp) * 100;
     const opponentHpPercent = (opponent.currentHp / opponent.maxHp) * 100;
 
-    const logHtml = `<p class="gba-font text-xs">${battle.lastMessage || ""
-      }</p>`;
+    const playerSpecialMax =
+      playerPokemon.specialMoveMaxUses ||
+      window.GameConfig?.SPECIAL_MOVE_MAX_USES ||
+      10;
+    const playerSpecialRemaining =
+      playerPokemon.specialMoveRemaining ?? playerSpecialMax;
 
-    let optionsHtml = "";
-    const isMainMenu = battle.currentMenu === "main";
-    const isDisabled = battle.currentMenu === "disabled";
+    const getHpColor = (percent) => {
+      if (percent > 50) return "#22c55e";
+      if (percent > 20) return "#facc15";
+      return "#ef4444";
+    };
 
-    const isPvpLocked = battle.type === "pvp" && isDisabled;
-
-    if (isMainMenu) {
-      optionsHtml = `
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button bg-red-500 hover:bg-red-600">Lutar</button>
-                    <button onclick="BattleCore.playerTurn('run')" class="gba-button bg-green-500 hover:bg-green-600" ${battle.type === "pvp" ? "disabled" : ""
-        }>Fugir</button>
-                    <button onclick="BattleCore.setBattleMenu('item')" class="gba-button bg-yellow-500 hover:bg-yellow-600">Item</button>
-                    <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button bg-blue-500 hover:bg-blue-600">Pokémon</button>
-                </div>
-            `;
-    } else if (battle.currentMenu === "fight") {
-      optionsHtml = playerPokemon.moves
+    const renderTypes = (types) =>
+      (types || [])
         .map(
-          (move) =>
-            `<button onclick="BattleCore.playerTurn('move', '${move}')" class="flex-1 gba-button bg-red-400 hover:bg-red-500">${window.Utils.formatName(
-              move
-            )}</button>`
+          (type) =>
+            `<span class="battle-type-badge">${String(type).toUpperCase()}</span>`
         )
         .join("");
-      optionsHtml = `<div class="grid grid-cols-2 gap-2">${optionsHtml}</div>`;
-    } else if (battle.currentMenu === "item") {
-      const items = window.gameState.profile.items;
-      const battleItems = items.filter(
-        (i) => (i.catchRate && battle.type === "wild") || i.healAmount
-      );
 
-      const itemsHtml = battleItems
-        .map((item) => {
-          const disabled = item.quantity <= 0;
-          return `<button ${disabled ? "disabled" : ""
-            } onclick="BattleCore.playerTurn('item', '${item.name
-            }')" class="flex-1 gba-button ${disabled
-              ? "bg-gray-300"
-              : item.catchRate
-                ? "bg-yellow-400 hover:bg-yellow-500"
-                : "bg-green-400 hover:bg-green-500"
-            }">${item.name} x${item.quantity}</button>`;
+    const recentLogs = (battle.log || []).slice(-3);
+    const logHtml = recentLogs.length
+      ? recentLogs
+          .map((msg) => `<span class="battle-log-line">${msg}</span>`)
+          .join("")
+      : `<span class="battle-log-line">A batalha começou!</span>`;
+
+    const isMainMenu = battle.currentMenu === "main";
+    const isDisabled = battle.currentMenu === "disabled";
+    const isFightMenu = battle.currentMenu === "fight";
+    const isItemMenu = battle.currentMenu === "item";
+    const disableInteractions = isDisabled;
+
+    const battleItems = (window.gameState.profile.items || []).filter(
+      (i) => (i.catchRate && battle.type === "wild") || i.healAmount
+    );
+
+    const escapeMove = (move) =>
+      move.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+    const fightButtonHtml = `
+      <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button battle-action-btn bg-red-500 hover:bg-red-600 ${isFightMenu ? "active" : ""}" ${disableInteractions ? "disabled" : ""}>
+        <i class="fa-solid fa-bolt"></i> Lutar
+      </button>
+    `;
+    const itemButtonColor = battleItems.length
+      ? "bg-yellow-500 hover:bg-yellow-600"
+      : "bg-gray-300 text-gray-700";
+    const itemButtonHtml = `
+      <button onclick="BattleCore.setBattleMenu('item')" class="gba-button battle-action-btn ${itemButtonColor} ${isItemMenu ? "active" : ""}" ${disableInteractions ? "disabled" : ""}>
+        <i class="fa-solid fa-suitcase-medical"></i> Item
+      </button>
+    `;
+    const pokemonButtonHtml = `
+      <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button battle-action-btn bg-blue-500 hover:bg-blue-600" ${disableInteractions ? "disabled" : ""}>
+        <i class="fa-solid fa-dragon"></i> Pokémon
+      </button>
+    `;
+    const runDisabled =
+      battle.type === "pvp" || disableInteractions ? "disabled" : "";
+    const runButtonHtml = `
+      <button onclick="BattleCore.playerTurn('run')" class="gba-button battle-action-btn bg-green-500 hover:bg-green-600" ${runDisabled}>
+        <i class="fa-solid fa-running"></i> Fugir
+      </button>
+    `;
+    const mainActionsHtml =
+      fightButtonHtml + itemButtonHtml + pokemonButtonHtml + runButtonHtml;
+
+    let secondaryHtml = "";
+    if (isFightMenu) {
+      const movesHtml = (playerPokemon.moves || [])
+        .map((move) => {
+          const isSpecial = window.Utils.isSpecialMove(playerPokemon, move);
+          const disabled = isSpecial && playerSpecialRemaining <= 0;
+          const label = window.Utils.formatName(move);
+          const meta = isSpecial
+            ? `<span class="battle-move-meta">Energia ${playerSpecialRemaining}/${playerSpecialMax}</span>`
+            : "";
+          return `<button onclick="BattleCore.playerTurn('move', '${escapeMove(
+            move
+          )}')" class="gba-button battle-move-btn ${
+            isSpecial ? "battle-move-special" : "battle-move-normal"
+          }${disabled ? " battle-move-disabled" : ""}" ${
+            disabled ? "disabled" : ""
+          }>
+              <span>${label}</span>
+              ${meta}
+            </button>`;
         })
         .join("");
-
-      optionsHtml = `<div class="grid grid-cols-2 gap-2">${itemsHtml}</div>`;
+      secondaryHtml = `<div class="battle-secondary battle-secondary--moves">${movesHtml}</div>`;
+    } else if (isItemMenu) {
+      if (!battleItems.length) {
+        secondaryHtml =
+          `<div class="battle-secondary battle-secondary-message">Sem itens utilizáveis no momento.</div>`;
+      } else {
+        const itemsHtml = battleItems
+          .map((item) => {
+            const disabled = item.quantity <= 0;
+            const typeClass = item.catchRate
+              ? "bg-yellow-400 hover:bg-yellow-500"
+              : "bg-green-400 hover:bg-green-500";
+            return `<button onclick="BattleCore.playerTurn('item', '${item.name}')" class="gba-button battle-move-btn ${typeClass}${
+              disabled ? " battle-move-disabled" : ""
+            }" ${disabled ? "disabled" : ""}>
+                <span>${item.name}</span>
+                <span class="battle-move-meta">x${item.quantity}</span>
+              </button>`;
+          })
+          .join("");
+        secondaryHtml = `<div class="battle-secondary battle-secondary--items">${itemsHtml}</div>`;
+      }
     } else if (isDisabled) {
-      optionsHtml = `<div class="p-2 text-center gba-font text-xs text-gray-700">Aguarde a ação do oponente...</div>`;
+      secondaryHtml =
+        `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
+    }
+
+    const specialMoveName = window.Utils.formatName(
+      playerPokemon.specialMove || playerPokemon.moves?.[1] || "Especial"
+    );
+    const specialHtml = playerPokemon.specialMove
+      ? `<div class="battle-special gba-font">
+            <span><i class="fa-solid fa-star text-yellow-500"></i> Especial</span>
+            <span>${specialMoveName} • ${playerSpecialRemaining}/${playerSpecialMax}</span>
+         </div>`
+      : "";
+
+    const opponentTypes = renderTypes(opponent.types);
+    const playerTypes = renderTypes(playerPokemon.types);
+
+    let menuSections = "";
+    if (isDisabled) {
+      menuSections =
+        secondaryHtml ||
+        `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
+    } else if (isMainMenu) {
+      menuSections = `<div class="battle-main-actions">${mainActionsHtml}</div>`;
+    } else {
+      menuSections = `
+        ${secondaryHtml || ""}
+        <button onclick="BattleCore.setBattleMenu('main')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full">
+          Voltar
+        </button>
+      `;
     }
 
     battleArea.innerHTML = `
-            <div class="relative h-48 mb-4 flex-shrink-0">
-                <!-- OPPONENT HP BOX -->
-                <div class="absolute top-0 left-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
-                    <div class="gba-font text-sm font-bold">${opponent.name
-      } (Nv. ${opponent.level})</div>
-                    <div class="flex items-center mt-1">
-                        <div class="gba-font text-xs mr-1">HP</div>
-                        <div class="w-full bg-gray-300 h-2 rounded-full">
-                            <div class="h-2 rounded-full transition-all duration-500 ${opponentHpPercent > 50
-        ? "bg-green-500"
-        : opponentHpPercent > 20
-          ? "bg-yellow-500"
-          : "bg-red-500"
-      }" style="width: ${opponentHpPercent}%;"></div>
-                        </div>
-                    </div>
-                    <div class="gba-font text-xs mt-1">${opponent.currentHp}/${opponent.maxHp
-      }</div>
+      <div class="battle-wrapper">
+        <div class="battle-scene">
+          <div class="battle-entity opponent">
+            <div class="battle-row battle-row-opponent">
+              <div class="battle-card">
+                <div class="battle-name-row gba-font">
+                  <span>${opponent.name}</span>
+                  <span>Nv. ${opponent.level}</span>
                 </div>
-                
-                <!-- SPRITES: Posições atualizadas para flexibilidade -->
-                <div class="relative w-full h-64">
-                    <img src="${opponent.sprite}" alt="${opponent.name
-      }" class="opponent-sprite w-28 h-28 absolute top-8 right-0 md:right-24 transform -translate-y-1/2 scale-150 z-10">
-                    
-                    <style>
-                        .capture-shake-position {
-                            top: -0.8rem; 
-                            right: 0; 
-                            transform: translateY(-50%) scale(1.5); 
-                            z-index: 10; 
-                        }
+                <div class="battle-type-row">
+                  ${opponentTypes}
+                </div>
+                <div class="battle-hp-bar">
+                  <div class="battle-hp-bar-track">
+                    <div class="battle-hp-bar-fill" style="width: ${Math.max(
+                      0,
+                      opponentHpPercent
+                    )}%; background: ${getHpColor(opponentHpPercent)};"></div>
+                  </div>
+                  <div class="battle-hp-text gba-font">
+                    <span>HP</span>
+                    <span>${opponent.currentHp}/${opponent.maxHp}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="battle-sprite-wrap">
+                <img src="${opponent.sprite}" alt="${opponent.name}" class="battle-sprite opponent-sprite opponent">
+                <div class="battle-platform"></div>
+              </div>
+            </div>
+          </div>
 
-                        @media (min-width: 768px) {
-                            .capture-shake-position {
-                                right: 6rem; 
-                            }
-                        }
-                    </style>
+          <div class="battle-entity player">
+            <div class="battle-row battle-row-player">
+              <div class="battle-sprite-wrap">
+                <img src="${playerBackSprite}" alt="${playerPokemon.name}" class="battle-sprite player-sprite player">
+                <div class="battle-platform"></div>
+              </div>
+              <div class="battle-card">
+                <div class="battle-name-row gba-font">
+                  <span>${playerPokemon.name}</span>
+                  <span>Nv. ${playerPokemon.level}</span>
                 </div>
-                
-                <!-- PLAYER HP BOX -->
-                <div class="absolute bottom-0 right-0 p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner w-1/2">
-                    <div class="gba-font text-sm font-bold">${playerPokemon.name
-      } (Nv. ${playerPokemon.level})</div>
-                    <div class="flex items-center mt-1">
-                        <div class="gba-font text-xs mr-1">HP</div>
-                        <div class="w-full bg-gray-300 h-2 rounded-full">
-                            <div class="h-2 rounded-full transition-all duration-500 ${playerHpPercent > 50
-        ? "bg-green-500"
-        : playerHpPercent > 20
-          ? "bg-yellow-500"
-          : "bg-red-500"
-      }" style="width: ${playerHpPercent}%;"></div>
-                        </div>
-                    </div>
-                    <div class="gba-font text-xs mt-1">${playerPokemon.currentHp
-      }/${playerPokemon.maxHp}</div>
+                <div class="battle-type-row">
+                  ${playerTypes}
                 </div>
-                <img src="${playerBackSprite}" alt="${playerPokemon.name
-      }" class="player-sprite absolute bottom-7 left-12 md:left-24 w-[104px] h-[104px] transform -translate-x-1/2 translate-y-1/2 scale-150">
-            </div>
-            
-            <!-- LOG MESSAGE AREA -->
-            <div class="h-16 p-2 mt-4 mb-4 bg-gray-800 text-white rounded-md flex items-center justify-start text-sm gba-font flex-shrink-0">
-                ${logHtml}
-            </div>
-            
-            <!-- BUTTONS AREA -->
-            <div class="p-2 bg-gray-200 border-2 border-gray-800 rounded-md flex flex-col min-h-[140px] justify-between flex-grow">
-                <div id="battle-options-container" class="flex-grow ${isPvpLocked ? "opacity-50 pointer-events-none" : ""
-      }">
-                    ${optionsHtml}
+                <div class="battle-hp-bar">
+                  <div class="battle-hp-bar-track">
+                    <div class="battle-hp-bar-fill" style="width: ${Math.max(
+                      0,
+                      playerHpPercent
+                    )}%; background: ${getHpColor(playerHpPercent)};"></div>
+                  </div>
+                  <div class="battle-hp-text gba-font">
+                    <span>HP</span>
+                    <span>${playerPokemon.currentHp}/${playerPokemon.maxHp}</span>
+                  </div>
                 </div>
-                <button onclick="BattleCore.setBattleMenu('main')" id="back-button" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-2 flex-shrink-0" ${isMainMenu || isDisabled ? "disabled" : ""
-      }>Voltar</button>
+                ${specialHtml}
+              </div>
             </div>
-        `;
+          </div>
+        </div>
+
+        <div class="battle-log gba-font">
+          ${logHtml}
+        </div>
+
+        <div class="battle-menu">
+          ${menuSections}
+        </div>
+      </div>
+    `;
   },
 };

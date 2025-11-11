@@ -162,10 +162,12 @@ export const RendererPokemon = {
         profile.items = (profile.items || []).filter(i => i.quantity > 0);
       }
 
+      window.Utils.restoreSpecialMoveCharges(p);
+
       window.GameLogic.saveGameData();
 
       const healed = p.currentHp - before;
-      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
 
       // Re-render do modal para refletir novo HP/itens
       setTimeout(() => {
@@ -696,7 +698,8 @@ export const RendererPokemon = {
             window.GameLogic.saveGameData();
 
             const healed = p.currentHp - before;
-            window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+            window.Utils.restoreSpecialMoveCharges(p);
+            window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
 
             // Re-render
             setTimeout(() => {
@@ -1007,10 +1010,12 @@ export const RendererPokemon = {
         profile.items = (profile.items || []).filter(i => i.quantity > 0);
       }
 
+      window.Utils.restoreSpecialMoveCharges(p);
+
       window.GameLogic.saveGameData();
 
       const healed = p.currentHp - before;
-      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP em ${p.name}.`);
+      window.Utils.showModal('infoModal', `${itemName} curou ${healed} HP e recarregou o ataque especial de ${p.name}.`);
 
       setTimeout(() => {
         RendererPokemon.showPokemonStats(p.name, pokemonIndex);

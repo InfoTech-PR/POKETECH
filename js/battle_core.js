@@ -473,6 +473,7 @@ const ensureBattleStyles = () => {
       box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06);
       line-height: 1.25;
       word-break: break-word;
+      position: relative;
     }
     #battle-area .battle-log-line + .battle-log-line {
       margin-top: 4px;
@@ -534,6 +535,7 @@ const ensureBattleStyles = () => {
       align-items: flex-start;
       gap: 4px;
       padding: 10px 12px;
+      position: relative;
     }
     #battle-area .battle-move-btn.battle-move-special {
       background: #c084fc;
@@ -571,6 +573,19 @@ const ensureBattleStyles = () => {
       margin-top: 4px;
       font-weight: 600;
       color: #111827;
+    }
+    #battle-area .battle-move-pa {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 0.5rem;
+      font-weight: 700;
+      background: rgba(17, 24, 39, 0.85);
+      color: #f8fafc;
+      padding: 2px 5px;
+      border-radius: 6px;
+      line-height: 1.2;
+      z-index: 1;
     }
     #battle-area .battle-sprite.capture-shake-position,
     #battle-area .capture-shake-position {
@@ -882,7 +897,7 @@ export const BattleCore = {
    */
   gainExp: function (defeatedLevel, participatingIndices) {
     // Log de Vitória e Dinheiro (se não foi adicionado antes)
-    if (!window.gameState.battle.log.some((log) => log.includes("Parabéns!"))) {
+    if (!window.gameState.battle.lastMessage || !window.gameState.battle.lastMessage.includes("Parabéns!")) {
       const winner = window.Utils.getActivePokemon();
       BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
 
@@ -1004,11 +1019,9 @@ export const BattleCore = {
   addBattleLog: function (message) {
     if (window.gameState.battle) {
       window.gameState.battle.lastMessage = message;
+      // NOVO: Mantém apenas a última mensagem (substitui a anterior)
       if (window.gameState.battle.log) {
-        window.gameState.battle.log.push(message);
-        if (window.gameState.battle.log.length > 8) {
-          window.gameState.battle.log.shift();
-        }
+        window.gameState.battle.log = [message];
       }
     }
   },
@@ -1209,13 +1222,10 @@ export const BattleCore = {
     }
 
     if (action === "run") {
-      if (Math.random() < 0.5) {
-        finalMessage = `Você fugiu com sucesso!`;
-        BattleCore.addBattleLog(finalMessage);
-        ended = true;
-      } else {
-        BattleCore.addBattleLog(`Você falhou em fugir!`);
-      }
+      // NOVO: Fuga sempre bem-sucedida (sem porcentagem de falha)
+      finalMessage = `Você fugiu com sucesso!`;
+      BattleCore.addBattleLog(finalMessage);
+      ended = true;
       BattleCore.updateBattleScreen();
     } else if (action === "move") {
       if (playerPokemon.currentHp <= 0) {
@@ -1231,19 +1241,13 @@ export const BattleCore = {
         moveName
       );
       const isNormalMove = !isSpecialMove;
-      if (isSpecialMove && playerPokemon.specialMoveRemaining <= 0) {
+      
+      // NOVO: Verifica PA individual do movimento
+      const movePA = window.Utils.getMovePA(playerPokemon, moveName);
+      if (movePA.remaining <= 0) {
+        const moveType = isSpecialMove ? "energia" : "PA";
         BattleCore.addBattleLog(
-          `${playerPokemon.name} está sem energia para ${window.Utils.formatName(
-            moveName
-          )}!`
-        );
-        BattleCore.setBattleMenu("fight", true);
-        BattleCore.updateBattleScreen();
-        return;
-      }
-      if (!isSpecialMove && playerPokemon.normalMoveRemaining <= 0) {
-        BattleCore.addBattleLog(
-          `${playerPokemon.name} está sem PA para ${window.Utils.formatName(
+          `${playerPokemon.name} está sem ${moveType} para ${window.Utils.formatName(
             moveName
           )}!`
         );
@@ -1284,17 +1288,19 @@ export const BattleCore = {
       else if (damageResult.effectiveness >= 2)
         effectivenessMessage = " É super eficaz!";
 
-      if (isSpecialMove) {
-        playerPokemon.specialMoveRemaining = Math.max(
-          0,
-          (playerPokemon.specialMoveRemaining || 0) - 1
+      // NOVO: Usa PA individual do movimento
+      const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
+      if (!paUsed) {
+        BattleCore.addBattleLog(
+          `${playerPokemon.name} não conseguiu usar ${window.Utils.formatName(moveName)}!`
         );
-      } else {
-        playerPokemon.normalMoveRemaining = Math.max(
-          0,
-          (playerPokemon.normalMoveRemaining || 0) - 1
-        );
+        BattleCore.setBattleMenu("fight", true);
+        BattleCore.updateBattleScreen();
+        return;
       }
+
+      // Obtém PA atualizado após o uso
+      const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
 
       let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
         moveName
@@ -1305,11 +1311,6 @@ export const BattleCore = {
 
       if (damageResult.isCritical) {
         logMessage += ` É UM ACERTO CRÍTICO!`;
-      }
-      if (isSpecialMove) {
-        logMessage += ` Energia especial: ${playerPokemon.specialMoveRemaining}/${playerPokemon.specialMoveMaxUses}.`;
-      } else {
-        logMessage += ` PA: ${playerPokemon.normalMoveRemaining}/${playerPokemon.normalMoveMaxUses}.`;
       }
       BattleCore.addBattleLog(logMessage);
 
@@ -1374,12 +1375,11 @@ export const BattleCore = {
       const opponentMoves = Array.isArray(opponent.moves)
         ? opponent.moves.slice()
         : [];
+      // NOVO: Filtra movimentos usando PA individual
       let selectableMoves = opponentMoves.filter((move) => {
-        const isSpecial = window.Utils.isSpecialMove(opponent, move);
-        if (isSpecial) {
-          return (opponent.specialMoveRemaining || 0) > 0;
-        }
-        return (opponent.normalMoveRemaining || 0) > 0;
+        const moveName = typeof move === "string" ? move : move.name || move;
+        const movePA = window.Utils.getMovePA(opponent, moveName);
+        return movePA.remaining > 0;
       });
       if (selectableMoves.length === 0) {
         BattleCore.addBattleLog(
@@ -1395,22 +1395,20 @@ export const BattleCore = {
         return;
       }
 
-      const opponentSpecial = window.Utils.isSpecialMove(
-        opponent,
-        randomOpponentMove
-      );
-      if (opponentSpecial && opponent.specialMoveRemaining > 0) {
-        opponent.specialMoveRemaining = Math.max(
-          0,
-          opponent.specialMoveRemaining - 1
+      const opponentMoveName = typeof randomOpponentMove === "string" 
+        ? randomOpponentMove 
+        : randomOpponentMove.name || randomOpponentMove;
+      
+      // NOVO: Usa PA individual do movimento do oponente
+      const opponentPAUsed = window.Utils.useMovePA(opponent, opponentMoveName);
+      if (!opponentPAUsed) {
+        BattleCore.addBattleLog(
+          `${opponent.name} não conseguiu usar ${window.Utils.formatName(opponentMoveName)}!`
         );
-      }
-      const opponentNormal = !opponentSpecial;
-      if (opponentNormal && opponent.normalMoveRemaining > 0) {
-        opponent.normalMoveRemaining = Math.max(
-          0,
-          opponent.normalMoveRemaining - 1
-        );
+        window.GameLogic.saveGameData();
+        BattleCore.updateBattleScreen();
+        BattleCore.setBattleMenu("main", true);
+        return;
       }
 
       BattleCore._animateBattleAction(
@@ -1418,12 +1416,12 @@ export const BattleCore = {
         "animate-opponent-attack",
         300
       );
-      BattleCore._playMoveSound(randomOpponentMove);
+      BattleCore._playMoveSound(opponentMoveName);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const damageResult = BattleCore.calculateDamage(
         opponent,
-        randomOpponentMove,
+        opponentMoveName,
         playerPokemon
       );
 
@@ -1443,7 +1441,7 @@ export const BattleCore = {
         effectivenessMessage = " É super eficaz.";
 
       let logMessage = `${opponent.name} usou ${window.Utils.formatName(
-        randomOpponentMove
+        opponentMoveName
       )}!${effectivenessMessage}`;
       if (damageResult.damage > 0) {
         logMessage += ` Recebeu ${damageResult.damage} de dano.`;
@@ -1619,12 +1617,10 @@ export const BattleCore = {
         )
         .join("");
 
-    const recentLogs = (battle.log || []).slice(-3);
-    const logHtml = recentLogs.length
-      ? recentLogs
-          .map((msg) => `<span class="battle-log-line">${msg}</span>`)
-          .join("")
-      : `<span class="battle-log-line">A batalha começou!</span>`;
+    // NOVO: Mostra apenas a última mensagem (substitui a anterior)
+    const lastMessage = battle.lastMessage || (battle.log && battle.log.length > 0 ? battle.log[battle.log.length - 1] : null);
+    const displayMessage = lastMessage || "A batalha começou!";
+    const logHtml = `<span class="battle-log-line">${displayMessage}</span>`;
 
     const isMainMenu = battle.currentMenu === "main";
     const isDisabled = battle.currentMenu === "disabled";
@@ -1674,22 +1670,25 @@ export const BattleCore = {
     if (isFightMenu) {
       const movesHtml = (playerPokemon.moves || [])
         .map((move) => {
-          const isSpecial = window.Utils.isSpecialMove(playerPokemon, move);
-          const disabled =
-            (isSpecial && playerSpecialRemaining <= 0) ||
-            (!isSpecial && playerNormalRemaining <= 0);
-          const label = window.Utils.formatName(move);
-          const meta = isSpecial
-            ? `<span class="battle-move-meta">Energia ${playerSpecialRemaining}/${playerSpecialMax}</span>`
-            : `<span class="battle-move-meta">PA ${playerNormalRemaining}/${playerNormalMax}</span>`;
+          const moveName = typeof move === "string" ? move : move.name || move;
+          const isSpecial = window.Utils.isSpecialMove(playerPokemon, moveName);
+          
+          // NOVO: Usa PA individual por movimento
+          const movePA = window.Utils.getMovePA(playerPokemon, moveName);
+          const disabled = movePA.remaining <= 0;
+          
+          const label = window.Utils.formatName(moveName);
+          // PA no canto superior direito (menor)
+          const paBadge = `<span class="battle-move-pa">${movePA.remaining}/${movePA.max}</span>`;
+          
           return `<button onclick="BattleCore.playerTurn('move', '${escapeMove(
-            move
+            moveName
           )}')" class="gba-button battle-move-btn ${
             isSpecial ? "battle-move-special" : "battle-move-normal"
           }${disabled ? " battle-move-disabled" : ""}" ${
             disabled ? "disabled" : ""
           }>
-              ${meta}
+              ${paBadge}
               <span class="battle-move-label">${label}</span>
             </button>`;
         })
@@ -1748,6 +1747,13 @@ export const BattleCore = {
     const opponentTypes = renderTypes(opponent.types);
     const playerTypes = renderTypes(playerPokemon.types);
 
+    // NOVO: Verifica se o oponente já foi capturado
+    const pokedex = window.gameState?.profile?.pokedex;
+    const isOpponentCaught = pokedex && (pokedex instanceof Set ? pokedex.has(opponent.id) : pokedex.includes(opponent.id));
+    const caughtIcon = isOpponentCaught 
+      ? '<img src="../assets/sprites/items/poke-ball.png" alt="Capturado" class="inline-block w-4 h-4 ml-1" title="Já capturado" style="image-rendering: pixelated;">' 
+      : '';
+
     let menuSections = "";
     if (isDisabled) {
       menuSections =
@@ -1771,7 +1777,7 @@ export const BattleCore = {
             <div class="battle-row battle-row-opponent">
               <div class="battle-card">
                 <div class="battle-name-row gba-font">
-                  <span>${opponent.name}</span>
+                  <span>${opponent.name}${caughtIcon}</span>
                   <span>Nv. ${opponent.level}</span>
                 </div>
                 <div class="battle-type-row">
@@ -1830,7 +1836,7 @@ export const BattleCore = {
           </div>
         </div>
 
-        <div class="battle-log gba-font">
+        <div class="battle-log gba-font" id="battle-log-container">
           ${logHtml}
         </div>
 
@@ -1839,5 +1845,6 @@ export const BattleCore = {
         </div>
       </div>
     `;
+
   },
 };

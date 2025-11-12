@@ -483,9 +483,58 @@ export const RendererPokemon = {
       }
 
       // Tipos, stats e golpes
+      window.Utils.ensureMoveCounters(p);
       const moves = (p.moves && p.moves.length) ? p.moves : (pokemonData.moves || []);
+      
+      // NOVO: Renderiza ataques com PA individual e botão para usar Éter
+      const hasEther = (profile?.items || []).some(
+        (i) => i.name === "Éter" && i.ppRestore && i.quantity > 0
+      );
+      const etherQuantity = hasEther 
+        ? (profile?.items || []).find((i) => i.name === "Éter" && i.ppRestore)?.quantity || 0
+        : 0;
+      
       const movesHtml = moves
-        .map(m => `<li class="text-sm">${window.Utils.formatName(m)}</li>`)
+        .map((m) => {
+          const moveName = typeof m === "string" ? m : m.name || m;
+          const movePA = window.Utils.getMovePA(p, moveName);
+          const isSpecial = window.Utils.isSpecialMove(p, moveName);
+          const moveFull = movePA.remaining >= movePA.max;
+          const moveDisplayName = window.Utils.formatName(moveName);
+          const escapedMoveName = moveName.replace(/'/g, "\\'").replace(/"/g, '\\"');
+          
+          // Escapa o nome do movimento para uso em onclick
+          const moveId = `move-${pokemonIndex}-${moveName.replace(/[^a-z0-9]/gi, '-')}`;
+          const etherBtnId = `ether-btn-${pokemonIndex}-${moveName.replace(/[^a-z0-9]/gi, '-')}`;
+          
+          return `
+            <div class="flex items-center justify-between p-2 mb-2 bg-gray-50 rounded border border-gray-300">
+              <div class="flex-grow">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold gba-font">${moveDisplayName}</span>
+                  ${isSpecial ? '<span class="text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded gba-font">ESPECIAL</span>' : ''}
+                </div>
+                <div class="text-xs gba-font text-gray-600 mt-1">
+                  PA: <span class="${movePA.remaining === 0 ? 'text-red-600 font-bold' : movePA.remaining < movePA.max / 2 ? 'text-yellow-600' : 'text-green-600'}">${movePA.remaining}/${movePA.max}</span>
+                </div>
+              </div>
+              ${hasEther && !moveFull ? `
+                <button id="${etherBtnId}" 
+                        data-pokemon-index="${pokemonIndex}"
+                        data-move-name="${moveName}"
+                        data-pokemon-name="${p.name}"
+                        class="ether-btn gba-button bg-purple-500 hover:bg-purple-600 text-xs px-3 py-1 ml-2 flex-shrink-0"
+                        title="Usar Éter (${etherQuantity} restantes)">
+                  <i class="fa-solid fa-flask"></i> Éter
+                </button>
+              ` : moveFull ? `
+                <span class="text-xs text-green-600 gba-font ml-2 flex-shrink-0">Cheio</span>
+              ` : `
+                <span class="text-xs text-gray-400 gba-font ml-2 flex-shrink-0">Sem Éter</span>
+              `}
+            </div>
+          `;
+        })
         .join("");
 
       const typesHtml = (pokemonData.types || [])
@@ -562,10 +611,23 @@ export const RendererPokemon = {
           return p.currentHp < p.maxHp;
         }
         if (item.ppRestore) {
-          return !(
-            p.normalMoveRemaining >= p.normalMoveMaxUses &&
-            p.specialMoveRemaining >= p.specialMoveMaxUses
-          );
+          // NOVO: Verifica se algum movimento precisa de PA
+          if (p.moves && p.moves.length > 0) {
+            for (const move of p.moves) {
+              const moveName = typeof move === "string" ? move : move.name || move;
+              const movePA = window.Utils.getMovePA(p, moveName);
+              if (movePA.remaining < movePA.max) {
+                return true;
+              }
+            }
+            return false;
+          } else {
+            // Fallback para sistema antigo
+            return !(
+              p.normalMoveRemaining >= p.normalMoveMaxUses &&
+              p.specialMoveRemaining >= p.specialMoveMaxUses
+            );
+          }
         }
         return false;
       });
@@ -648,9 +710,14 @@ export const RendererPokemon = {
         <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
         ${statsHtml}
         <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques:</h3>
-        <ul class="list-disc list-inside gba-font text-xs">
+        <div class="space-y-1">
           ${movesHtml}
-        </ul>
+        </div>
+        ${hasEther ? `
+          <p class="text-[10px] gba-font text-gray-600 mt-2 text-center">
+            <i class="fa-solid fa-flask"></i> Você tem ${etherQuantity} Éter(s). Use para restaurar PA de um ataque específico.
+          </p>
+        ` : ''}
       </div>
 
       <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
@@ -691,6 +758,39 @@ export const RendererPokemon = {
           }
         });
       }
+
+      // NOVO: Handlers para botões de Éter em cada ataque
+      const etherButtons = modal.querySelectorAll('.ether-btn');
+      etherButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          try {
+            const pokemonIdx = parseInt(btn.getAttribute('data-pokemon-index'));
+            const moveName = btn.getAttribute('data-move-name');
+            const pokemonName = btn.getAttribute('data-pokemon-name');
+            
+            if (isNaN(pokemonIdx) || !moveName) {
+              window.Utils.showModal('errorModal', 'Dados inválidos.');
+              return;
+            }
+
+            const success = window.GameLogic.useEtherOnMove(pokemonIdx, moveName);
+            
+            if (success) {
+              // Fecha o modal de informação após 1.5 segundos e recarrega os stats
+              setTimeout(() => {
+                window.Utils.hideModal('infoModal');
+                const refreshed = window.gameState.profile.pokemon[pokemonIdx];
+                if (refreshed) {
+                  showPokemonStats(refreshed.name || pokemonName, pokemonIdx);
+                }
+              }, 1500);
+            }
+          } catch (err) {
+            console.error('Erro ao usar Éter:', err);
+            window.Utils.showModal('errorModal', 'Falha ao usar Éter.');
+          }
+        });
+      });
     } catch (e) {
       console.error('Erro ao abrir stats do Pokémon:', e);
       window.Utils.showModal('errorModal', 'Não foi possível abrir os detalhes.');

@@ -437,6 +437,40 @@ export async function createConfigAndUtils(v) {
       if (!pokemon) return;
       const { forceReset = false } = options;
 
+      // NOVO: Sistema de PA individual por movimento
+      // Inicializa moveUses se não existir
+      if (!pokemon.moveUses || typeof pokemon.moveUses !== "object") {
+        pokemon.moveUses = {};
+      }
+
+      // Define valores de PA máximo: 30 para normais, 15 para especiais
+      const NORMAL_MOVE_PA = 30;
+      const SPECIAL_MOVE_PA = 15;
+
+      // Garante que cada movimento tenha seu PA individual
+      if (pokemon.moves && Array.isArray(pokemon.moves)) {
+        pokemon.moves.forEach((move) => {
+          const moveName = typeof move === "string" ? move : move.name || move;
+          const isSpecial = Utils.isSpecialMove(pokemon, moveName);
+          const maxPA = isSpecial ? SPECIAL_MOVE_PA : NORMAL_MOVE_PA;
+
+          if (!pokemon.moveUses[moveName] || forceReset) {
+            pokemon.moveUses[moveName] = {
+              remaining: maxPA,
+              max: maxPA,
+            };
+          } else {
+            // Garante que o PA não exceda o máximo
+            pokemon.moveUses[moveName].max = maxPA;
+            pokemon.moveUses[moveName].remaining = Math.max(
+              0,
+              Math.min(pokemon.moveUses[moveName].remaining, maxPA)
+            );
+          }
+        });
+      }
+
+      // Mantém compatibilidade com o sistema antigo (para migração)
       const normalMax =
         pokemon.normalMoveMaxUses ||
         GameConfig.NORMAL_MOVE_MAX_USES ||
@@ -466,11 +500,78 @@ export async function createConfigAndUtils(v) {
       }
     },
 
+    // NOVO: Função para obter PA de um movimento específico
+    getMovePA: function (pokemon, moveName) {
+      if (!pokemon || !moveName) return { remaining: 0, max: 0 };
+      if (pokemon.moveUses && pokemon.moveUses[moveName]) {
+        return pokemon.moveUses[moveName];
+      }
+      // Fallback: se não tiver PA individual, usa o sistema antigo
+      const isSpecial = Utils.isSpecialMove(pokemon, moveName);
+      const max = isSpecial
+        ? (pokemon.specialMoveMaxUses || SPECIAL_MOVE_MAX_USES)
+        : (pokemon.normalMoveMaxUses || GameConfig.NORMAL_MOVE_MAX_USES || DEFAULT_NORMAL_MOVE_MAX_USES);
+      const remaining = isSpecial
+        ? (pokemon.specialMoveRemaining || max)
+        : (pokemon.normalMoveRemaining || max);
+      return { remaining, max };
+    },
+
+    // NOVO: Função para usar PA de um movimento
+    useMovePA: function (pokemon, moveName) {
+      if (!pokemon || !moveName) return false;
+      Utils.ensureMoveCounters(pokemon);
+      
+      if (pokemon.moveUses && pokemon.moveUses[moveName]) {
+        if (pokemon.moveUses[moveName].remaining > 0) {
+          pokemon.moveUses[moveName].remaining--;
+          return true;
+        }
+        return false;
+      }
+      // Fallback para sistema antigo
+      const isSpecial = Utils.isSpecialMove(pokemon, moveName);
+      if (isSpecial) {
+        if (pokemon.specialMoveRemaining > 0) {
+          pokemon.specialMoveRemaining--;
+          return true;
+        }
+      } else {
+        if (pokemon.normalMoveRemaining > 0) {
+          pokemon.normalMoveRemaining--;
+          return true;
+        }
+      }
+      return false;
+    },
+
     restoreMoveCharges: function (pokemon, scope = "all") {
       if (!pokemon) return;
       const applyNormal = scope === "all" || scope === "normal";
       const applySpecial = scope === "all" || scope === "special";
 
+      // NOVO: Restaura PA individual por movimento
+      if (pokemon.moveUses && pokemon.moves) {
+        const NORMAL_MOVE_PA = 30;
+        const SPECIAL_MOVE_PA = 15;
+        
+        pokemon.moves.forEach((move) => {
+          const moveName = typeof move === "string" ? move : move.name || move;
+          const isSpecial = Utils.isSpecialMove(pokemon, moveName);
+          
+          if ((isSpecial && applySpecial) || (!isSpecial && applyNormal)) {
+            const maxPA = isSpecial ? SPECIAL_MOVE_PA : NORMAL_MOVE_PA;
+            if (!pokemon.moveUses[moveName]) {
+              pokemon.moveUses[moveName] = { remaining: maxPA, max: maxPA };
+            } else {
+              pokemon.moveUses[moveName].remaining = maxPA;
+              pokemon.moveUses[moveName].max = maxPA;
+            }
+          }
+        });
+      }
+
+      // Mantém compatibilidade com sistema antigo
       if (applyNormal) {
         const normalMax =
           pokemon.normalMoveMaxUses ||

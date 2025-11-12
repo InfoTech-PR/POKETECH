@@ -438,14 +438,29 @@ export const GameLogic = {
 
       if (item.ppRestore) {
         window.Utils.ensureMoveCounters(targetPokemon);
-        const normalFull =
-          targetPokemon.normalMoveRemaining >=
-          targetPokemon.normalMoveMaxUses;
-        const specialFull =
-          targetPokemon.specialMoveRemaining >=
-          targetPokemon.specialMoveMaxUses;
+        // NOVO: Verifica se todos os movimentos têm PA cheio
+        let allMovesFull = true;
+        if (targetPokemon.moves && targetPokemon.moves.length > 0) {
+          for (const move of targetPokemon.moves) {
+            const moveName = typeof move === "string" ? move : move.name || move;
+            const movePA = window.Utils.getMovePA(targetPokemon, moveName);
+            if (movePA.remaining < movePA.max) {
+              allMovesFull = false;
+              break;
+            }
+          }
+        } else {
+          // Fallback para sistema antigo
+          const normalFull =
+            targetPokemon.normalMoveRemaining >=
+            targetPokemon.normalMoveMaxUses;
+          const specialFull =
+            targetPokemon.specialMoveRemaining >=
+            targetPokemon.specialMoveMaxUses;
+          allMovesFull = normalFull && specialFull;
+        }
 
-        if (normalFull && specialFull) {
+        if (allMovesFull) {
           window.Utils.showModal(
             "infoModal",
             `${targetPokemon.name} já está com todos os PAs carregados.`
@@ -503,14 +518,29 @@ export const GameLogic = {
     }
 
     if (item.ppRestore) {
-      const normalFull =
-        playerPokemon.normalMoveRemaining >=
-        playerPokemon.normalMoveMaxUses;
-      const specialFull =
-        playerPokemon.specialMoveRemaining >=
-        playerPokemon.specialMoveMaxUses;
+      // NOVO: Verifica se todos os movimentos têm PA cheio
+      let allMovesFull = true;
+      if (playerPokemon.moves && playerPokemon.moves.length > 0) {
+        for (const move of playerPokemon.moves) {
+          const moveName = typeof move === "string" ? move : move.name || move;
+          const movePA = window.Utils.getMovePA(playerPokemon, moveName);
+          if (movePA.remaining < movePA.max) {
+            allMovesFull = false;
+            break;
+          }
+        }
+      } else {
+        // Fallback para sistema antigo
+        const normalFull =
+          playerPokemon.normalMoveRemaining >=
+          playerPokemon.normalMoveMaxUses;
+        const specialFull =
+          playerPokemon.specialMoveRemaining >=
+          playerPokemon.specialMoveMaxUses;
+        allMovesFull = normalFull && specialFull;
+      }
 
-      if (normalFull && specialFull) {
+      if (allMovesFull) {
         BattleCore.addBattleLog(
           `${playerPokemon.name} já está com todos os PAs carregados!`
         );
@@ -534,6 +564,58 @@ export const GameLogic = {
     return false;
   },
 
+  // NOVO: Função para usar Éter em um movimento específico
+  useEtherOnMove: function (pokemonIndex, moveName) {
+    const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon inválido.");
+      return false;
+    }
+
+    const item = window.gameState.profile.items.find(
+      (i) => i.name === "Éter" && i.ppRestore
+    );
+    if (!item || item.quantity <= 0) {
+      window.Utils.showModal("errorModal", "Você não tem Éter!");
+      return false;
+    }
+
+    window.Utils.ensureMoveCounters(pokemon);
+    const movePA = window.Utils.getMovePA(pokemon, moveName);
+    
+    if (movePA.remaining >= movePA.max) {
+      window.Utils.showModal(
+        "infoModal",
+        `${window.Utils.formatName(moveName)} já está com PA cheio!`
+      );
+      return false;
+    }
+
+    // Restaura PA do movimento específico
+    if (pokemon.moveUses && pokemon.moveUses[moveName]) {
+      pokemon.moveUses[moveName].remaining = pokemon.moveUses[moveName].max;
+    } else {
+      // Fallback para sistema antigo
+      const isSpecial = window.Utils.isSpecialMove(pokemon, moveName);
+      if (isSpecial) {
+        pokemon.specialMoveRemaining = pokemon.specialMoveMaxUses || 15;
+      } else {
+        pokemon.normalMoveRemaining = pokemon.normalMoveMaxUses || 30;
+      }
+    }
+
+    item.quantity--;
+    window.GameLogic.saveGameData();
+
+    // Mostra mensagem de sucesso
+    const moveDisplayName = window.Utils.formatName(moveName);
+    window.Utils.showModal(
+      "infoModal",
+      `${pokemon.name} recuperou todo o PA de ${moveDisplayName}! Restam x${item.quantity} Éter${item.quantity !== 1 ? 's' : ''}.`
+    );
+    return true;
+  },
+
   healAllPokemon: function () {
     const profile = window.gameState.profile;
     const GameConfig = window.GameConfig;
@@ -542,10 +624,24 @@ export const GameLogic = {
 
     profile.pokemon.forEach((p) => {
       window.Utils.ensureMoveCounters(p);
-      const specialNeeds =
-        p.specialMoveRemaining < p.specialMoveMaxUses;
-      const normalNeeds =
-        p.normalMoveRemaining < p.normalMoveMaxUses;
+      // NOVO: Verifica se algum movimento precisa de PA
+      let movesNeedPA = false;
+      if (p.moves && p.moves.length > 0) {
+        for (const move of p.moves) {
+          const moveName = typeof move === "string" ? move : move.name || move;
+          const movePA = window.Utils.getMovePA(p, moveName);
+          if (movePA.remaining < movePA.max) {
+            movesNeedPA = true;
+            break;
+          }
+        }
+      } else {
+        // Fallback para sistema antigo
+        movesNeedPA =
+          p.specialMoveRemaining < p.specialMoveMaxUses ||
+          p.normalMoveRemaining < p.normalMoveMaxUses;
+      }
+      
       const hpNeeds = p.currentHp < p.maxHp;
 
       if (hpNeeds) {
@@ -553,7 +649,7 @@ export const GameLogic = {
       }
       window.Utils.restoreMoveCharges(p);
 
-      if (hpNeeds || specialNeeds || normalNeeds) {
+      if (hpNeeds || movesNeedPA) {
         totalCost += GameConfig.HEAL_COST_PER_POKE;
         healedCount++;
       }

@@ -196,6 +196,7 @@ export async function init(cacheBuster = Date.now()) {
     window.playerTurn = BattleCore.playerTurn;
     window.setBattleMenu = BattleCore.setBattleMenu;
     window.useItem = GameLogic.useItem;
+    window.useEtherOnMove = GameLogic.useEtherOnMove;
     window.saveGame = Utils.saveGame;
     window.createPvpLink = PvpCore.createPvpLink;
     window.joinPvpBattle = PvpCore.joinPvpBattle;
@@ -234,6 +235,34 @@ export async function init(cacheBuster = Date.now()) {
 
     // INICIALIZAÇÃO FINAL: Autenticação e Carregamento de Save
     AuthSetup.initAuth();
+
+    // NOVO: Registro do Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('Service Worker registrado com sucesso:', registration.scope);
+            
+            // Verifica atualizações periodicamente
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('Nova versão do Service Worker disponível!');
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            console.warn('Falha ao registrar Service Worker:', error);
+          });
+
+        // Listener para quando o Service Worker estiver pronto
+        navigator.serviceWorker.ready.then(() => {
+          console.log('Service Worker pronto para uso');
+        });
+      });
+    }
   } catch (e) {
     console.error("Erro fatal ao carregar módulos dependentes:", e);
     let errorMessage = "Erro de carregamento desconhecido.";

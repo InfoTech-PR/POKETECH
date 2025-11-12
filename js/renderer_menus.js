@@ -240,81 +240,343 @@ export const RendererMenus = {
       profile.pokemon.every((p) => p.currentHp <= 0);
 
     const trainerImage = getTrainerAvatarUrl(profile);
+    
+    // Calcula nível do treinador baseado no pokémon de maior nível
+    const maxLevel = profile.pokemon.length > 0
+      ? Math.max(...profile.pokemon.map(p => p.level || 1))
+      : 1;
+    const trainerLevel = Math.min(100, Math.max(1, maxLevel));
+    
+    // Calcula pokémon capturados (pokedex)
+    const pokedexCount = profile.pokedex ? 
+      (profile.pokedex instanceof Set ? profile.pokedex.size : profile.pokedex.length) : 0;
+    
+    // Determina cor do nível baseado no nível do treinador
+    const getLevelColor = (level) => {
+      if (level >= 50) return { bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' };
+      if (level >= 30) return { bg: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)' };
+      if (level >= 20) return { bg: 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)' };
+      if (level >= 10) return { bg: 'linear-gradient(135deg, #eab308 0%, #f97316 100%)' };
+      return { bg: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' };
+    };
+    
+    const levelColor = getLevelColor(trainerLevel);
+    const genderIcon = profile.trainerGender === "MALE" ? '♂' : '♀';
+    const genderColor = profile.trainerGender === "MALE" ? 'text-blue-400' : 'text-pink-400';
 
     const statsHtml = `
-  <div class="p-4 bg-gray-900 border-4 border-yellow-400 rounded-xl shadow-2xl transition-all duration-300 hover:shadow-yellow-400/50 transform hover:scale-[1.01]">
-      <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
-          
-          <div class="relative flex-shrink-0">
-              <img src="${trainerImage}" alt="Treinador" 
-                  class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-yellow-400 object-cover shadow-lg hover:shadow-xl transition-shadow duration-300 animate-pulse-once">
-              <span class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></span>
-          </div>
-          
-          <div class="flex-grow text-white text-center sm:text-left">
-              <h2 class="text-3xl font-extrabold text-yellow-400 mb-2 tracking-wider uppercase">
-                  ${profile.trainerName}
-              </h2>
-              <p class="text-sm text-gray-400 mb-4 border-b border-gray-700 pb-2">
-                  O(A) lendário(a) treinador(a) de Kanto
-              </p>
-              
-              <div class="grid grid-cols-2 gap-y-2 gap-x-4 text-sm md:text-base">
-                  
-                  <div class="flex items-center space-x-2">
-                      <span class="text-yellow-400">
-                          ${profile.trainerGender === "MALE" ? '♂️' : '♀️'}
-                      </span>
-                      <p>
-                          <strong class="text-gray-300">GÊNERO:</strong> 
-                          ${profile.trainerGender === "MALE" ? "MASCULINO" : "FEMININO"}
-                      </p>
-                  </div>
-                  
-                  <div class="flex items-center space-x-2">
-                      <span class="text-green-500">💰</span>
-                      <p>
-                          <strong class="text-gray-300">DINHEIRO:</strong> 
-                          P$${profile.money.toLocaleString('pt-BR')}
-                      </p>
-                  </div>
-                  
-                  <div class="flex items-center space-x-2">
-                      <span class="text-red-500">🔴</span>
-                      <p>
-                          <strong class="text-gray-300">POKÉS:</strong> 
-                          ${profile.pokemon.length} / 1025
-                      </p>
-                  </div>
-
-                  <div class="flex items-center space-x-2">
-                      <span class="text-blue-400">🏅</span>
-                      <p>
-                          <strong class="text-gray-300">INSÍGNIAS:</strong> 
-                          8
-                      </p>
-                  </div>
-              </div>
-          </div>
+  <div class="trainer-profile-card">
+    <!-- Header com avatar e nome -->
+    <div class="trainer-profile-header">
+      <div class="trainer-avatar-container">
+        <img src="${trainerImage}" alt="Treinador" class="trainer-avatar">
+        <div class="trainer-level-badge" style="background: ${levelColor.bg};">
+          <span class="trainer-level-text">${trainerLevel}</span>
+        </div>
       </div>
+      <div class="trainer-info">
+        <h2 class="trainer-name">${profile.trainerName}</h2>
+        <div class="trainer-title">
+          <span class="${genderColor} font-bold">${genderIcon}</span>
+          <span>Treinador de Kanto</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Estatísticas em formato de cards -->
+    <div class="trainer-stats-grid">
+      <!-- Dinheiro -->
+      <div class="stat-card stat-money">
+        <div class="stat-icon">💰</div>
+        <div class="stat-content">
+          <div class="stat-label">DINHEIRO</div>
+          <div class="stat-value stat-value-money">P$${profile.money.toLocaleString('pt-BR')}</div>
+        </div>
+      </div>
+      
+      <!-- Pokémons no time -->
+      <div class="stat-card stat-pokemon">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-content">
+          <div class="stat-label">TIME</div>
+          <div class="stat-value stat-value-pokemon">${profile.pokemon.length} Pokémon</div>
+        </div>
+      </div>
+      
+      <!-- Pokédex -->
+      <div class="stat-card stat-pokedex">
+        <div class="stat-icon">📖</div>
+        <div class="stat-content">
+          <div class="stat-label">POKÉDEX</div>
+          <div class="stat-value stat-value-pokedex">${pokedexCount} / 1025</div>
+        </div>
+      </div>
+      
+      <!-- Insígnias -->
+      <div class="stat-card stat-badges">
+        <div class="stat-icon">🏅</div>
+        <div class="stat-content">
+          <div class="stat-label">INSÍGNIAS</div>
+          <div class="stat-value stat-value-badges">8 / 8</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <style>
-      /* Exemplo de keyframes para uma animação sutil */
-      @keyframes pulse-once {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.03); }
-          100% { transform: scale(1); }
+    .trainer-profile-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 3px solid #475569;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .trainer-profile-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24);
+      background-size: 200% 100%;
+      animation: trainer-shimmer 3s infinite;
+      z-index: 1;
+    }
+    
+    @keyframes trainer-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    
+    .trainer-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      z-index: 2;
+    }
+    
+    .trainer-avatar-container {
+      position: relative;
+      flex-shrink: 0;
+    }
+    
+    .trainer-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      border: 3px solid #fbbf24;
+      object-fit: cover;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      image-rendering: pixelated;
+      background: #1e293b;
+    }
+    
+    .trainer-level-badge {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+      z-index: 3;
+    }
+    
+    .trainer-level-text {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      line-height: 1;
+    }
+    
+    .trainer-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .trainer-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fbbf24;
+      margin: 0 0 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .trainer-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    
+    .trainer-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+      cursor: default;
+    }
+    
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    
+    .stat-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+      line-height: 1;
+    }
+    
+    .stat-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .stat-label {
+      font-size: 0.6rem;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+    
+    .stat-value {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      line-height: 1.2;
+    }
+    
+    .stat-value-money {
+      color: #86efac;
+    }
+    
+    .stat-value-pokemon {
+      color: #f87171;
+    }
+    
+    .stat-value-pokedex {
+      color: #60a5fa;
+    }
+    
+    .stat-value-badges {
+      color: #fbbf24;
+    }
+    
+    /* Responsividade para telas maiores */
+    @media (min-width: 640px) {
+      .trainer-avatar {
+        width: 80px;
+        height: 80px;
       }
-      .animate-pulse-once:hover {
-          animation: pulse-once 0.5s ease-in-out;
+      
+      .trainer-level-badge {
+        width: 32px;
+        height: 32px;
       }
+      
+      .trainer-level-text {
+        font-size: 0.8rem;
+      }
+      
+      .trainer-name {
+        font-size: 1.3rem;
+      }
+      
+      .trainer-stats-grid {
+        gap: 10px;
+      }
+      
+      .stat-card {
+        padding: 12px;
+      }
+      
+      .stat-icon {
+        font-size: 1.8rem;
+      }
+      
+      .stat-label {
+        font-size: 0.65rem;
+      }
+      
+      .stat-value {
+        font-size: 0.85rem;
+      }
+    }
+    
+    /* Otimização para mobile */
+    @media (max-width: 640px) {
+      .trainer-profile-card {
+        padding: 12px;
+      }
+      
+      .trainer-profile-header {
+        gap: 10px;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+      }
+      
+      .trainer-stats-grid {
+        gap: 6px;
+      }
+      
+      .stat-card {
+        padding: 8px;
+      }
+      
+      .stat-icon {
+        font-size: 1.3rem;
+      }
+    }
   </style>
           `;
 
     const menuHtml = `
             <div class="p-2">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Primeira linha: TIME e SERVIÇOS -->
+                <div class="grid grid-cols-2 gap-3 mb-3">
                     <button
                         onclick="window.Renderer.showScreen('pokemonMenu')"
                         class="gba-button bg-red-500 hover:bg-red-600 h-full flex items-center justify-center gap-3 py-4"
@@ -323,7 +585,7 @@ export const RendererMenus = {
                             <i class="fa-solid fa-people-group"></i>
                         </span>
                         <span class="flex flex-col text-left">
-                            <span class="text-sm font-bold leading-none">MEU TIME</span>
+                            <span class="text-sm font-bold leading-none">TIME</span>
                             <span class="text-xs opacity-80 leading-tight hidden sm:block">Gerencie seus Pokémon</span>
                         </span>
                     </button>
@@ -339,6 +601,9 @@ export const RendererMenus = {
                             <span class="text-xs opacity-80 leading-tight hidden sm:block">Centro Pokémon e Loja</span>
                         </span>
                     </button>
+                </div>
+                <!-- Segunda linha: PVP e PERFIL (apenas ícone) -->
+                <div class="grid grid-cols-2 gap-3">
                     <button
                         onclick="window.Renderer.showScreen('pvpSetup')"
                         class="gba-button bg-purple-500 hover:bg-purple-600 h-full flex items-center justify-center gap-3 py-4"
@@ -347,20 +612,17 @@ export const RendererMenus = {
                             <i class="fa-solid fa-shield-halved"></i>
                         </span>
                         <span class="flex flex-col text-left">
-                            <span class="text-sm font-bold leading-none">BATALHA PVP</span>
+                            <span class="text-sm font-bold leading-none">PVP</span>
                             <span class="text-xs opacity-80 leading-tight hidden sm:block">Duele com outros treinadores</span>
                         </span>
                     </button>
                     <button
                         onclick="window.Renderer.showScreen('profileMenu')"
-                        class="gba-button bg-gray-500 hover:bg-gray-600 h-full flex items-center justify-center gap-3 py-4"
+                        class="gba-button bg-gray-500 hover:bg-gray-600 h-full flex items-center justify-center py-4"
+                        title="Perfil e Opções"
                     >
-                        <span class="text-2xl sm:text-3xl">
+                        <span class="text-3xl sm:text-4xl">
                             <i class="fa-solid fa-user-gear"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-sm font-bold leading-none">PERFIL E OPÇÕES</span>
-                            <span class="text-xs opacity-80 leading-tight hidden sm:block">Configurações e preferências</span>
                         </span>
                     </button>
                 </div>
@@ -392,11 +654,13 @@ export const RendererMenus = {
         `;
 
     const combinedHtml = `
-            <div class="flex flex-col sm:flex-row gap-4 mb-4 flex-grow">
-                <div class="sm:w-2/5 w-full flex-shrink-0">
+            <div class="flex flex-col gap-4 mb-4 flex-grow">
+                <!-- Perfil do treinador -->
+                <div class="w-full flex-shrink-0">
                     ${statsHtml}
                 </div>
-                <div class="sm:w-3/5 w-full flex-shrink-0">
+                <!-- Menu de ações -->
+                <div class="w-full flex-shrink-0">
                     ${menuHtml}
                 </div>
             </div>

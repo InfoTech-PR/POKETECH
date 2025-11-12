@@ -1,5 +1,13 @@
 // Service Worker para PokéTech PWA
-const CACHE_NAME = 'poketech-v1';
+const CACHE_NAME = 'poketech-v2';
+const STATIC_CACHE = 'poketech-static-v2';
+
+// URLs para cachear na instalação
+// Usa self.location.origin para garantir que funcione em qualquer domínio
+const getBaseUrl = () => {
+  return self.location.origin;
+};
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -21,19 +29,34 @@ const urlsToCache = [
   '/js/local_poke_data.js',
   '/js/branched_evos.js',
   '/js/evolution_rules.js',
-  '/game_updates.json'
+  '/game_updates.json',
+  '/assets/sprites/items/poke-ball.png',
+  '/assets/sprites/items/great-ball.png',
+  '/assets/sprites/items/ultra-ball.png'
 ];
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
+  console.log('Service Worker: Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Service Worker: Cache aberto');
-        return cache.addAll(urlsToCache);
+        // Cacheia arquivos, mas não falha se alguns não existirem
+        return Promise.allSettled(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(err => {
+              console.warn(`Service Worker: Falha ao cachear ${url}:`, err);
+              return null;
+            });
+          })
+        );
+      })
+      .then(() => {
+        console.log('Service Worker: Instalação concluída');
       })
       .catch((err) => {
-        console.warn('Service Worker: Erro ao cachear arquivos', err);
+        console.error('Service Worker: Erro durante instalação', err);
       })
   );
   self.skipWaiting(); // Força ativação imediata
@@ -63,46 +86,67 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = new URL(event.request.url);
+
   // Ignora requisições do Firebase e APIs externas
-  if (event.request.url.includes('firebase') || 
-      event.request.url.includes('googleapis') ||
-      event.request.url.includes('cdn.jsdelivr.net') ||
-      event.request.url.includes('cdnjs.cloudflare.com') ||
-      event.request.url.includes('unpkg.com') ||
-      event.request.url.includes('open-meteo.com') ||
-      event.request.url.includes('github.com') ||
-      event.request.url.includes('pinimg.com') ||
-      event.request.url.includes('jetta.vgmtreasurechest.com')) {
-    return;
+  if (url.hostname.includes('firebase') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('cdn.jsdelivr.net') ||
+    url.hostname.includes('cdnjs.cloudflare.com') ||
+    url.hostname.includes('unpkg.com') ||
+    url.hostname.includes('open-meteo.com') ||
+    url.hostname.includes('github.com') ||
+    url.hostname.includes('pinimg.com') ||
+    url.hostname.includes('jetta.vgmtreasurechest.com') ||
+    url.hostname.includes('pokeapi.co') ||
+    url.hostname.includes('fonts.googleapis.com') ||
+    url.hostname.includes('fonts.gstatic.com') ||
+    url.hostname.includes('leaflet') ||
+    url.hostname.includes('tumblr.com') ||
+    url.hostname.includes('twitter.com') ||
+    url.hostname.includes('redd.it') ||
+    url.hostname.includes('wikia.nocookie.net') ||
+    url.hostname.includes('pm1.aminoapps.com') ||
+    url.hostname.includes('encrypted-tbn') ||
+    url.hostname.includes('wallpapers-clan.com') ||
+    url.hostname.includes('ignimgs.com') ||
+    url.hostname.includes('i.redd.it') ||
+    url.hostname.includes('oyster.ignimgs.com')) {
+    return; // Deixa o navegador buscar normalmente
   }
 
+  // Para requisições do mesmo domínio, usa estratégia network-first
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clona a resposta para poder cachear
-        const responseToCache = response.clone();
-        
-        // Cacheia apenas respostas válidas
-        if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // Tenta buscar da rede primeiro
+        return fetch(event.request)
+          .then((networkResponse) => {
+            // Se a resposta da rede for válida, atualiza o cache
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => {
+            // Se a rede falhar, usa o cache
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Se não houver cache, retorna resposta de erro
+            if (event.request.destination === 'document') {
+              // Para páginas, retorna index.html do cache
+              return caches.match('/index.html');
+            }
+            return new Response('Offline', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'text/plain' }
+            });
           });
-        }
-        
-        return response;
-      })
-      .catch(() => {
-        // Fallback para cache se a rede falhar
-        return caches.match(event.request).then((response) => {
-          if (response) {
-            return response;
-          }
-          // Se não encontrar no cache, retorna resposta básica
-          return new Response('Offline', {
-            status: 503,
-            statusText: 'Service Unavailable'
-          });
-        });
       })
   );
 });

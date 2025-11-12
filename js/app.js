@@ -236,6 +236,89 @@ export async function init(cacheBuster = Date.now()) {
     // INICIALIZAÇÃO FINAL: Autenticação e Carregamento de Save
     AuthSetup.initAuth();
 
+    // NOVO: Sistema de Instalação PWA
+    window.deferredPrompt = null;
+    window.isPWAInstalled = false;
+    window.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    window.isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone || 
+                          document.referrer.includes('android-app://');
+
+    // Detecta se já está instalado
+    if (window.isStandalone) {
+      window.isPWAInstalled = true;
+      console.log('✅ [PWA] Aplicativo já está instalado');
+    }
+
+    // Captura o evento beforeinstallprompt (Android/Chrome)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('✅ [PWA] Evento beforeinstallprompt capturado');
+      e.preventDefault();
+      window.deferredPrompt = e;
+      window.isPWAInstallable = true;
+      
+      // Dispara evento customizado para atualizar UI
+      window.dispatchEvent(new CustomEvent('pwa-installable', { detail: true }));
+    });
+
+    // Detecta quando a PWA é instalada
+    window.addEventListener('appinstalled', () => {
+      console.log('✅ [PWA] Aplicativo instalado com sucesso!');
+      window.isPWAInstalled = true;
+      window.deferredPrompt = null;
+      window.isPWAInstallable = false;
+      window.dispatchEvent(new CustomEvent('pwa-installed', { detail: true }));
+    });
+
+    // Função para instalar a PWA
+    window.installPWA = async function() {
+      if (!window.deferredPrompt) {
+        console.warn('⚠️ [PWA] Prompt de instalação não disponível');
+        
+        // Para iOS, mostra instruções
+        if (window.isIOS) {
+          window.Utils?.showModal('infoModal', 
+            'Para instalar no iOS:<br><br>' +
+            '1. Toque no botão de compartilhar (□↑)<br>' +
+            '2. Role para baixo e toque em "Adicionar à Tela Inicial"<br>' +
+            '3. Toque em "Adicionar"'
+          );
+          return false;
+        }
+        
+        // Para outros navegadores mobile
+        const isAndroid = /Android/.test(navigator.userAgent);
+        if (isAndroid) {
+          window.Utils?.showModal('infoModal',
+            'Para instalar no Android:<br><br>' +
+            '1. Toque no menu (⋮) no canto superior direito<br>' +
+            '2. Toque em "Instalar aplicativo" ou "Adicionar à tela inicial"<br>' +
+            '3. Confirme a instalação'
+          );
+        }
+        return false;
+      }
+
+      try {
+        window.deferredPrompt.prompt();
+        const { outcome } = await window.deferredPrompt.userChoice;
+        console.log(`[PWA] Resultado da instalação: ${outcome}`);
+        
+        if (outcome === 'accepted') {
+          window.isPWAInstalled = true;
+          window.Utils?.showModal('infoModal', 'Aplicativo instalado com sucesso!');
+        }
+        
+        window.deferredPrompt = null;
+        window.isPWAInstallable = false;
+        window.dispatchEvent(new CustomEvent('pwa-install-result', { detail: outcome }));
+        return outcome === 'accepted';
+      } catch (error) {
+        console.error('❌ [PWA] Erro ao instalar:', error);
+        return false;
+      }
+    };
+
     // NOVO: Registro do Service Worker para PWA
     if ('serviceWorker' in navigator) {
       // Registra imediatamente, não espera o load
@@ -282,12 +365,29 @@ export async function init(cacheBuster = Date.now()) {
             });
           });
         
-        // Aguarda o service worker estar pronto
+            // Aguarda o service worker estar pronto
         navigator.serviceWorker.ready
           .then((registration) => {
             console.log('✅ [SW] Pronto para uso');
             if (navigator.serviceWorker.controller) {
               console.log('✅ [SW] Está controlando a página');
+              // Marca como instalável após SW estar ativo
+              setTimeout(() => {
+                if (!window.isPWAInstalled && !window.isStandalone) {
+                  // Verifica se é instalável mesmo sem o evento beforeinstallprompt
+                  // Para Android/Chrome, o evento beforeinstallprompt deve ter sido disparado
+                  // Para iOS, sempre mostra o botão de instalação
+                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  if (isMobile && !window.deferredPrompt) {
+                    // Se for mobile e não tiver o prompt, pode ser iOS ou navegador que não suporta
+                    // Marca como potencialmente instalável
+                    if (window.isIOS || !window.deferredPrompt) {
+                      window.isPWAInstallable = true;
+                      window.dispatchEvent(new CustomEvent('pwa-check-installable'));
+                    }
+                  }
+                }
+              }, 3000);
             } else {
               console.log('⚠️ [SW] Ainda não está controlando (aguardando...)');
             }

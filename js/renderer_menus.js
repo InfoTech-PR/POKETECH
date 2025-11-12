@@ -626,6 +626,17 @@ export const RendererMenus = {
                         </span>
                     </button>
                 </div>
+                <!-- Botão de Instalação PWA (aparece apenas se não estiver instalado) -->
+                <div id="pwa-install-button-container" class="mt-3 hidden">
+                    <button
+                        id="pwa-install-btn"
+                        onclick="window.installPWA()"
+                        class="gba-button bg-green-500 hover:bg-green-600 w-full flex items-center justify-center gap-2 py-3"
+                    >
+                        <i class="fa-solid fa-download"></i>
+                        <span class="text-sm font-bold">INSTALAR APLICATIVO</span>
+                    </button>
+                </div>
             </div>
         `;
 
@@ -670,6 +681,79 @@ export const RendererMenus = {
         `;
 
     window.Renderer.renderGbaCard(combinedHtml);
+    
+    // NOVO: Gerencia o botão de instalação PWA
+    const updatePWAInstallButton = () => {
+      const container = document.getElementById('pwa-install-button-container');
+      const button = document.getElementById('pwa-install-btn');
+      
+      if (!container || !button) return;
+      
+      // Se já estiver instalado, esconde o botão
+      if (window.isPWAInstalled || window.isStandalone) {
+        container.classList.add('hidden');
+        return;
+      }
+      
+      // Verifica se é instalável
+      // 1. Android/Chrome: precisa do evento beforeinstallprompt (deferredPrompt)
+      // 2. iOS: sempre mostra o botão (mesmo sem beforeinstallprompt)
+      // 3. Desktop: mostra se tiver o prompt
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasPrompt = window.deferredPrompt !== null;
+      const isIOSDevice = window.isIOS;
+      
+      // Mostra o botão se:
+      // - Tiver o prompt de instalação (Android/Chrome)
+      // - For iOS e não estiver instalado
+      // - Estiver marcado como instalável
+      const isInstallable = hasPrompt || 
+                           (isIOSDevice && !window.isStandalone) || 
+                           (window.isPWAInstallable && isMobile);
+      
+      if (isInstallable) {
+        container.classList.remove('hidden');
+        
+        // Atualiza o texto do botão baseado na plataforma
+        if (isIOSDevice && !hasPrompt) {
+          button.innerHTML = '<i class="fa-solid fa-plus-square"></i><span class="text-sm font-bold">ADICIONAR À TELA INICIAL</span>';
+          button.setAttribute('title', 'Toque para ver instruções de instalação');
+        } else if (hasPrompt) {
+          button.innerHTML = '<i class="fa-solid fa-download"></i><span class="text-sm font-bold">INSTALAR APLICATIVO</span>';
+          button.setAttribute('title', 'Instale o aplicativo no seu dispositivo');
+        } else {
+          button.innerHTML = '<i class="fa-solid fa-download"></i><span class="text-sm font-bold">INSTALAR APLICATIVO</span>';
+          button.setAttribute('title', 'Toque para ver instruções de instalação');
+        }
+      } else {
+        container.classList.add('hidden');
+      }
+    };
+    
+    // Atualiza o botão imediatamente após renderizar
+    setTimeout(updatePWAInstallButton, 500);
+    
+    // Escuta eventos de instalação
+    const handlePWAInstallable = () => updatePWAInstallButton();
+    const handlePWAInstalled = () => updatePWAInstallButton();
+    const handlePWACheck = () => updatePWAInstallButton();
+    
+    window.addEventListener('pwa-installable', handlePWAInstallable);
+    window.addEventListener('pwa-installed', handlePWAInstalled);
+    window.addEventListener('pwa-check-installable', handlePWACheck);
+    
+    // Verifica periodicamente se se tornou instalável (máximo 10 tentativas = 20 segundos)
+    let checkCount = 0;
+    const maxChecks = 10;
+    const checkInterval = setInterval(() => {
+      checkCount++;
+      if (window.isPWAInstalled || window.isStandalone || checkCount >= maxChecks) {
+        clearInterval(checkInterval);
+        updatePWAInstallButton();
+      } else {
+        updatePWAInstallButton();
+      }
+    }, 2000);
   },
 
   renderProfileMenu: function (app) {

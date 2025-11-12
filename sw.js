@@ -1,12 +1,10 @@
 // Service Worker para PokéTech PWA
-const CACHE_NAME = 'poketech-v2';
-const STATIC_CACHE = 'poketech-static-v2';
+// Versão: v3 - Otimizado para CloudPanel
+const CACHE_NAME = 'poketech-v3';
+const STATIC_CACHE = 'poketech-static-v3';
 
-// URLs para cachear na instalação
-// Usa self.location.origin para garantir que funcione em qualquer domínio
-const getBaseUrl = () => {
-  return self.location.origin;
-};
+// Log de inicialização
+console.log('[SW] Service Worker iniciado em:', self.location.origin);
 
 const urlsToCache = [
   '/',
@@ -37,46 +35,62 @@ const urlsToCache = [
 
 // Instalação do Service Worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Instalando...');
+  console.log('[SW] Instalando Service Worker...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: Cache aberto');
-        // Cacheia arquivos, mas não falha se alguns não existirem
+        console.log('[SW] Cache aberto:', CACHE_NAME);
+        // Cacheia arquivos essenciais primeiro
+        const essentialFiles = ['/', '/index.html', '/manifest.json'];
         return Promise.allSettled(
-          urlsToCache.map(url => {
+          essentialFiles.map(url => {
             return cache.add(url).catch(err => {
-              console.warn(`Service Worker: Falha ao cachear ${url}:`, err);
+              console.warn(`[SW] Falha ao cachear ${url}:`, err.message);
               return null;
             });
           })
-        );
+        ).then(() => {
+          // Depois cacheia o resto
+          return Promise.allSettled(
+            urlsToCache.filter(url => !essentialFiles.includes(url)).map(url => {
+              return cache.add(url).catch(err => {
+                console.warn(`[SW] Falha ao cachear ${url}:`, err.message);
+                return null;
+              });
+            })
+          );
+        });
       })
       .then(() => {
-        console.log('Service Worker: Instalação concluída');
+        console.log('[SW] ✅ Instalação concluída');
       })
       .catch((err) => {
-        console.error('Service Worker: Erro durante instalação', err);
+        console.error('[SW] ❌ Erro durante instalação:', err);
       })
   );
-  self.skipWaiting(); // Força ativação imediata
+  // Força ativação imediata sem esperar outras abas fecharem
+  self.skipWaiting();
 });
 
 // Ativação do Service Worker
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Ativando Service Worker...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Removendo cache antigo', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+      const deletePromises = cacheNames
+        .filter((cacheName) => cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE)
+        .map((cacheName) => {
+          console.log('[SW] Removendo cache antigo:', cacheName);
+          return caches.delete(cacheName);
+        });
+      return Promise.all(deletePromises);
     })
+      .then(() => {
+        console.log('[SW] ✅ Ativação concluída');
+      })
   );
-  return self.clients.claim(); // Assume controle imediato de todas as páginas
+  // Assume controle imediato de todas as páginas abertas
+  return self.clients.claim();
 });
 
 // Estratégia: Network First, fallback para Cache

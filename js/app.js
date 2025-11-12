@@ -238,57 +238,73 @@ export async function init(cacheBuster = Date.now()) {
 
     // NOVO: Registro do Service Worker para PWA
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // Registra o service worker
-        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      // Registra imediatamente, não espera o load
+      const registerSW = () => {
+        navigator.serviceWorker.register('/sw.js', { 
+          scope: '/',
+          updateViaCache: 'none' // Sempre busca atualizações
+        })
           .then((registration) => {
-            console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+            console.log('✅ [SW] Registrado com sucesso:', registration.scope);
+            console.log('✅ [SW] Estado:', registration.active ? 'ATIVO' : 'INSTALANDO');
             
             // Verifica atualizações
             registration.addEventListener('updatefound', () => {
               const newWorker = registration.installing;
               if (newWorker) {
+                console.log('[SW] Nova versão encontrada, instalando...');
                 newWorker.addEventListener('statechange', () => {
+                  console.log(`[SW] Estado do novo worker: ${newWorker.state}`);
                   if (newWorker.state === 'installed') {
                     if (navigator.serviceWorker.controller) {
-                      console.log('🔄 Nova versão do Service Worker disponível');
-                      // Opcional: mostrar notificação para o usuário atualizar
+                      console.log('🔄 [SW] Nova versão instalada! Recarregue a página.');
                     } else {
-                      console.log('✅ Service Worker instalado pela primeira vez');
+                      console.log('✅ [SW] Instalado pela primeira vez!');
                     }
                   }
                 });
               }
             });
             
-            // Verifica atualizações periodicamente
+            // Verifica atualizações periodicamente (a cada 5 minutos)
             setInterval(() => {
               registration.update().catch(err => {
-                console.debug('Verificação de atualização do SW:', err);
+                console.debug('[SW] Erro ao verificar atualização:', err.message);
               });
-            }, 60000); // Verifica a cada minuto
+            }, 300000);
           })
           .catch((error) => {
-            console.error('❌ Falha ao registrar Service Worker:', error);
-            // Não bloqueia a aplicação se o SW falhar
+            console.error('❌ [SW] Falha ao registrar:', error);
+            console.error('❌ [SW] Detalhes:', {
+              message: error.message,
+              stack: error.stack,
+              name: error.name
+            });
           });
         
         // Aguarda o service worker estar pronto
-        navigator.serviceWorker.ready.then((registration) => {
-          console.log('✅ Service Worker pronto para uso');
-          
-          // Verifica se há um controller ativo
-          if (navigator.serviceWorker.controller) {
-            console.log('✅ Service Worker está controlando a página');
-          } else {
-            console.log('⚠️ Service Worker ainda não está controlando a página');
-          }
-        }).catch((error) => {
-          console.warn('⚠️ Service Worker não está pronto:', error);
-        });
-      });
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            console.log('✅ [SW] Pronto para uso');
+            if (navigator.serviceWorker.controller) {
+              console.log('✅ [SW] Está controlando a página');
+            } else {
+              console.log('⚠️ [SW] Ainda não está controlando (aguardando...)');
+            }
+          })
+          .catch((error) => {
+            console.warn('⚠️ [SW] Não está pronto:', error);
+          });
+      };
+      
+      // Tenta registrar imediatamente
+      if (document.readyState === 'loading') {
+        window.addEventListener('load', registerSW);
+      } else {
+        registerSW();
+      }
     } else {
-      console.warn('⚠️ Service Workers não são suportados neste navegador');
+      console.warn('⚠️ [SW] Service Workers não são suportados neste navegador');
     }
   } catch (e) {
     console.error("Erro fatal ao carregar módulos dependentes:", e);

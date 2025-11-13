@@ -89,26 +89,80 @@ export const RendererMenus = {
   copyPlayerId: window.Renderer.copyPlayerId,
   fallbackCopy: fallbackCopy,
 
-  // MUDAR O TITULO
+  // TELA DE LOGIN ESTILO POKÉMON
   renderInitialMenu: function (app) {
     const content = `
-            <div class="h-full w-full flex flex-col justify-between relative">
-                <div class="flex-grow flex flex-col items-center p-4 overflow-y-auto">
-                    <div class="flex justify-center mb-4 flex-shrink-0">
-                        <img id="titleImage" src="https://64.media.tumblr.com/a1e87d2030a73aee16661e8807da6c1d/tumblr_mkhnmmFwaA1rxvkeso1_500.gif" alt="Título do Jogo" class="w-full max-w-sm" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <h1 class="text-3xl font-bold text-gray-800 gba-font" style="display:none;">POKÉMON RPG</h1>
+            <div class="h-full w-full flex flex-col items-center justify-center relative" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);">
+                <!-- Efeito de partículas/Pokébolas decorativas -->
+                <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+                    <div class="absolute top-10 left-10 w-16 h-16 bg-white rounded-full border-4 border-black" style="animation: float 3s ease-in-out infinite;"></div>
+                    <div class="absolute top-32 right-20 w-12 h-12 bg-red-500 rounded-full border-4 border-black" style="animation: float 4s ease-in-out infinite 0.5s;"></div>
+                    <div class="absolute bottom-20 left-20 w-10 h-10 bg-blue-500 rounded-full border-4 border-black" style="animation: float 3.5s ease-in-out infinite 1s;"></div>
+                    <div class="absolute bottom-32 right-10 w-14 h-14 bg-yellow-400 rounded-full border-4 border-black" style="animation: float 4.5s ease-in-out infinite 1.5s;"></div>
+                </div>
+
+                <!-- Conteúdo Principal -->
+                <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-md px-6 py-8">
+                    <!-- Logo/Título -->
+                    <div class="mb-8 text-center">
+                        <div class="mb-4 flex justify-center">
+                            <div class="relative">
+                                <div class="w-24 h-24 bg-white rounded-full border-8 border-black shadow-2xl flex items-center justify-center" style="background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);">
+                                    <div class="w-16 h-16 bg-red-500 rounded-full border-4 border-black"></div>
+                                    <div class="absolute top-1/2 left-0 right-0 h-1 bg-black"></div>
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-2 border-black"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 class="text-4xl md:text-5xl font-bold gba-font mb-2" style="color: #fbbf24; text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); letter-spacing: 2px;">
+                            POKÉTECH
+                        </h1>
+                        <p class="text-lg gba-font text-white" style="text-shadow: 2px 2px 0px #000;">
+                            RPG DE POKÉMON
+                        </p>
                     </div>
-                    
-                    <div class="mt-8 flex flex-col space-y-4 w-full max-w-xs mx-auto">
+
+                    <!-- Card de Login -->
+                    <div class="w-full bg-white rounded-lg border-4 border-black shadow-2xl p-6" style="background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);">
+                        <div class="text-center mb-6">
+                            <h2 class="text-2xl gba-font mb-2" style="color: #1e40af; text-shadow: 1px 1px 0px rgba(0,0,0,0.1);">
+                                BEM-VINDO TREINADOR!
+                            </h2>
+                            <p class="text-sm gba-font text-gray-600">
+                                Faça login para começar sua jornada
+                            </p>
+                        </div>
+
+                        <!-- Botão de Login Google -->
                         <button
                             onclick="window.signInWithGoogle()"
-                            class="gba-button bg-blue-500 hover:bg-blue-600 flex items-center justify-center space-x-2"
+                            class="w-full gba-button flex items-center justify-center space-x-3 py-4 text-base font-bold transition-all transform hover:scale-105 active:scale-95"
+                            style="background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc05 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);"
                         >
-                            <i class="fa-brands fa-google"></i>
-                            <span>LOGIN COM GOOGLE</span>
+                            <i class="fa-brands fa-google text-2xl" style="filter: drop-shadow(1px 1px 0px rgba(0,0,0,0.3));"></i>
+                            <span class="gba-font" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.3);">LOGIN COM GOOGLE</span>
                         </button>
+
+                        <!-- Decoração inferior -->
+                        <div class="mt-6 flex justify-center space-x-2">
+                            <div class="w-2 h-2 bg-red-500 rounded-full border border-black"></div>
+                            <div class="w-2 h-2 bg-blue-500 rounded-full border border-black"></div>
+                            <div class="w-2 h-2 bg-yellow-400 rounded-full border border-black"></div>
+                        </div>
                     </div>
+
+                    <!-- Rodapé -->
+                    <p class="mt-6 text-sm gba-font text-white text-center" style="text-shadow: 1px 1px 0px #000;">
+                        Capture, batalhe e explore!
+                    </p>
                 </div>
+
+                <style>
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0px) rotate(0deg); }
+                        50% { transform: translateY(-20px) rotate(5deg); }
+                    }
+                </style>
             </div>
         `;
     window.Renderer.renderGbaCard(content);

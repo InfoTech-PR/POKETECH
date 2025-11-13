@@ -36,6 +36,8 @@ self.addEventListener('install', (event) => {
         return cache.addAll(urlsToCache);
       })
   );
+  // Força ativação imediata sem esperar outras abas fecharem
+  self.skipWaiting();
 });
 
 // Ativação do Service Worker
@@ -52,6 +54,8 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  // Assume controle imediato de todas as páginas abertas
+  return self.clients.claim();
 });
 
 // Estratégia: Cache First, depois Network

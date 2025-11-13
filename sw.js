@@ -22,9 +22,8 @@ const urlsToCache = [
   '/js/branched_evos.js',
   '/js/evolution_rules.js',
   '/game_updates.json',
-  '/assets/sprites/items/poke-ball.png',
-  '/assets/sprites/items/great-ball.png',
-  '/assets/sprites/items/ultra-ball.png'
+  '/assets/icons/icon-192x192.png',
+  '/assets/icons/icon-512x512.png'
 ];
 
 // Instalação do Service Worker
@@ -33,7 +32,15 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('Cache aberto');
-        return cache.addAll(urlsToCache);
+        // Tenta cachear todos, mas não falha se alguns falharem
+        return Promise.allSettled(
+          urlsToCache.map(url =>
+            cache.add(url).catch(err => {
+              console.warn(`Falha ao cachear ${url}:`, err);
+              return null;
+            })
+          )
+        );
       })
   );
   // Força ativação imediata sem esperar outras abas fecharem
@@ -60,6 +67,35 @@ self.addEventListener('activate', (event) => {
 
 // Estratégia: Cache First, depois Network
 self.addEventListener('fetch', (event) => {
+  // Ignora requisições que não são GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // Sempre serve o manifest.json do cache se disponível
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(
+      caches.match(event.request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then((response) => {
+            if (response && response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return response;
+          });
+        })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -86,6 +122,9 @@ self.addEventListener('fetch', (event) => {
             });
 
           return response;
+        }).catch(() => {
+          // Se a rede falhar, retorna resposta do cache se disponível
+          return response || new Response('Offline', { status: 503 });
         });
       })
   );

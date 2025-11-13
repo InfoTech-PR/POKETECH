@@ -42,6 +42,30 @@ export const PokeChat = {
             return;
         }
 
+        // Verifica se são amigos
+        try {
+            const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const q = query(
+                collection(window.db, "friendships"),
+                where("participants", "array-contains", window.userId)
+            );
+            const snapshot = await getDocs(q);
+            let isFriend = false;
+            snapshot.docs.forEach((d) => {
+                const data = d.data();
+                if (data.participants.includes(friendId) && data.status === "accepted") {
+                    isFriend = true;
+                }
+            });
+
+            if (!isFriend) {
+                window.Utils.showModal("errorModal", "Você só pode conversar com amigos!");
+                return;
+            }
+        } catch (error) {
+            console.error("Erro ao verificar amizade:", error);
+        }
+
         const roomId = PokeChat.getChatRoomId(window.userId, friendId);
 
         // 1. Renderiza o modal de chat
@@ -61,8 +85,17 @@ export const PokeChat = {
 
         // Habilita o botão de envio e seta o handler
         sendButton.onclick = () => {
-            PokeChat.sendMessage(roomId, messageInput.value.trim());
-            messageInput.value = ''; // Limpa o input após enviar
+            if (messageInput.value.trim()) {
+                PokeChat.sendMessage(roomId, messageInput.value.trim());
+                messageInput.value = ''; // Limpa o input após enviar
+            }
+        };
+
+        // Enter para enviar
+        messageInput.onkeypress = (e) => {
+            if (e.key === 'Enter' && messageInput.value.trim()) {
+                sendButton.click();
+            }
         };
 
         chatModal.classList.remove("hidden");

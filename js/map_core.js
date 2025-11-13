@@ -418,17 +418,13 @@ export const MapCore = {
      * 8. (A ser implementada) Abre o modal de interação com o amigo (Chat/Troca).
      */
     openFriendInteraction: function (friendId, friendName) {
-        // PLACEHOLDER: Abre o modal de interação com opções de chat/troca
+        // Abre o modal de interação com opções de troca
         const modalHtml = `
           <div class="text-lg font-bold gba-font mb-4">Interagir com ${friendName}</div>
           <p class="text-sm gba-font mb-4">O que você gostaria de fazer?</p>
-          <button onclick="window.Utils.hideModal('infoModal'); window.PokeChat.startChat('${friendId}', '${friendName}')" 
-                  class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2">
-              Chat
-          </button>
-          <button onclick="window.Utils.hideModal('infoModal'); window.GameLogic.startTrade('${friendId}')" 
-                  class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2">
-              Trocar Pokémon (Beta)
+          <button onclick="window.Utils.hideModal('infoModal'); window.GameLogic.startTrade('${friendId}', '${friendName}')" 
+                  class="gba-button bg-green-500 hover:bg-green-600 w-full mb-2">
+              Trocar Pokémon
           </button>
           <button onclick="window.Utils.hideModal('infoModal')" 
                   class="gba-button bg-gray-500 hover:bg-gray-600 w-full">

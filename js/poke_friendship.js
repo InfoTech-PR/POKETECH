@@ -103,6 +103,7 @@ export const PokeFriendship = {
 
   /**
    * Processa o aceite da amizade via URL, atualizando o status para 'accepted'.
+   * CORRIGIDO: Agora aceita automaticamente se o usuário for um dos participantes.
    * @param {string} friendshipId - ID do documento da amizade na coleção 'friendships'.
    */
   processFriendshipAcceptance: async function (friendshipId) {
@@ -119,20 +120,25 @@ export const PokeFriendship = {
 
     const data = docSnap.data();
 
-    // 1. Verifica se o usuário atual é o destinatário (e não o remetente)
-    // O destinatário deve ser um dos participantes E não o requisitante.
-    const isRecipient = data.participants.includes(window.userId) && data.requester !== window.userId;
-
-    if (!isRecipient) {
-      return { success: false, message: "Você não é o destinatário desta solicitação. Já aceitou ou não era para você." };
+    // CORRIGIDO: Verifica se o usuário atual é um dos participantes
+    if (!data.participants || !data.participants.includes(window.userId)) {
+      return { success: false, message: "Você não é um participante desta solicitação de amizade." };
     }
 
-    // 2. Se já for aceita, apenas informa
+    // Se já for aceita, apenas informa
     if (data.status === "accepted") {
       return { success: true, message: "Vocês já são amigos!" };
     }
 
-    // 3. Atualiza o status
+    // CORRIGIDO: Aceita automaticamente se o usuário for o destinatário (não o requester)
+    // Se o usuário for o requester, apenas informa que precisa aguardar
+    const isRequester = data.requester === window.userId;
+    
+    if (isRequester) {
+      return { success: true, message: "Aguardando aceite do seu amigo. Compartilhe o link novamente se necessário." };
+    }
+
+    // Atualiza o status para aceito
     try {
       await updateDoc(ref, {
         status: "accepted",

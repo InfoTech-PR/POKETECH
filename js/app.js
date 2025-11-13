@@ -33,13 +33,19 @@ export async function init(cacheBuster = Date.now()) {
     const newUrl = window.location.pathname;
     window.history.replaceState({}, '', newUrl);
 
-    // Processa o aceite
-    const result = await window.PokeFriendship.processFriendshipAcceptance(friendshipId);
-    window.Utils.showModal(result.success ? "infoModal" : "errorModal", result.message);
+    // Aguarda um pouco para garantir que os módulos estão carregados
+    setTimeout(async () => {
+      if (window.PokeFriendship && window.Utils) {
+        // Processa o aceite
+        const result = await window.PokeFriendship.processFriendshipAcceptance(friendshipId);
+        window.Utils.showModal(result.success ? "infoModal" : "errorModal", result.message);
 
-    // Continua para a tela principal (Menu ou Map)
-    window.Renderer.showScreen('mainMenu');
-  } else {
+        // Continua para a tela principal (Menu ou Map)
+        if (window.Renderer) {
+          window.Renderer.showScreen('mainMenu');
+        }
+      }
+    }, 1000);
   }
   window.cacheBuster = cacheBuster;
   const v = `?v=${cacheBuster}`;

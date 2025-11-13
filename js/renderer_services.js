@@ -262,7 +262,7 @@ export const RendererServices = {
     window.Renderer.renderGbaCard(content);
   },
 
-  renderPvpSetup: function (app) {
+  renderPvpSetup: async function (app) {
     const PvpCore = window.PvpCore;
 
     let messages = "Escolha uma opção.";
@@ -274,8 +274,86 @@ export const RendererServices = {
       disabledClass = "opacity-50 cursor-not-allowed";
     }
 
+    // NOVO: Busca lista de amigos para PvP
+    let friendsListHtml = "";
+    if (window.db && window.userId && !window.userId.startsWith("anonimo")) {
+      try {
+        const { doc, getDoc, collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+        const friendships = await window.PokeFriendship.listFriendships();
+        
+        const acceptedFriends = friendships.filter(f => f.status === "accepted");
+        
+        if (acceptedFriends.length > 0) {
+          const friendsWithData = await Promise.all(
+            acceptedFriends.map(async (f) => {
+              const friendId = f.participants.find((id) => id !== window.userId);
+              let friendName = "Treinador"; // Fallback padrão
+              let friendAvatarUrl = null;
+              
+              try {
+                const docRef = doc(window.db, "users", friendId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                  const data = docSnap.data();
+                  // Busca o nome do treinador no perfil
+                  friendName = data.profile?.trainerName || data.trainerName || "Treinador";
+                  if (data.preferences && data.preferences.avatarTrainerKey) {
+                    // Importa getTrainerAvatarUrl do renderer_menus
+                    const { TRAINER_AVATAR_CHOICES } = await import('./renderer_menus.js');
+                    const getTrainerAvatarUrl = (profile) => {
+                      if (!profile) return TRAINER_AVATAR_CHOICES[0].url;
+                      const prefs = profile.preferences || {};
+                      const selectedKey = prefs.avatarTrainerKey || TRAINER_AVATAR_CHOICES[0].key;
+                      return TRAINER_AVATAR_CHOICES.find((choice) => choice.key === selectedKey)?.url || TRAINER_AVATAR_CHOICES[0].url;
+                    };
+                    friendAvatarUrl = getTrainerAvatarUrl(data);
+                  } else {
+                    friendAvatarUrl = "https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg";
+                  }
+                } else {
+                  friendAvatarUrl = "https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg";
+                }
+              } catch (error) {
+                console.warn("Erro ao buscar dados do amigo:", error);
+                friendAvatarUrl = "https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg";
+              }
+
+              return { friendId, friendName, friendAvatarUrl };
+            })
+          );
+
+          friendsListHtml = `
+            <div class="bg-slate-900/90 border-4 border-purple-400 rounded-2xl p-4 shadow-2xl mb-4">
+              <div class="flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-users text-xl text-purple-300"></i>
+                <h2 class="gba-font text-sm text-purple-200 tracking-widest">DESAFIAR AMIGOS (${friendsWithData.length})</h2>
+              </div>
+              <div class="grid gap-2 max-h-48 overflow-y-auto">
+                ${friendsWithData.map(f => `
+                  <div class="bg-slate-800/80 border border-purple-400/60 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center shadow-lg overflow-hidden border-2 border-purple-300">
+                        <img src="${f.friendAvatarUrl}" alt="${f.friendName}" class="w-full h-full object-cover" onerror="this.src='https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg'">
+                      </div>
+                      <div class="gba-font text-xs text-purple-100">${f.friendName}</div>
+                    </div>
+                    <button onclick="window.Renderer.challengeFriendToPvp('${f.friendId}', '${f.friendName.replace(/'/g, "\\'")}')" class="gba-button bg-purple-500 hover:bg-purple-600 text-xs px-3 py-1" style="width:auto;">
+                      Desafiar
+                    </button>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error("Erro ao carregar amigos para PvP:", error);
+      }
+    }
+
     const content = `
             <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">BATALHA PVP</div>
+            ${friendsListHtml}
             <!-- flex-grow para a área de mensagens -->
             <div id="pvp-messages" class="h-20 p-3 mb-4 text-white rounded-lg overflow-y-auto text-sm gba-font flex-grow" style="background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
                 ${messages}

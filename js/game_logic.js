@@ -1048,6 +1048,407 @@ export const GameLogic = {
     };
     reader.readAsText(file);
   },
+
+  // NOVO: Sistema de Troca de Pokémon
+  startTrade: async function (friendId, friendName) {
+    if (!window.db || !window.userId) {
+      window.Utils.showModal("errorModal", "Você precisa estar logado para trocar Pokémon.");
+      return;
+    }
+
+    if (window.gameState.profile.pokemon.length === 0) {
+      window.Utils.showModal("errorModal", "Você não tem Pokémon para trocar!");
+      return;
+    }
+
+    // Verifica se são amigos
+    try {
+      const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const q = query(
+        collection(window.db, "friendships"),
+        where("participants", "array-contains", window.userId)
+      );
+      const snapshot = await getDocs(q);
+      let isFriend = false;
+      snapshot.docs.forEach((d) => {
+        const data = d.data();
+        if (data.participants.includes(friendId) && data.status === "accepted") {
+          isFriend = true;
+        }
+      });
+
+      if (!isFriend) {
+        window.Utils.showModal("errorModal", "Você só pode trocar Pokémon com amigos!");
+        return;
+      }
+    } catch (error) {
+      console.error("Erro ao verificar amizade:", error);
+      window.Utils.showModal("errorModal", "Erro ao verificar amizade.");
+      return;
+    }
+
+    // Cria ou busca sala de troca
+    const tradeRoomId = [window.userId, friendId].sort().join('_trade');
+    
+    try {
+      const { doc, setDoc, getDoc, onSnapshot, Timestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const tradeRef = doc(window.db, "trades", tradeRoomId);
+      const tradeSnap = await getDoc(tradeRef);
+
+      // Cria a sala de troca se não existir
+      if (!tradeSnap.exists()) {
+        await setDoc(tradeRef, {
+          player1: window.userId,
+          player2: friendId,
+          player1Name: window.gameState.profile.trainerName,
+          player2Name: friendName,
+          player1Pokemon: null,
+          player2Pokemon: null,
+          player1Confirmed: false,
+          player2Confirmed: false,
+          status: "waiting", // waiting, ready, completed, cancelled
+          createdAt: Timestamp.now(),
+        });
+      }
+
+      // Renderiza a tela de troca
+      GameLogic.renderTradeScreen(tradeRoomId, friendId, friendName);
+    } catch (error) {
+      console.error("Erro ao iniciar troca:", error);
+      window.Utils.showModal("errorModal", "Erro ao iniciar troca de Pokémon.");
+    }
+  },
+
+  renderTradeScreen: async function (tradeRoomId, friendId, friendName) {
+    const { doc, onSnapshot, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+    
+    // Limpa listener anterior se existir
+    if (window.unsubscribeTrade) {
+      window.unsubscribeTrade();
+    }
+
+    const tradeRef = doc(window.db, "trades", tradeRoomId);
+    
+    // Listener em tempo real
+    window.unsubscribeTrade = onSnapshot(tradeRef, async (snap) => {
+      if (!snap.exists()) {
+        window.Utils.showModal("infoModal", "A troca foi cancelada.");
+        if (window.unsubscribeTrade) {
+          window.unsubscribeTrade();
+          window.unsubscribeTrade = null;
+        }
+        return;
+      }
+
+      const tradeData = snap.data();
+      const isPlayer1 = tradeData.player1 === window.userId;
+      const myPokemon = isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon;
+      const theirPokemon = isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon;
+      const myConfirmed = isPlayer1 ? tradeData.player1Confirmed : tradeData.player2Confirmed;
+      const theirConfirmed = isPlayer1 ? tradeData.player2Confirmed : tradeData.player1Confirmed;
+
+      // Renderiza a interface
+      const myPokemonHtml = myPokemon 
+        ? `
+          <div class="bg-green-100 border-2 border-green-500 rounded-lg p-3">
+            <img src="../assets/sprites/pokemon/${myPokemon.id}_front.png" alt="${myPokemon.name}" class="w-24 h-24 mx-auto mb-2">
+            <div class="text-center gba-font text-sm font-bold">${myPokemon.name}</div>
+            <div class="text-center gba-font text-xs">Nv. ${myPokemon.level}</div>
+            ${myConfirmed ? '<div class="text-center text-green-600 font-bold mt-1">✓ Confirmado</div>' : ''}
+          </div>
+        `
+        : '<div class="bg-gray-200 border-2 border-gray-400 rounded-lg p-3 text-center gba-font text-sm">Selecione um Pokémon</div>';
+
+      const theirPokemonHtml = theirPokemon
+        ? `
+          <div class="bg-blue-100 border-2 border-blue-500 rounded-lg p-3">
+            <img src="../assets/sprites/pokemon/${theirPokemon.id}_front.png" alt="${theirPokemon.name}" class="w-24 h-24 mx-auto mb-2">
+            <div class="text-center gba-font text-sm font-bold">${theirPokemon.name}</div>
+            <div class="text-center gba-font text-xs">Nv. ${theirPokemon.level}</div>
+            ${theirConfirmed ? '<div class="text-center text-blue-600 font-bold mt-1">✓ Confirmado</div>' : ''}
+          </div>
+        `
+        : '<div class="bg-gray-200 border-2 border-gray-400 rounded-lg p-3 text-center gba-font text-sm">Aguardando seleção...</div>';
+
+      // Lista de Pokémon para seleção
+      const pokemonListHtml = window.gameState.profile.pokemon.map((p, index) => {
+        // Usa índice para identificar se não tiver uid
+        const pokemonId = p.uid || `index_${index}`;
+        const selectedId = myPokemon ? (myPokemon.uid || `index_${myPokemon._tradeIndex}`) : null;
+        const isSelected = selectedId === pokemonId;
+        return `
+          <button onclick="window.GameLogic.selectPokemonForTrade(${index}, '${tradeRoomId}')" 
+                  class="w-full p-2 border-2 rounded-lg gba-font text-xs text-left ${isSelected ? 'bg-green-300 border-green-600' : 'bg-white border-gray-400 hover:bg-gray-100'}">
+            <div class="flex items-center gap-2">
+              <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-12 h-12">
+              <div>
+                <div class="font-bold">${p.name}</div>
+                <div>Nv. ${p.level} | HP: ${p.currentHp}/${p.maxHp}</div>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      const statusMessage = tradeData.status === "completed" 
+        ? '<div class="text-center text-green-600 font-bold gba-font">Troca concluída!</div>'
+        : tradeData.status === "cancelled"
+        ? '<div class="text-center text-red-600 font-bold gba-font">Troca cancelada</div>'
+        : myConfirmed && theirConfirmed
+        ? '<div class="text-center text-yellow-600 font-bold gba-font">Ambos confirmaram! Finalizando troca...</div>'
+        : '<div class="text-center text-gray-600 gba-font">Aguardando confirmações...</div>';
+
+      const content = `
+        <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font">TROCA DE POKÉMON</div>
+        <div class="text-sm text-center mb-4 text-gray-600 gba-font">Com: ${friendName}</div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <div class="text-xs font-bold mb-2 text-center gba-font">SEU POKÉMON</div>
+            ${myPokemonHtml}
+          </div>
+          <div>
+            <div class="text-xs font-bold mb-2 text-center gba-font">POKÉMON DO AMIGO</div>
+            ${theirPokemonHtml}
+          </div>
+        </div>
+
+        ${statusMessage}
+
+        ${tradeData.status === "waiting" || tradeData.status === "ready" ? `
+          <div class="mb-4">
+            <div class="text-xs font-bold mb-2 gba-font">SELECIONE SEU POKÉMON:</div>
+            <div class="max-h-48 overflow-y-auto space-y-2">
+              ${pokemonListHtml}
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            ${myPokemon && !myConfirmed ? `
+              <button onclick="window.GameLogic.confirmTrade('${tradeRoomId}')" 
+                      class="gba-button bg-green-500 hover:bg-green-600 flex-1">
+                Confirmar Troca
+              </button>
+            ` : ''}
+            <button onclick="window.GameLogic.cancelTrade('${tradeRoomId}')" 
+                    class="gba-button bg-red-500 hover:bg-red-600 flex-1">
+              Cancelar
+            </button>
+          </div>
+        ` : `
+          <button onclick="window.GameLogic.closeTrade()" 
+                  class="gba-button bg-gray-500 hover:bg-gray-600 w-full">
+            Fechar
+          </button>
+        `}
+      `;
+
+      const app = document.getElementById("app-container");
+      if (app) {
+        window.Renderer.renderGbaCard(content);
+      }
+    });
+  },
+
+  selectPokemonForTrade: async function (pokemonIndex, tradeRoomId) {
+    const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+    if (!pokemon) return;
+
+    try {
+      const { doc, updateDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const tradeRef = doc(window.db, "trades", tradeRoomId);
+      const tradeSnap = await getDoc(tradeRef);
+      
+      if (!tradeSnap.exists()) return;
+
+      const tradeData = tradeSnap.data();
+      const isPlayer1 = tradeData.player1 === window.userId;
+
+      // Cria uma cópia do Pokémon para troca (sem referências)
+      const pokemonCopy = JSON.parse(JSON.stringify(pokemon));
+      // Adiciona índice para identificação se não tiver uid
+      if (!pokemonCopy.uid) {
+        pokemonCopy._tradeIndex = pokemonIndex;
+      }
+      
+      await updateDoc(tradeRef, {
+        [isPlayer1 ? 'player1Pokemon' : 'player2Pokemon']: pokemonCopy,
+        [isPlayer1 ? 'player1Confirmed' : 'player2Confirmed']: false,
+        status: "ready",
+      });
+    } catch (error) {
+      console.error("Erro ao selecionar Pokémon:", error);
+      window.Utils.showModal("errorModal", "Erro ao selecionar Pokémon.");
+    }
+  },
+
+  confirmTrade: async function (tradeRoomId) {
+    try {
+      const { doc, getDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const tradeRef = doc(window.db, "trades", tradeRoomId);
+      const tradeSnap = await getDoc(tradeRef);
+      
+      if (!tradeSnap.exists()) return;
+
+      const tradeData = tradeSnap.data();
+      const isPlayer1 = tradeData.player1 === window.userId;
+
+      // Marca como confirmado
+      await updateDoc(tradeRef, {
+        [isPlayer1 ? 'player1Confirmed' : 'player2Confirmed']: true,
+      });
+
+      // Verifica se ambos confirmaram
+      const updatedSnap = await getDoc(tradeRef);
+      const updatedData = updatedSnap.data();
+
+      if (updatedData.player1Confirmed && updatedData.player2Confirmed) {
+        // Executa a troca
+        await GameLogic.executeTrade(tradeRoomId, updatedData);
+      }
+    } catch (error) {
+      console.error("Erro ao confirmar troca:", error);
+      window.Utils.showModal("errorModal", "Erro ao confirmar troca.");
+    }
+  },
+
+  executeTrade: async function (tradeRoomId, tradeData) {
+    try {
+      const { doc, updateDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      
+      // Remove os Pokémon originais dos times
+      const myProfileRef = doc(window.db, "users", window.userId);
+      const friendProfileRef = doc(window.db, "users", tradeData.player2);
+      
+      const myProfileSnap = await getDoc(myProfileRef);
+      const friendProfileSnap = await getDoc(friendProfileRef);
+
+      if (!myProfileSnap.exists() || !friendProfileSnap.exists()) {
+        throw new Error("Perfis não encontrados.");
+      }
+
+      const myProfile = myProfileSnap.data();
+      const friendProfile = friendProfileSnap.data();
+
+      // Remove o Pokémon que está sendo trocado
+      // Usa uid se existir, senão usa _tradeIndex ou compara por id+level+name
+      const isPlayer1 = tradeData.player1 === window.userId;
+      const myTradePokemon = isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon;
+      const friendTradePokemon = isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon;
+
+      let myPokemonIndex = -1;
+      let friendPokemonIndex = -1;
+
+      // Busca o Pokémon do jogador atual
+      if (myTradePokemon.uid) {
+        myPokemonIndex = myProfile.pokemon.findIndex(p => p.uid === myTradePokemon.uid);
+      } else if (myTradePokemon._tradeIndex !== undefined) {
+        myPokemonIndex = myTradePokemon._tradeIndex;
+      } else {
+        // Fallback: busca por id, name e level
+        myPokemonIndex = myProfile.pokemon.findIndex(p => 
+          p.id === myTradePokemon.id && 
+          p.name === myTradePokemon.name && 
+          p.level === myTradePokemon.level
+        );
+      }
+
+      // Busca o Pokémon do amigo
+      if (friendTradePokemon.uid) {
+        friendPokemonIndex = friendProfile.pokemon.findIndex(p => p.uid === friendTradePokemon.uid);
+      } else if (friendTradePokemon._tradeIndex !== undefined) {
+        friendPokemonIndex = friendTradePokemon._tradeIndex;
+      } else {
+        // Fallback: busca por id, name e level
+        friendPokemonIndex = friendProfile.pokemon.findIndex(p => 
+          p.id === friendTradePokemon.id && 
+          p.name === friendTradePokemon.name && 
+          p.level === friendTradePokemon.level
+        );
+      }
+
+      if (myPokemonIndex === -1 || friendPokemonIndex === -1) {
+        throw new Error("Pokémon não encontrado no time.");
+      }
+
+      // Remove dos times originais
+      myProfile.pokemon.splice(myPokemonIndex, 1);
+      friendProfile.pokemon.splice(friendPokemonIndex, 1);
+
+      // Remove campos temporários antes de adicionar
+      const receivedPokemon = JSON.parse(JSON.stringify(isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon));
+      const sentPokemon = JSON.parse(JSON.stringify(isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon));
+      
+      if (receivedPokemon._tradeIndex !== undefined) {
+        delete receivedPokemon._tradeIndex;
+      }
+      if (sentPokemon._tradeIndex !== undefined) {
+        delete sentPokemon._tradeIndex;
+      }
+
+      // Adiciona os novos Pokémon
+      myProfile.pokemon.push(receivedPokemon);
+      friendProfile.pokemon.push(sentPokemon);
+
+      // Atualiza os perfis
+      await updateDoc(myProfileRef, {
+        pokemon: myProfile.pokemon,
+      });
+
+      await updateDoc(friendProfileRef, {
+        pokemon: friendProfile.pokemon,
+      });
+
+      // Atualiza o estado local
+      window.gameState.profile.pokemon = myProfile.pokemon;
+
+      // Marca a troca como concluída
+      await updateDoc(doc(window.db, "trades", tradeRoomId), {
+        status: "completed",
+      });
+
+      window.Utils.showModal("infoModal", "Troca realizada com sucesso!");
+      window.GameLogic.saveGameData();
+      
+      // Recarrega a tela após 2 segundos
+      setTimeout(() => {
+        if (window.unsubscribeTrade) {
+          window.unsubscribeTrade();
+          window.unsubscribeTrade = null;
+        }
+        window.Renderer.showScreen("mainMenu");
+      }, 2000);
+    } catch (error) {
+      console.error("Erro ao executar troca:", error);
+      window.Utils.showModal("errorModal", `Erro ao executar troca: ${error.message}`);
+    }
+  },
+
+  cancelTrade: async function (tradeRoomId) {
+    try {
+      const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      await deleteDoc(doc(window.db, "trades", tradeRoomId));
+      
+      if (window.unsubscribeTrade) {
+        window.unsubscribeTrade();
+        window.unsubscribeTrade = null;
+      }
+      
+      window.Utils.showModal("infoModal", "Troca cancelada.");
+      window.Renderer.showScreen("mainMenu");
+    } catch (error) {
+      console.error("Erro ao cancelar troca:", error);
+      window.Utils.showModal("errorModal", "Erro ao cancelar troca.");
+    }
+  },
+
+  closeTrade: function () {
+    if (window.unsubscribeTrade) {
+      window.unsubscribeTrade();
+      window.unsubscribeTrade = null;
+    }
+    window.Renderer.showScreen("mainMenu");
+  },
 };
 
 // Garantir global (se necessário em outras partes)

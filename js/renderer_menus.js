@@ -946,21 +946,37 @@ export const RendererMenus = {
       friendships.map(async (f) => {
         const friendId = f.participants.find((id) => id !== window.userId);
         let friendName = friendId;
+        let friendAvatarUrl = null;
         try {
           const docRef = doc(window.db, "users", friendId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            friendName = data.trainerName || friendId;
+            // Busca o nome do treinador no perfil (pode estar em data.profile.trainerName ou data.trainerName)
+            friendName = data.profile?.trainerName || data.trainerName || "Treinador";
+            // NOVO: Busca o avatar do amigo
+            if (data.preferences && data.preferences.avatarTrainerKey) {
+              friendAvatarUrl = getTrainerAvatarUrl(data);
+            } else {
+              // Fallback para avatar padrão
+              friendAvatarUrl = TRAINER_AVATAR_CHOICES[0].url;
+            }
+          } else {
+            // Se não encontrou o perfil, usa nome padrão e avatar padrão
+            friendName = "Treinador";
+            friendAvatarUrl = TRAINER_AVATAR_CHOICES[0].url;
           }
         } catch (error) {
           console.warn("Falha ao buscar dados do amigo:", error);
+          friendName = "Treinador";
+          friendAvatarUrl = TRAINER_AVATAR_CHOICES[0].url;
         }
 
         return {
           id: f.id,
           friendId,
           friendName,
+          friendAvatarUrl: friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url,
           status: f.status,
           isRequester: f.requester === window.userId,
           createdAt: f.createdAt,
@@ -986,8 +1002,11 @@ export const RendererMenus = {
       return `
         <div class="bg-slate-800/80 border border-emerald-400/60 rounded-xl p-4 shadow-inner hover:shadow-emerald-400/40 transition-shadow duration-200 flex flex-col gap-3">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center text-xl shadow-lg">
-              <i class="fa-solid fa-user-astronaut text-gray-900"></i>
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg overflow-hidden border-2 border-emerald-300">
+              <img src="${friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url}" 
+                   alt="${safeName}" 
+                   class="w-full h-full object-cover"
+                   onerror="this.src='${TRAINER_AVATAR_CHOICES[0].url}'">
             </div>
             <div>
               <div class="gba-font text-xs text-emerald-100">${safeName}</div>
@@ -995,11 +1014,8 @@ export const RendererMenus = {
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button onclick="window.MapCore.openFriendInteraction('${friend.friendId}', '${attrName}')" class="gba-button bg-blue-500 hover:bg-blue-600" style="width:auto;">
-              Interagir
-            </button>
-            <button onclick="window.Renderer.challengeFriendToPvp('${friend.friendId}', '${attrName}')" class="gba-button bg-purple-500 hover:bg-purple-600" style="width:auto;">
-              Desafiar PvP
+            <button onclick="window.GameLogic.startTrade('${friend.friendId}', '${attrName}')" class="gba-button bg-green-500 hover:bg-green-600" style="width:auto;">
+              Trocar Pokémon
             </button>
             <button onclick="window.PokeFriendship.removeFriendship('${friend.id}')" class="gba-button bg-red-500 hover:bg-red-600" style="width:auto;">
               Remover
@@ -1035,9 +1051,17 @@ export const RendererMenus = {
 
       return `
         <div class="bg-slate-800/80 border border-amber-400/60 rounded-xl p-4 shadow-inner flex flex-col gap-3">
-          <div>
-            <div class="gba-font text-xs text-amber-100">${safeName}</div>
-            ${sentOn}
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center shadow-lg overflow-hidden border-2 border-amber-300">
+              <img src="${friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url}" 
+                   alt="${safeName}" 
+                   class="w-full h-full object-cover"
+                   onerror="this.src='${TRAINER_AVATAR_CHOICES[0].url}'">
+            </div>
+            <div>
+              <div class="gba-font text-xs text-amber-100">${safeName}</div>
+              ${sentOn}
+            </div>
           </div>
           <div class="flex flex-wrap gap-2">
             ${baseActions}
@@ -1103,7 +1127,7 @@ export const RendererMenus = {
           <div>
             <h1 class="gba-font text-lg md:text-xl text-white tracking-widest">CLUBE DE AMIGOS</h1>
             <p class="text-xs text-white/80 uppercase tracking-widest">
-              Use seu ID para conectar treinadores e liberar recursos PvP.
+              Use seu ID para conectar treinadores e fazer novas amizades.
             </p>
           </div>
           <div class="bg-black/40 border border-white/40 rounded-xl px-4 py-3 text-center shadow-lg">
@@ -1137,30 +1161,6 @@ export const RendererMenus = {
       </div>
     `;
 
-    const pvpCard = `
-      <div class="bg-slate-900/90 border-4 border-blue-400 rounded-2xl p-4 shadow-2xl">
-        <div class="flex items-center gap-2 mb-3">
-          <i class="fa-solid fa-bolt text-xl text-blue-300"></i>
-          <h2 class="gba-font text-sm text-blue-200 tracking-widest">CENTRO DE BATALHAS PVP</h2>
-        </div>
-        <p class="text-xs text-gray-300 mb-3">
-          Crie uma sala para desafiar seus amigos ou entre em uma sala existente usando um código.
-        </p>
-        <div class="flex flex-col gap-3">
-          <button onclick="window.Renderer.challengeFriendToPvp('', '')" class="gba-button bg-blue-500 hover:bg-blue-600 w-full sm:w-auto px-6" style="width:auto;">
-            Criar Sala PvP
-          </button>
-          <div class="flex flex-col sm:flex-row gap-2">
-            <input id="pvp-room-input" type="text" placeholder="Código da sala (ex: ABC123)" class="flex-1 p-2 border-2 border-blue-400 rounded gba-font text-xs text-center bg-slate-800 text-blue-100 shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-300">
-            <button onclick="window.Renderer.joinPvpFromFriendship()" class="gba-button bg-cyan-500 hover:bg-cyan-600 sm:w-auto px-4">
-              Entrar na Sala
-            </button>
-          </div>
-        </div>
-        <div id="friendship-pvp-feedback" class="mt-3 text-xs text-blue-100"></div>
-      </div>
-    `;
-
     const content = `
       <div class="gba-card-wrapper text-white">
         <div class="flex flex-col h-full gap-4">
@@ -1169,7 +1169,6 @@ export const RendererMenus = {
             ${inviteCard}
             ${pendingSection}
             ${acceptedSection}
-            ${pvpCard}
           </div>
           <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-auto px-6 self-center mt-2">
             VOLTAR

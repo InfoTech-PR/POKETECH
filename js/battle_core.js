@@ -727,26 +727,101 @@ export const BattleCore = {
   },
 
   startWildBattle: async function () {
-    const randomId =
-      Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1; // Usa o limite de dados locais
-    const wildPokemonData = await window.PokeAPI.fetchPokemonData(randomId);
+    const profile = window.gameState.profile;
+    
+    // Garante que os campos existam
+    if (typeof profile.trainerLevel !== 'number') {
+      const maxLevel = profile.pokemon.length > 0
+        ? Math.max(...profile.pokemon.map(p => p.level || 1))
+        : 1;
+      profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
+    }
+    if (typeof profile.trainerExp !== 'number') profile.trainerExp = 0;
+    if (typeof profile.normalBattleCount !== 'number') profile.normalBattleCount = 0;
+
+    const trainerLevel = profile.trainerLevel;
+    let pokemonId = null;
+    let isEvolved = false;
+    let isLegendary = false;
+
+    // Sistema de contagem de batalhas
+    // A cada 100 batalhas normais: 1 lendário (nível + 10)
+    if (profile.normalBattleCount > 0 && profile.normalBattleCount % 100 === 0) {
+      // Busca um lendário usando cache global
+      if (!window._legendaryCache) {
+        window._legendaryCache = [];
+        // Usa PokeAPI para buscar dados de espécie
+        for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+          try {
+            const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+            if (speciesData && speciesData.isLegendary) {
+              window._legendaryCache.push(id);
+            }
+          } catch (e) {
+            // Ignora erros
+          }
+        }
+      }
+      if (window._legendaryCache.length > 0) {
+        pokemonId = window._legendaryCache[Math.floor(Math.random() * window._legendaryCache.length)];
+        isLegendary = true;
+      }
+    }
+    // A cada 10 batalhas normais: 1 evoluído (nível + 5)
+    else if (profile.normalBattleCount > 0 && profile.normalBattleCount % 10 === 0) {
+      // Busca um Pokémon evoluído usando cache global
+      if (!window._evolvedCache) {
+        window._evolvedCache = [];
+        // Busca cadeias evolutivas e identifica evoluídos
+        for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+          try {
+            const chain = await window.PokeAPI.fetchEvolutionChainData(id);
+            if (chain && chain.length > 1) {
+              // Verifica se este ID não é o primeiro da cadeia (ou seja, é evoluído)
+              const chainFirstId = chain[0]?.id;
+              if (chainFirstId && id !== chainFirstId && !window._evolvedCache.includes(id)) {
+                window._evolvedCache.push(id);
+              }
+            }
+          } catch (e) {
+            // Ignora erros
+          }
+        }
+      }
+      if (window._evolvedCache.length > 0) {
+        pokemonId = window._evolvedCache[Math.floor(Math.random() * window._evolvedCache.length)];
+        isEvolved = true;
+      }
+    }
+
+    // Se não encontrou especial, busca um Pokémon normal
+    if (!pokemonId) {
+      pokemonId = Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+    }
+
+    const wildPokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
     if (!wildPokemonData) {
       window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
       window.AuthSetup?.handleBattleMusic(false);
       return;
     }
 
-    const playerMaxLevel =
-      window.gameState.profile.pokemon.length > 0
-        ? Math.max(...window.gameState.profile.pokemon.map((p) => p.level))
-        : 5;
+    // Calcula o nível baseado no nível do treinador
+    // Normal: nível do treinador ± 2
+    // Evoluído: nível do treinador + 5
+    // Lendário: nível do treinador + 10
+    let baseLevel = trainerLevel;
+    if (isLegendary) {
+      baseLevel = trainerLevel + 10;
+    } else if (isEvolved) {
+      baseLevel = trainerLevel + 5;
+    } else {
+      // Normal: variação de ±2 níveis
+      const variation = Math.floor(Math.random() * 5) - 2; // -2 a +2
+      baseLevel = trainerLevel + variation;
+    }
 
-    let levelAdjustment =
-      Math.random() > 0.6
-        ? Math.floor(Math.random() * 3) + 1
-        : Math.floor(Math.random() * 3) - 3;
-
-    wildPokemonData.level = Math.max(1, playerMaxLevel + levelAdjustment);
+    wildPokemonData.level = Math.max(1, Math.min(100, baseLevel));
 
     wildPokemonData.maxHp = window.Utils.calculateMaxHp(
       wildPokemonData.stats.hp,
@@ -759,17 +834,27 @@ export const BattleCore = {
     // NOVO: Adiciona o status de captura (capturado/novo)
     const isCaught = window.gameState.profile.pokedex.has(wildPokemonData.id);
     const captureStatus = isCaught ? " (JÁ CAPTURADO)" : " (NOVO!)";
+    
+    // Mensagem especial para evoluídos e lendários
+    let specialType = "";
+    if (isLegendary) {
+      specialType = " ⭐ LENDÁRIO ⭐";
+    } else if (isEvolved) {
+      specialType = " ⚡ EVOLUÍDO ⚡";
+    }
 
     window.gameState.battle = {
       type: "wild",
       opponent: wildPokemonData,
+      isEvolved: isEvolved,
+      isLegendary: isLegendary,
       // CORREÇÃO: Usa o índice 0 como padrão para o Pokémon no slot de líder (o primeiro na lista)
       playerPokemonIndex: 0,
       turn: 0,
       // Mensagem inicial com o status de captura
-      lastMessage: `Um ${wildPokemonData.name} selvagem (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
+      lastMessage: `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
       log: [
-        `Um ${wildPokemonData.name} selvagem (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
+        `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
       ],
       currentMenu: "main",
       participatingIndices: new Set(),
@@ -948,6 +1033,13 @@ export const BattleCore = {
     BattleCore.addBattleLog(`Cada um ganha ${sharedExp} XP.`);
     console.log(`XP DISTRIBUÍDA POR POKÉMON: ${sharedExp}`);
 
+    // NOVO: Treinador também ganha XP (10% do total)
+    const trainerExpGain = Math.floor(totalExpGain * 0.1);
+    if (trainerExpGain > 0 && window.Utils.giveTrainerExp) {
+      window.Utils.giveTrainerExp(trainerExpGain);
+      BattleCore.addBattleLog(`Treinador ganhou ${trainerExpGain} XP!`);
+    }
+
     // 3. Distribuição e Level Up
     indicesArray.forEach((index) => {
       const participant = window.gameState.profile.pokemon[index];
@@ -1006,6 +1098,15 @@ export const BattleCore = {
     // A lógica de XP e dinheiro é delegada a gainExp.
     const participatingIndices = window.gameState.battle.participatingIndices;
     BattleCore.gainExp(loser.level, participatingIndices);
+
+    // NOVO: Incrementa contador de batalhas normais (apenas se não for evoluído ou lendário)
+    const profile = window.gameState.profile;
+    if (window.gameState.battle && window.gameState.battle.type === "wild") {
+      const isSpecial = window.gameState.battle.isEvolved || window.gameState.battle.isLegendary;
+      if (!isSpecial) {
+        profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
+      }
+    }
 
     // A limpeza do Set acontece aqui, ao fim da batalha, ANTES do retorno para o menu.
     if (
@@ -1119,6 +1220,14 @@ export const BattleCore = {
                 forceResetUses: true,
               });
               window.gameState.profile.pokemon.push(wildPokemon);
+              
+              // NOVO: Treinador ganha XP ao capturar (baseado no nível do Pokémon)
+              const captureExp = Math.floor(wildPokemon.level * 5);
+              if (captureExp > 0 && window.Utils.giveTrainerExp) {
+                window.Utils.giveTrainerExp(captureExp);
+                BattleCore.addBattleLog(`Treinador ganhou ${captureExp} XP pela captura!`);
+              }
+              
               // // AÇÃO DE CAPTURA BEM-SUCEDIDA
               const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
               if (!foiCapturado) {

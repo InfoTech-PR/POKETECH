@@ -275,18 +275,24 @@ export const RendererServices = {
     }
 
     const content = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">BATALHA PVP</div>
+            <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">BATALHA PVP</div>
             <!-- flex-grow para a área de mensagens -->
-            <div id="pvp-messages" class="h-16 p-2 mb-4 bg-white border-2 border-gray-400 rounded overflow-y-auto text-sm gba-font flex-grow">
+            <div id="pvp-messages" class="h-20 p-3 mb-4 text-white rounded-lg overflow-y-auto text-sm gba-font flex-grow" style="background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
                 ${messages}
             </div>
-            <button onclick="window.PvpCore.createPvpLink()" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
-      }>Criar Sala de Batalha</button>
-            <input id="pvpRoomInput" type="text" placeholder="ID da Sala para Entrar" class="w-full p-2 mb-4 border-2 border-gray-400 rounded gba-font text-sm flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+            <button onclick="window.PvpCore.createPvpLink()" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-3 flex-shrink-0 flex items-center justify-center gap-2 py-4 text-base font-bold ${disabledClass}" style="background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
       }>
-            <button onclick="window.PvpCore.joinPvpBattle(document.getElementById('pvpRoomInput').value.trim())" class="gba-button bg-orange-500 hover:bg-orange-600 w-full mb-2 flex-shrink-0 ${disabledClass}" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
-      }>Entrar em Batalha</button>
-            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+                <i class="fa-solid fa-plus-circle text-xl"></i>
+                <span>Criar Sala de Batalha</span>
+            </button>
+            <input id="pvpRoomInput" type="text" placeholder="ID da Sala para Entrar" class="w-full p-3 mb-3 rounded-lg gba-font text-sm flex-shrink-0 ${disabledClass}" style="background: rgba(255, 255, 255, 0.9); border: 3px solid #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+      }>
+            <button onclick="window.PvpCore.joinPvpBattle(document.getElementById('pvpRoomInput').value.trim())" class="gba-button bg-orange-500 hover:bg-orange-600 w-full mb-3 flex-shrink-0 flex items-center justify-center gap-2 py-4 text-base font-bold ${disabledClass}" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);" ${!PvpCore.isPvpEnabled() ? "disabled" : ""
+      }>
+                <i class="fa-solid fa-sword text-xl"></i>
+                <span>Entrar em Batalha</span>
+            </button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
   },

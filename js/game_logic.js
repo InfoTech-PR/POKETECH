@@ -113,6 +113,13 @@ export const GameLogic = {
         // Exibe apenas a última mensagem para o modo clássico
         resultBox.innerHTML = window.gameState.exploreLog.slice(-1)[0];
       }
+      // Reabilita o botão de exploração
+      const button = document.getElementById("explore-action-btn");
+      if (button) {
+        button.disabled = false;
+        button.style.cursor = 'pointer';
+        button.classList.remove("spinning");
+      }
     }
 
     // Se estiver no mapa, o MapCore se encarrega de ler o log completo.
@@ -216,6 +223,19 @@ export const GameLogic = {
         if (typeof window.gameState.profile.preferences.isBetaMode === 'undefined') {
           window.gameState.profile.preferences.isBetaMode = false;
         }
+        // NOVO: Garante que os campos do sistema de nível do treinador existam
+        if (typeof window.gameState.profile.trainerLevel !== 'number') {
+          const maxLevel = window.gameState.profile.pokemon.length > 0
+            ? Math.max(...window.gameState.profile.pokemon.map(p => p.level || 1))
+            : 1;
+          window.gameState.profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
+        }
+        if (typeof window.gameState.profile.trainerExp !== 'number') {
+          window.gameState.profile.trainerExp = 0;
+        }
+        if (typeof window.gameState.profile.normalBattleCount !== 'number') {
+          window.gameState.profile.normalBattleCount = 0;
+        }
 
         console.log("Perfil do usuário carregado do Firestore!");
         return true;
@@ -238,35 +258,24 @@ export const GameLogic = {
       if (button) {
         if (isLoading) {
           button.disabled = true;
-          button.classList.add("cursor-wait");
+          button.style.cursor = 'wait';
+          button.classList.add("spinning");
         } else {
           button.disabled = false;
-          button.classList.remove("cursor-wait");
-          const defaultLabel = button.dataset.defaultLabel || "ANDAR";
-          const label = button.querySelector(".explore-label");
-          if (label) {
-            label.textContent = defaultLabel;
-          }
-        }
-        const label = button?.querySelector(".explore-label");
-        const spinner = button?.querySelector(".explore-spinner");
-        if (label) {
-          label.textContent = isLoading
-            ? button.dataset.loadingLabel || "Explorando..."
-            : button.dataset.defaultLabel || "ANDAR";
-        }
-        if (spinner) {
-          spinner.classList.toggle("hidden", !isLoading);
+          button.style.cursor = 'pointer';
+          button.classList.remove("spinning");
         }
       }
       const resultBox = document.getElementById("explore-result");
-      if (resultBox && isLoading) {
-        resultBox.innerHTML = `
-          <div class="flex items-center gap-2 text-gray-700 gba-font text-xs">
-            <span class="inline-flex h-4 w-4 border-[3px] border-gray-400 border-t-transparent rounded-full animate-spin"></span>
-            <span>${message || "Procurando aventuras..."}</span>
-          </div>
-        `;
+      if (resultBox) {
+        if (isLoading) {
+          resultBox.innerHTML = `
+            <div class="flex items-center gap-2 text-white gba-font text-xs" style="text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
+              <span class="inline-flex h-4 w-4 border-[3px] border-white border-t-transparent rounded-full animate-spin"></span>
+              <span>${message || "Procurando aventuras..."}</span>
+            </div>
+          `;
+        }
       }
     };
 

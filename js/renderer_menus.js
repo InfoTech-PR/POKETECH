@@ -295,11 +295,12 @@ export const RendererMenus = {
 
     const trainerImage = getTrainerAvatarUrl(profile);
     
-    // Calcula nível do treinador baseado no pokémon de maior nível
-    const maxLevel = profile.pokemon.length > 0
-      ? Math.max(...profile.pokemon.map(p => p.level || 1))
-      : 1;
-    const trainerLevel = Math.min(100, Math.max(1, maxLevel));
+    // NOVO: Usa o nível do treinador do profile (sistema de XP do treinador)
+    const trainerLevel = typeof profile.trainerLevel === 'number' 
+      ? Math.min(100, Math.max(1, profile.trainerLevel))
+      : (profile.pokemon.length > 0
+          ? Math.min(100, Math.max(1, Math.max(...profile.pokemon.map(p => p.level || 1))))
+          : 1);
     
     // Calcula pokémon capturados (pokedex)
     const pokedexCount = profile.pokedex ? 
@@ -379,11 +380,11 @@ export const RendererMenus = {
 
   <style>
     .trainer-profile-card {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 3px solid #475569;
+      background: linear-gradient(135deg, #3b82f6 0%, #1e40af 50%, #1e3a8a 100%);
+      border: 4px solid #1e293b;
       border-radius: 16px;
       padding: 16px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 20px rgba(59, 130, 246, 0.3);
       position: relative;
       overflow: hidden;
     }
@@ -680,17 +681,6 @@ export const RendererMenus = {
                         </span>
                     </button>
                 </div>
-                <!-- Botão de Instalação PWA (aparece apenas se não estiver instalado) -->
-                <div id="pwa-install-button-container" class="mt-3 hidden">
-                    <button
-                        id="pwa-install-btn"
-                        onclick="window.installPWA()"
-                        class="gba-button bg-green-500 hover:bg-green-600 w-full flex items-center justify-center gap-2 py-3"
-                    >
-                        <i class="fa-solid fa-download"></i>
-                        <span class="text-sm font-bold">INSTALAR APLICATIVO</span>
-                    </button>
-                </div>
             </div>
         `;
 
@@ -703,18 +693,82 @@ export const RendererMenus = {
         ? exploreLog.slice(-1)[0]
         : "O que você fará?";
 
+    // NOVO: Calcula batalhas restantes para Pokémon especial
+    const normalBattleCount = profile.normalBattleCount || 0;
+    // Se normalBattleCount % 10 === 0, a próxima batalha será evoluído (faltam 0)
+    // Se normalBattleCount % 10 !== 0, faltam (10 - (normalBattleCount % 10))
+    const battlesToEvolved = normalBattleCount % 10 === 0 ? 0 : (10 - (normalBattleCount % 10));
+    // Se normalBattleCount % 100 === 0, a próxima batalha será lendário (faltam 0)
+    // Se normalBattleCount % 100 !== 0, faltam (100 - (normalBattleCount % 100))
+    const battlesToLegendary = normalBattleCount % 100 === 0 ? 0 : (100 - (normalBattleCount % 100));
+    
+    let specialIndicator = '';
+    // Prioridade: se ambos são 0, lendário tem prioridade (mais raro)
+    if (battlesToLegendary === 0 && normalBattleCount > 0) {
+      specialIndicator = '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⭐ PRÓXIMO: LENDÁRIO! ⭐</div>';
+    } else if (battlesToEvolved === 0 && normalBattleCount > 0) {
+      specialIndicator = '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⚡ PRÓXIMO: EVOLUÍDO! ⚡</div>';
+    } else {
+      // Mostra o mais próximo
+      const nextSpecial = battlesToEvolved <= battlesToLegendary ? battlesToEvolved : battlesToLegendary;
+      const nextType = battlesToEvolved <= battlesToLegendary ? 'EVOLUÍDO' : 'LENDÁRIO';
+      const nextIcon = battlesToEvolved <= battlesToLegendary ? '⚡' : '⭐';
+      specialIndicator = `<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center" style="text-shadow: 2px 2px 0px #000;">${nextIcon} ${nextSpecial} batalhas para ${nextType}</div>`;
+    }
+
     const exploreHtml = `
-            <div class="p-2 bg-white border-2 border-gray-800 rounded-lg shadow-inner flex-shrink-0">
-                <div class="text-sm font-bold text-gray-800 gba-font border-b border-gray-300 pb-1 mb-2">EXPLORAÇÃO RÁPIDA</div>
-                <div id="explore-result" class="h-16 text-xs gba-font mb-2 overflow-y-auto">
+            <div class="p-4 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 border-4 border-black rounded-lg shadow-2xl flex-shrink-0" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #1e40af 100%);">
+                <div class="text-sm font-bold text-white gba-font mb-3 text-center" style="text-shadow: 2px 2px 0px #000;">
+                    EXPLORAÇÃO RÁPIDA
+                </div>
+                ${specialIndicator}
+                <div id="explore-result" class="min-h-[60px] max-h-[80px] text-xs gba-font mb-4 overflow-y-auto text-white p-3 rounded-lg" style="background: rgba(0, 0, 0, 0.3); border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
                     ${exploreMsg}
                 </div>
-                <button id="explore-action-btn" data-default-label="${exploreButtonText}" data-loading-label="Explorando..." onclick="${exploreAction}" class="gba-button ${exploreButtonColor} w-full ${exploreDisabled} flex items-center justify-center gap-2" ${exploreDisabled}>
-                  <span class="explore-label">${exploreButtonText}</span>
-                  <span class="explore-spinner hidden">
-                    <span class="inline-flex h-4 w-4 border-[3px] border-white/80 border-t-transparent rounded-full animate-spin"></span>
-                  </span>
-                </button>
+                <div class="flex justify-center">
+                    <button 
+                        id="explore-action-btn" 
+                        data-default-label="${exploreButtonText}" 
+                        data-loading-label="Explorando..." 
+                        onclick="handleExploreClick(event, '${exploreAction}')" 
+                        class="pokeball-button ${exploreDisabled}" 
+                        ${exploreDisabled}
+                        style="position: relative; width: 80px; height: 80px; cursor: ${exploreDisabled ? 'not-allowed' : 'pointer'}; opacity: ${exploreDisabled ? '0.5' : '1'};"
+                    >
+                        <div class="pokeball-container" style="width: 100%; height: 100%; position: relative;">
+                            <div class="pokeball-top" style="position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 4px solid #000; border-radius: 50px 50px 0 0; border-bottom: 2px solid #000;"></div>
+                            <div class="pokeball-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; background: #fff; border: 4px solid #000; border-radius: 50%; z-index: 2;"></div>
+                            <div class="pokeball-bottom" style="position: absolute; bottom: 0; left: 0; right: 0; height: 50%; background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%); border: 4px solid #000; border-radius: 0 0 50px 50px; border-top: 2px solid #000;"></div>
+                            <div class="pokeball-line" style="position: absolute; top: 50%; left: 0; right: 0; height: 4px; background: #000; z-index: 1;"></div>
+                        </div>
+                    </button>
+                </div>
+                <style>
+                    .pokeball-button {
+                        transition: transform 0.3s ease;
+                    }
+                    .pokeball-button:not(.disabled):hover {
+                        transform: scale(1.1);
+                    }
+                    .pokeball-button.spinning .pokeball-container {
+                        animation: spinPokeball 0.6s ease-in-out;
+                    }
+                    @keyframes spinPokeball {
+                        0% { transform: rotate(0deg) scale(1); }
+                        50% { transform: rotate(180deg) scale(1.2); }
+                        100% { transform: rotate(360deg) scale(1); }
+                    }
+                    @media (max-width: 640px) {
+                        .pokeball-button {
+                            width: 70px !important;
+                            height: 70px !important;
+                        }
+                        .pokeball-center {
+                            width: 20px !important;
+                            height: 20px !important;
+                        }
+                    }
+                </style>
             </div>
         `;
 
@@ -736,91 +790,72 @@ export const RendererMenus = {
 
     window.Renderer.renderGbaCard(combinedHtml);
     
-    // NOVO: Gerencia o botão de instalação PWA
-    const updatePWAInstallButton = () => {
-      const container = document.getElementById('pwa-install-button-container');
-      const button = document.getElementById('pwa-install-btn');
+    // Função global para lidar com o clique na Pokébola
+    window.handleExploreClick = async function(event, action) {
+      event.preventDefault();
+      const button = document.getElementById('explore-action-btn');
+      const resultBox = document.getElementById('explore-result');
       
-      if (!container || !button) return;
+      if (!button || button.disabled) return;
       
-      // Se já estiver instalado, esconde o botão
-      if (window.isPWAInstalled || window.isStandalone) {
-        container.classList.add('hidden');
-        return;
+      // Adiciona classe de spinning
+      button.classList.add('spinning');
+      button.disabled = true;
+      button.style.cursor = 'wait';
+      
+      // Atualiza o resultado com mensagem de loading
+      if (resultBox) {
+        resultBox.innerHTML = '<div class="flex items-center gap-2 text-gray-700 gba-font text-xs"><span class="inline-flex h-4 w-4 border-[3px] border-gray-400 border-t-transparent rounded-full animate-spin"></span><span>Procurando aventuras...</span></div>';
       }
       
-      // Verifica se é instalável
-      // 1. Android/Chrome: precisa do evento beforeinstallprompt (deferredPrompt)
-      // 2. iOS: sempre mostra o botão (mesmo sem beforeinstallprompt)
-      // 3. Desktop: mostra se tiver o prompt
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const hasPrompt = window.deferredPrompt !== null;
-      const isIOSDevice = window.isIOS;
-      
-      // Mostra o botão se:
-      // - Tiver o prompt de instalação (Android/Chrome)
-      // - For iOS e não estiver instalado
-      // - Estiver marcado como instalável
-      const isInstallable = hasPrompt || 
-                           (isIOSDevice && !window.isStandalone) || 
-                           (window.isPWAInstallable && isMobile);
-      
-      if (isInstallable) {
-        container.classList.remove('hidden');
-        
-        // Atualiza o texto do botão baseado na plataforma
-        if (isIOSDevice && !hasPrompt) {
-          button.innerHTML = '<i class="fa-solid fa-plus-square"></i><span class="text-sm font-bold">ADICIONAR À TELA INICIAL</span>';
-          button.setAttribute('title', 'Toque para ver instruções de instalação');
-        } else if (hasPrompt) {
-          button.innerHTML = '<i class="fa-solid fa-download"></i><span class="text-sm font-bold">INSTALAR APLICATIVO</span>';
-          button.setAttribute('title', 'Instale o aplicativo no seu dispositivo');
-        } else {
-          button.innerHTML = '<i class="fa-solid fa-download"></i><span class="text-sm font-bold">INSTALAR APLICATIVO</span>';
-          button.setAttribute('title', 'Toque para ver instruções de instalação');
+      // Executa a ação após um pequeno delay para a animação
+      setTimeout(async () => {
+        try {
+          // Remove a classe de spinning
+          button.classList.remove('spinning');
+          
+          // Executa a ação (pode ser explore() ou showScreen('mapView'))
+          if (action.includes('GameLogic.explore')) {
+            await window.GameLogic.explore();
+          } else if (action.includes('showScreen')) {
+            window.Renderer.showScreen('mapView');
+          } else {
+            // Fallback: executa como código
+            eval(action);
+          }
+        } catch (error) {
+          console.error('Erro na exploração:', error);
+          if (resultBox) {
+            resultBox.innerHTML = '<span class="text-red-500">Erro ao explorar. Tente novamente.</span>';
+          }
+          button.disabled = false;
+          button.style.cursor = 'pointer';
         }
-      } else {
-        container.classList.add('hidden');
-      }
+      }, 600); // Tempo da animação
     };
     
-    // Atualiza o botão imediatamente após renderizar
-    setTimeout(updatePWAInstallButton, 500);
-    
-    // Escuta eventos de instalação
-    const handlePWAInstallable = () => updatePWAInstallButton();
-    const handlePWAInstalled = () => updatePWAInstallButton();
-    const handlePWACheck = () => updatePWAInstallButton();
-    
-    window.addEventListener('pwa-installable', handlePWAInstallable);
-    window.addEventListener('pwa-installed', handlePWAInstalled);
-    window.addEventListener('pwa-check-installable', handlePWACheck);
-    
-    // Verifica periodicamente se se tornou instalável (máximo 10 tentativas = 20 segundos)
-    let checkCount = 0;
-    const maxChecks = 10;
-    const checkInterval = setInterval(() => {
-      checkCount++;
-      if (window.isPWAInstalled || window.isStandalone || checkCount >= maxChecks) {
-        clearInterval(checkInterval);
-        updatePWAInstallButton();
-      } else {
-        updatePWAInstallButton();
-      }
-    }, 2000);
   },
 
   renderProfileMenu: function (app) {
     const content = `
-      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL E OPÇÕES</div>
+      <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">PERFIL E OPÇÕES</div>
     
       <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-        <button onclick="window.Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600">PERFIL DO TREINADOR</button>
-        <button onclick="window.Renderer.showScreen('friendshipMenu')" class="gba-button bg-orange-500 hover:bg-orange-600">AMIZADES & PVP</button>
-        <button onclick="window.Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600">PREFERÊNCIAS</button>
+        <button onclick="window.Renderer.showScreen('profile')" class="gba-button bg-blue-500 hover:bg-blue-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+            <i class="fa-solid fa-user text-2xl"></i>
+            <span>PERFIL DO TREINADOR</span>
+        </button>
+        <button onclick="window.Renderer.showScreen('friendshipMenu')" class="gba-button bg-orange-500 hover:bg-orange-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+            <i class="fa-solid fa-users text-2xl"></i>
+            <span>AMIZADES & PVP</span>
+        </button>
+        <button onclick="window.Renderer.showScreen('preferences')" class="gba-button bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+            <i class="fa-solid fa-gear text-2xl"></i>
+            <span>PREFERÊNCIAS</span>
+        </button>
       </div>
     
-      <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+      <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
     `;
     window.Renderer.renderGbaCard(content);
   },
@@ -1286,29 +1321,44 @@ export const RendererMenus = {
 
   renderPokemonMenu: function (app) {
     const content = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">MEU TIME</div>
+            <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">MEU TIME</div>
             
             <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-                <button onclick="window.Renderer.showScreen('pokemonList')" class="gba-button bg-red-500 hover:bg-red-600">VER POKÉMONS</button>
-                <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-yellow-500 hover:bg-yellow-600">MOCHILA</button>
-                <button onclick="window.Renderer.showScreen('pokedex')" class="gba-button bg-orange-500 hover:bg-orange-600">POKÉDEX</button>
+                <button onclick="window.Renderer.showScreen('pokemonList')" class="gba-button bg-red-500 hover:bg-red-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-users text-2xl"></i>
+                    <span>VER POKÉMONS</span>
+                </button>
+                <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-bag-shopping text-2xl"></i>
+                    <span>MOCHILA</span>
+                </button>
+                <button onclick="window.Renderer.showScreen('pokedex')" class="gba-button bg-orange-500 hover:bg-orange-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-book text-2xl"></i>
+                    <span>POKÉDEX</span>
+                </button>
             </div>
             
-            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
   },
 
   renderServiceMenu: function (app) {
     const content = `
-            <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SERVIÇOS</div>
+            <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">SERVIÇOS</div>
             
             <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-                <button onclick="window.Renderer.showScreen('healCenter')" class="gba-button bg-pink-500 hover:bg-pink-600">CENTRO POKÉMON</button>
-                <button onclick="window.Renderer.showScreen('shop')" class="gba-button bg-cyan-500 hover:bg-cyan-600">LOJA</button> 
+                <button onclick="window.Renderer.showScreen('healCenter')" class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-hospital text-2xl"></i>
+                    <span>CENTRO POKÉMON</span>
+                </button>
+                <button onclick="window.Renderer.showScreen('shop')" class="gba-button bg-cyan-500 hover:bg-cyan-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-shop text-2xl"></i>
+                    <span>LOJA</span>
+                </button> 
             </div>
             
-            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
   },
@@ -1320,55 +1370,56 @@ export const RendererMenus = {
     const isBetaMode = prefs.isBetaMode;
 
     const content = `
-          <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font flex-shrink-0">PREFERÊNCIAS</div>
+          <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">PREFERÊNCIAS</div>
           
-          <div class="p-4 bg-white border-2 border-gray-800 rounded-lg shadow-inner mb-6 flex-grow overflow-y-auto">
+          <div class="p-4 rounded-lg mb-6 flex-grow overflow-y-auto" style="background: rgba(255, 255, 255, 0.1); border: 3px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px);">
               
-              <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2 flex justify-between items-center">
+              <div class="text-sm font-bold text-white gba-font mb-4 pb-3 flex justify-between items-center border-b" style="border-color: rgba(255, 255, 255, 0.2); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
                   <span>MODO BETA</span>
                   <button onclick="window.Utils.toggleBetaMode()" 
-                          class="gba-button w-24 h-8 text-[10px] ${isBetaMode
+                          class="gba-button w-28 h-9 text-[10px] ${isBetaMode
         ? "bg-red-500 hover:bg-red-600"
         : "bg-green-500 hover:bg-green-600"
-      }">
+      }" style="border: 3px solid #000;">
                       ${isBetaMode ? "DESATIVAR" : "ATIVAR"}
                   </button>
               </div>
-              <p class="text-xs gba-font text-gray-500 mb-6">
+              <p class="text-xs gba-font text-white mb-6" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">
                 ${isBetaMode
         ? 'Ativado. A tela "Explorar" agora é o Mapa Mundial (WIP).'
         : 'Desativado. A navegação será por texto e botões.'
       }
               </p>
 
-              <div class="text-sm font-bold text-gray-800 gba-font mb-4 border-b border-gray-300 pb-2">CONTROLE DE SOM</div>
+              <div class="text-sm font-bold text-white gba-font mb-4 pb-3 border-b" style="border-color: rgba(255, 255, 255, 0.2); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">CONTROLE DE SOM</div>
               
               <div class="mb-6">
-                  <label for="volumeSlider" class="block text-xs font-bold gba-font mb-2">
+                  <label for="volumeSlider" class="block text-xs font-bold gba-font mb-3 text-white" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">
                       Volume da Música: ${volumePercent}%
                   </label>
                   <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${prefs.volume
       }" 
                          oninput="window.updateVolume(this.value)"
-                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                         class="w-full h-3 rounded-lg appearance-none cursor-pointer" style="background: rgba(255, 255, 255, 0.2); border: 2px solid #000;">
               </div>
 
               <button onclick="window.toggleMute()" 
-                      class="gba-button w-full ${isMuted
+                      class="gba-button w-full py-4 text-base font-bold ${isMuted
         ? "bg-red-500 hover:bg-red-600"
         : "bg-green-500 hover:bg-green-600"
-      }">
+      }" style="border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                  <i class="fa-solid ${isMuted ? 'fa-volume-xmark' : 'fa-volume-high'} mr-2"></i>
                   ${isMuted
         ? "SOM MUDO (CLIQUE PARA LIGAR)"
         : "SOM LIGADO (CLIQUE PARA MUTAR)"
       }
               </button>
-              <p class="text-xs gba-font text-gray-500 mt-2 text-center">(O volume atual do jogo é ${isMuted ? "MUDO" : "LIGADO"
+              <p class="text-xs gba-font text-white mt-2 text-center" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">(O volume atual do jogo é ${isMuted ? "MUDO" : "LIGADO"
       })</p>
 
           </div>
           
-          <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+          <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
       `;
     window.Renderer.renderGbaCard(content);
   },
@@ -1497,6 +1548,32 @@ export const RendererMenus = {
               <span class="text-sm">${profile.pokemon.length}</span>
             </div>
           </div>
+
+          ${(() => {
+            const trainerLevel = typeof profile.trainerLevel === 'number' ? profile.trainerLevel : 1;
+            const trainerExp = typeof profile.trainerExp === 'number' ? profile.trainerExp : 0;
+            const expToNext = window.Utils ? window.Utils.calculateTrainerExpToNextLevel(trainerLevel) : (100 * trainerLevel * trainerLevel);
+            const expPercent = trainerLevel >= 100 ? 100 : Math.min(100, Math.floor((trainerExp / expToNext) * 100));
+            
+            return `
+            <div class="mt-4 bg-gradient-to-r from-blue-900 to-purple-900 text-white border-2 border-gray-800 rounded-xl p-3 shadow-inner">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-[10px] text-gray-300 uppercase">Nível do Treinador</span>
+                <span class="text-sm font-bold">Nv. ${trainerLevel}</span>
+              </div>
+              <div class="mb-2">
+                <div class="flex justify-between text-[10px] mb-1">
+                  <span>XP: ${trainerExp.toLocaleString('pt-BR')}</span>
+                  <span>Próximo: ${expToNext.toLocaleString('pt-BR')}</span>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-3 border-2 border-gray-900 overflow-hidden">
+                  <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 h-full transition-all duration-300" style="width: ${expPercent}%; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);"></div>
+                </div>
+              </div>
+              ${trainerLevel >= 100 ? '<div class="text-[10px] text-center text-yellow-300">Nível Máximo!</div>' : `<div class="text-[10px] text-center text-gray-400">${expPercent}% para próximo nível</div>`}
+            </div>
+            `;
+          })()}
 
           <div class="mb-1">
             <p class="text-xs font-bold mb-1 uppercase">ID de Jogador (Para Amigos):</p>

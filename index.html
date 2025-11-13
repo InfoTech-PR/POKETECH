@@ -195,7 +195,12 @@
       .gba-screen {
         width: 100vw;
         height: 100vh;
-        background-color: #c6c6c6;
+        background: linear-gradient(
+          135deg,
+          #3b82f6 0%,
+          #1e40af 50%,
+          #1e3a8a 100%
+        );
         border-radius: 0;
         box-shadow: none;
         display: flex;
@@ -233,27 +238,6 @@
         transition: background-color 0.2s, transform 0.2s;
       ">
       ⛶
-    </button>
-
-    <!-- BOTÃO DE UPDATES - abaixo do fullscreen -->
-    <button
-      id="updates-btn"
-      title="Ver Updates"
-      style="
-        position: fixed;
-        top: 60px; /* deslocado 50px abaixo do fullscreen */
-        right: 10px;
-        z-index: 9999;
-        background-color: rgba(0, 0, 0, 0.5);
-        color: #fff;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 18px;
-        transition: background-color 0.2s, transform 0.2s;
-      ">
-      ⓘ
     </button>
 
     <!-- LOADING -->
@@ -335,12 +319,8 @@
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-
-    <!-- FULLSCREEN E UPDATE E ERUDA -->
+    <!-- FULLSCREEN -->
     <script>
-      eruda.init();
-
       const fullscreenBtn = document.getElementById("fullscreen-btn");
       fullscreenBtn.addEventListener("click", () => {
         if (!document.fullscreenElement) {
@@ -360,97 +340,6 @@
       fullscreenBtn.addEventListener("mouseout", () => {
         fullscreenBtn.style.backgroundColor = "rgba(0,0,0,0.5)";
         fullscreenBtn.style.transform = "scale(1)";
-      });
-
-      const updatesBtn = document.getElementById("updates-btn");
-
-      updatesBtn.addEventListener("click", async () => {
-        let modal = document.getElementById("updatesModal");
-        if (!modal) {
-          modal = document.createElement("div");
-          modal.id = "updatesModal";
-          modal.className =
-            "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50";
-          modal.innerHTML = `
-            <div class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-md text-center max-h-[90vh] overflow-y-auto">
-                <div class="text-lg font-bold gba-font mb-4">ATUALIZAÇÕES</div>
-                <div id="updatesContent" class="text-left space-y-2">
-                    Carregando atualizações...
-                </div>
-                <button id="closeUpdatesModal" class="gba-button bg-gray-700 hover:bg-gray-800 mt-4 mx-auto w-1/2">
-                    FECHAR
-                </button>
-            </div>
-        `;
-          document.body.appendChild(modal);
-
-          document
-            .getElementById("closeUpdatesModal")
-            .addEventListener("click", () => {
-              modal.style.display = "none";
-            });
-        } else {
-          modal.style.display = "flex";
-        }
-
-        try {
-          const response = await fetch("./game_updates.json?v=" + Date.now());
-          const data = await response.json();
-          const updatesContent = document.getElementById("updatesContent");
-
-          let htmlSections = [];
-
-          if (Array.isArray(data.updates) && data.updates.length > 0) {
-            const updatesList = data.updates
-              .map(
-                (u) => `<li class="text-green-600">[${u.date}] ${u.text}</li>`
-              )
-              .join("");
-            htmlSections.push(`
-              <div>
-                  <strong class="gba-font text-green-700">Updates:</strong>
-                  <ul class="list-disc list-inside">
-                      ${updatesList}
-                  </ul>
-              </div>
-            `);
-          }
-
-          if (Array.isArray(data.todos) && data.todos.length > 0) {
-            const todosList = data.todos
-              .map((t) => (t ? `<li class="text-blue-600">${t}</li>` : ""))
-              .join("");
-            if (todosList.trim()) {
-              htmlSections.push(`
-                <div class="mt-3">
-                    <strong class="gba-font text-blue-700">Novidades / Pendências:</strong>
-                    <ul class="list-disc list-inside">
-                        ${todosList}
-                    </ul>
-                </div>
-              `);
-            }
-          }
-
-          updatesContent.innerHTML =
-            htmlSections.length > 0
-              ? htmlSections.join("")
-              : "<span class='text-gray-600'>Nenhuma atualização disponível no momento.</span>";
-        } catch (err) {
-          document.getElementById("updatesContent").innerHTML =
-            "<span class='text-red-600'>Falha ao carregar updates.</span>";
-          console.error("Erro ao carregar game_updates.json:", err);
-        }
-      });
-
-      // Hover efeito updates
-      updatesBtn.addEventListener("mouseover", () => {
-        updatesBtn.style.backgroundColor = "rgba(0,0,0,0.7)";
-        updatesBtn.style.transform = "scale(1.1)";
-      });
-      updatesBtn.addEventListener("mouseout", () => {
-        updatesBtn.style.backgroundColor = "rgba(0,0,0,0.5)";
-        updatesBtn.style.transform = "scale(1)";
       });
     </script>
 

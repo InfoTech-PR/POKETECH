@@ -156,6 +156,9 @@ export async function createConfigAndUtils(v) {
         pokemon: [],
         trainerGender: "MALE",
         pokedex: new Set(),
+        trainerLevel: 1, // NOVO: Nível do treinador (começa em 1)
+        trainerExp: 0, // NOVO: XP do treinador
+        normalBattleCount: 0, // NOVO: Contador de batalhas normais
         preferences: {
           volume: 0.5,
           isMuted: false,
@@ -260,6 +263,21 @@ export async function createConfigAndUtils(v) {
               lng: -49.2707,
               timestamp: Date.now(),
             };
+          }
+
+          // NOVO: Garante que os campos do sistema de nível do treinador existam
+          if (typeof window.gameState.profile.trainerLevel !== 'number') {
+            // Calcula nível baseado no Pokémon de maior nível (migração)
+            const maxLevel = window.gameState.profile.pokemon.length > 0
+              ? Math.max(...window.gameState.profile.pokemon.map(p => p.level || 1))
+              : 1;
+            window.gameState.profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
+          }
+          if (typeof window.gameState.profile.trainerExp !== 'number') {
+            window.gameState.profile.trainerExp = 0;
+          }
+          if (typeof window.gameState.profile.normalBattleCount !== 'number') {
+            window.gameState.profile.normalBattleCount = 0;
           }
 
           // Garante que o estado do clima exista com defaults
@@ -653,6 +671,45 @@ export async function createConfigAndUtils(v) {
     calculateExpToNextLevel: function (level) {
       const { EXP_BASE, EXP_GROWTH_RATE } = GameConfig;
       return Math.floor(EXP_BASE * Math.pow(level + 1, EXP_GROWTH_RATE));
+    },
+
+    // NOVO: Calcula XP necessário para o treinador subir de nível
+    calculateTrainerExpToNextLevel: function (level) {
+      // Fórmula: 100 * level^2 (mais XP que Pokémon, mas escala similar)
+      return Math.floor(100 * Math.pow(level, 2));
+    },
+
+    // NOVO: Dá XP ao treinador e verifica level up
+    giveTrainerExp: function (expGain) {
+      if (!window.gameState || !window.gameState.profile) return;
+      
+      const profile = window.gameState.profile;
+      if (typeof profile.trainerLevel !== 'number') profile.trainerLevel = 1;
+      if (typeof profile.trainerExp !== 'number') profile.trainerExp = 0;
+      
+      profile.trainerExp += expGain;
+      
+      // Verifica level up
+      let expToNextLevel = Utils.calculateTrainerExpToNextLevel(profile.trainerLevel);
+      while (profile.trainerExp >= expToNextLevel && profile.trainerLevel < 100) {
+        profile.trainerExp -= expToNextLevel;
+        profile.trainerLevel++;
+        
+        // Notifica o level up
+        if (window.BattleCore && window.gameState.battle) {
+          window.BattleCore.addBattleLog(`🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`);
+        } else if (window.GameLogic) {
+          window.GameLogic.addExploreLog(`🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`);
+        }
+        
+        expToNextLevel = Utils.calculateTrainerExpToNextLevel(profile.trainerLevel);
+      }
+      
+      // Limita o nível máximo
+      if (profile.trainerLevel >= 100) {
+        profile.trainerLevel = 100;
+        profile.trainerExp = 0;
+      }
     },
   };
 

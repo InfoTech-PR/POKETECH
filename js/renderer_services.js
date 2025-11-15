@@ -425,6 +425,10 @@ export const RendererServices = {
     const battle = window.gameState.battle;
 
     const currentActiveIndex = battle ? battle.playerPokemonIndex : 0;
+    const forceSelection = Boolean(battle?.forceSwitchSelection);
+    const forceMessage =
+      battle?.forceSwitchMessage ||
+      "Selecione um Pokémon em condições de lutar.";
 
     const pokemonHtml = pokemonArray
       .map((p, index) => {
@@ -458,14 +462,30 @@ export const RendererServices = {
       })
       .join("");
 
+    const forcedBanner = forceSelection
+      ? `<div class="gba-font text-xs text-white text-center bg-red-500 border-4 border-black rounded-lg px-3 py-2 mb-3 shadow-lg">
+            ${forceMessage}
+         </div>`
+      : "";
+
+    const backButtonHtml = forceSelection
+      ? `<button class="gba-button bg-gray-400 text-white opacity-60 cursor-not-allowed w-full flex-shrink-0" disabled>
+            Escolha um Pokémon para continuar
+         </button>`
+      : `<button onclick="window.Renderer.showScreen('battle')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">
+            Voltar para Batalha
+         </button>`;
+
     const content = `
             <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">TROCAR POKÉMON</div>
             
+            ${forcedBanner}
+
             <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
                 ${pokemonHtml || '<p class="text-center text-gray-500 gba-font p-4">Você não tem Pokémons!</p>'}
             </div>
             
-            <button onclick="window.Renderer.showScreen('battle')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar para Batalha</button>
+            ${backButtonHtml}
         `;
     window.Renderer.renderGbaCard(content);
   }

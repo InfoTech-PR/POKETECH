@@ -289,6 +289,28 @@ const TYPE_SOUND_WAVEFORMS = {
   fairy: "triangle",
 };
 
+const TYPE_BADGE_COLORS = {
+  normal: { bg: "#d1d5db", border: "#9ca3af", text: "#111827" },
+  fire: { bg: "#fdba74", border: "#ea580c", text: "#7c2d12" },
+  water: { bg: "#bfdbfe", border: "#2563eb", text: "#1e3a8a" },
+  grass: { bg: "#bbf7d0", border: "#16a34a", text: "#14532d" },
+  electric: { bg: "#fef08a", border: "#f59e0b", text: "#92400e" },
+  ice: { bg: "#bae6fd", border: "#0ea5e9", text: "#0f172a" },
+  fighting: { bg: "#fecdd3", border: "#dc2626", text: "#7f1d1d" },
+  poison: { bg: "#f5d0fe", border: "#a21caf", text: "#581c87" },
+  ground: { bg: "#fde68a", border: "#b45309", text: "#78350f" },
+  flying: { bg: "#ddd6fe", border: "#7c3aed", text: "#312e81" },
+  psychic: { bg: "#fbcfe8", border: "#db2777", text: "#831843" },
+  bug: { bg: "#d9f99d", border: "#65a30d", text: "#365314" },
+  rock: { bg: "#e7e5e4", border: "#78716c", text: "#292524" },
+  ghost: { bg: "#c7d2fe", border: "#4c1d95", text: "#312e81" },
+  dragon: { bg: "#c4b5fd", border: "#6d28d9", text: "#2e1065" },
+  dark: { bg: "#cbd5f5", border: "#1f2937", text: "#0f172a" },
+  steel: { bg: "#e2e8f0", border: "#64748b", text: "#0f172a" },
+  fairy: { bg: "#f5d0fe", border: "#d946ef", text: "#86198f" },
+  default: { bg: "#e5e7eb", border: "#111827", text: "#111827" },
+};
+
 let attackAudioCtx = null;
 
 const ensureBattleStyles = () => {
@@ -306,6 +328,7 @@ const ensureBattleStyles = () => {
       flex-direction: column;
       gap: 12px;
       height: 100%;
+      overflow: hidden;
     }
     #battle-area .battle-wrapper {
       display: flex;
@@ -316,15 +339,15 @@ const ensureBattleStyles = () => {
     #battle-area .battle-scene {
       position: relative;
       flex: 1 1 auto;
-      min-height: 240px;
+      min-height: 150px;
       background: linear-gradient(145deg, #dfe9ff 0%, #fbfdff 55%, #f8f1ff 100%);
       border: 3px solid #111827;
       border-radius: 18px;
-      padding: 16px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 20px;
+      gap: 10px;
       overflow: hidden;
     }
     #battle-area .battle-scene::after {
@@ -343,35 +366,22 @@ const ensureBattleStyles = () => {
       gap: 12px;
       z-index: 1;
     }
-    #battle-area .battle-entity.player {
-      align-items: flex-start;
-    }
-    #battle-area .battle-entity.opponent {
-      align-items: flex-end;
-    }
     #battle-area .battle-row {
       display: flex;
-      align-items: stretch;
+      align-items: center;
       gap: 12px;
       justify-content: space-between;
-      flex-wrap: nowrap;
       width: 100%;
-    }
-    #battle-area .battle-row-opponent {
-      flex-direction: row;
-    }
-    #battle-area .battle-row-player {
-      flex-direction: row;
     }
     #battle-area .battle-card {
       background: rgba(255, 255, 255, 0.88);
       border: 2px solid #111827;
       border-radius: 14px;
-      padding: 10px 12px;
+      padding: 4px 6px;
       box-shadow: 0 6px 0 rgba(17, 24, 39, 0.18);
       width: clamp(200px, 60%, 320px);
       font-size: 0.55rem;
-      line-height: 1.3;
+      line-height: 1.15;
     }
     #battle-area .battle-name-row {
       display: flex;
@@ -381,7 +391,7 @@ const ensureBattleStyles = () => {
       letter-spacing: 0.05em;
     }
     #battle-area .battle-type-row {
-      margin-top: 6px;
+      margin-top: 4px;
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
@@ -400,7 +410,7 @@ const ensureBattleStyles = () => {
       text-transform: uppercase;
     }
     #battle-area .battle-hp-bar {
-      margin-top: 8px;
+      margin-top: 6px;
     }
     #battle-area .battle-hp-bar-track {
       width: 100%;
@@ -416,30 +426,16 @@ const ensureBattleStyles = () => {
       transition: width 0.35s ease;
     }
     #battle-area .battle-hp-text {
-      margin-top: 4px;
+      margin-top: 3px;
       font-size: 0.55rem;
       color: #1f2937;
       display: flex;
       justify-content: space-between;
     }
-    #battle-area .battle-special {
-      margin-top: 6px;
-      font-size: 0.55rem;
-      color: #1f2937;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 600;
-    }
-    #battle-area .battle-special span {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
     #battle-area .battle-platform {
       align-self: center;
-      width: 160px;
-      height: 52px;
+      width: 140px;
+      height: 44px;
       border-radius: 50%;
       background: radial-gradient(circle at center, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.08) 60%, transparent 70%);
       box-shadow: 0 18px 24px rgba(17, 24, 39, 0.22);
@@ -449,8 +445,8 @@ const ensureBattleStyles = () => {
       flex-direction: column;
       align-items: center;
       justify-content: flex-end;
-      min-width: 120px;
-      flex: 0 0 34%;
+      min-width: 80px;
+      flex: 0 0 26%;
     }
     #battle-area .battle-sprite-wrap .battle-platform {
       margin-top: 6px;
@@ -466,17 +462,19 @@ const ensureBattleStyles = () => {
       background: #1f2937;
       border: 3px solid #111827;
       border-radius: 14px;
-      padding: 12px;
+      padding: 10px 12px;
       color: #f9fafb;
       font-size: 0.6rem;
-      min-height: 90px;
+      min-height: 85px;
+      max-height: 100px;
       box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06);
-      line-height: 1.25;
+      line-height: 1.35;
       word-break: break-word;
       position: relative;
+      overflow-y: auto;
     }
     #battle-area .battle-log-line + .battle-log-line {
-      margin-top: 4px;
+      margin-top: 6px;
       opacity: 0.85;
     }
     #battle-area .battle-menu {
@@ -488,11 +486,35 @@ const ensureBattleStyles = () => {
       flex-direction: column;
       gap: 10px;
       box-shadow: 0 6px 0 rgba(17, 24, 39, 0.15);
+      min-height: 190px;
+      max-height: 190px;
+      overflow: hidden;
+    }
+    #battle-area .battle-menu-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    #battle-area .battle-scroll-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding-right: 4px;
+      gap: 8px;
+    }
+    #battle-area .battle-scroll-area > * {
+      flex: 1;
+      min-height: 0;
     }
     #battle-area .battle-main-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 12px;
+      grid-auto-rows: minmax(0, 1fr);
+      height: 100%;
+      align-items: stretch;
     }
     #battle-area .battle-action-btn {
       font-size: 0.7rem;
@@ -503,21 +525,17 @@ const ensureBattleStyles = () => {
       padding: 10px 12px;
       letter-spacing: 0.04em;
       position: relative;
-    }
-    #battle-area .battle-action-btn i {
-      font-size: 0.8rem;
-    }
-    #battle-area .battle-action-btn.active {
-      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(30, 64, 175, 0.4);
-    }
-    #battle-area .battle-secondary {
-      display: block;
+      min-height: 52px;
+      height: 100%;
+      line-height: 1.2;
     }
     #battle-area .battle-secondary--moves,
     #battle-area .battle-secondary--items {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 12px;
+      grid-auto-rows: minmax(0, 1fr);
+      height: 100%;
     }
     #battle-area .battle-secondary-message {
       font-size: 0.65rem;
@@ -527,6 +545,10 @@ const ensureBattleStyles = () => {
       border-radius: 12px;
       padding: 10px;
       text-align: center;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #battle-area .battle-move-btn {
       font-size: 0.7rem;
@@ -536,6 +558,8 @@ const ensureBattleStyles = () => {
       gap: 4px;
       padding: 10px 12px;
       position: relative;
+      min-height: 70px;
+      color: #f8fafc;
     }
     #battle-area .battle-move-btn.battle-move-special {
       background: #c084fc;
@@ -556,23 +580,23 @@ const ensureBattleStyles = () => {
       cursor: not-allowed;
     }
     #battle-area .battle-move-meta {
-      font-size: 0.5rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      display: block;
-      width: 100%;
-      background: rgba(17, 24, 39, 0.9);
-      color: #f8fafc;
-      padding: 3px 6px;
-      border-radius: 8px 8px 4px 4px;
-      text-align: left;
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 0.55rem;
+      font-weight: 700;
+      background: #0b0b0b;
+      color: #ffffff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      line-height: 1.2;
     }
     #battle-area .battle-move-label {
       display: block;
       width: 100%;
       margin-top: 4px;
       font-weight: 600;
-      color: #111827;
+      color: #f8fafc;
     }
     #battle-area .battle-move-pa {
       position: absolute;
@@ -580,8 +604,8 @@ const ensureBattleStyles = () => {
       right: 6px;
       font-size: 0.5rem;
       font-weight: 700;
-      background: rgba(17, 24, 39, 0.85);
-      color: #f8fafc;
+      background: #0b0b0b;
+      color: #ffffff;
       padding: 2px 5px;
       border-radius: 6px;
       line-height: 1.2;
@@ -696,10 +720,10 @@ export const BattleCore = {
     const ctx = await ensureAttackAudioContext();
     if (!ctx) return;
 
-    const type =
-      MOVES_TO_TYPE_MAPPING[moveName?.toLowerCase?.()] || "default";
+    const type = MOVES_TO_TYPE_MAPPING[moveName?.toLowerCase?.()] || "default";
 
-    const baseFrequency = TYPE_SOUND_FREQUENCIES[type] ?? TYPE_SOUND_FREQUENCIES.default;
+    const baseFrequency =
+      TYPE_SOUND_FREQUENCIES[type] ?? TYPE_SOUND_FREQUENCIES.default;
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -728,16 +752,29 @@ export const BattleCore = {
 
   startWildBattle: async function () {
     const profile = window.gameState.profile;
-    
+    const hasAvailablePokemon =
+      Array.isArray(profile.pokemon) &&
+      profile.pokemon.some((pokemon) => pokemon.currentHp > 0);
+
+    if (!hasAvailablePokemon) {
+      window.GameLogic.addExploreLog(
+        "Todos os seus Pokémons estão desmaiados! Visite o Centro Pokémon antes de explorar novamente."
+      );
+      window.AuthSetup?.handleBattleMusic(false);
+      return;
+    }
+
     // Garante que os campos existam
-    if (typeof profile.trainerLevel !== 'number') {
-      const maxLevel = profile.pokemon.length > 0
-        ? Math.max(...profile.pokemon.map(p => p.level || 1))
-        : 1;
+    if (typeof profile.trainerLevel !== "number") {
+      const maxLevel =
+        profile.pokemon.length > 0
+          ? Math.max(...profile.pokemon.map((p) => p.level || 1))
+          : 1;
       profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
     }
-    if (typeof profile.trainerExp !== 'number') profile.trainerExp = 0;
-    if (typeof profile.normalBattleCount !== 'number') profile.normalBattleCount = 0;
+    if (typeof profile.trainerExp !== "number") profile.trainerExp = 0;
+    if (typeof profile.normalBattleCount !== "number")
+      profile.normalBattleCount = 0;
 
     const trainerLevel = profile.trainerLevel;
     let pokemonId = null;
@@ -746,7 +783,10 @@ export const BattleCore = {
 
     // Sistema de contagem de batalhas
     // A cada 100 batalhas normais: 1 lendário (nível + 10)
-    if (profile.normalBattleCount > 0 && profile.normalBattleCount % 100 === 0) {
+    if (
+      profile.normalBattleCount > 0 &&
+      profile.normalBattleCount % 100 === 0
+    ) {
       // Busca um lendário usando cache global
       if (!window._legendaryCache) {
         window._legendaryCache = [];
@@ -763,12 +803,18 @@ export const BattleCore = {
         }
       }
       if (window._legendaryCache.length > 0) {
-        pokemonId = window._legendaryCache[Math.floor(Math.random() * window._legendaryCache.length)];
+        pokemonId =
+          window._legendaryCache[
+            Math.floor(Math.random() * window._legendaryCache.length)
+          ];
         isLegendary = true;
       }
     }
     // A cada 10 batalhas normais: 1 evoluído (nível + 5)
-    else if (profile.normalBattleCount > 0 && profile.normalBattleCount % 10 === 0) {
+    else if (
+      profile.normalBattleCount > 0 &&
+      profile.normalBattleCount % 10 === 0
+    ) {
       // Busca um Pokémon evoluído usando cache global
       if (!window._evolvedCache) {
         window._evolvedCache = [];
@@ -779,7 +825,11 @@ export const BattleCore = {
             if (chain && chain.length > 1) {
               // Verifica se este ID não é o primeiro da cadeia (ou seja, é evoluído)
               const chainFirstId = chain[0]?.id;
-              if (chainFirstId && id !== chainFirstId && !window._evolvedCache.includes(id)) {
+              if (
+                chainFirstId &&
+                id !== chainFirstId &&
+                !window._evolvedCache.includes(id)
+              ) {
                 window._evolvedCache.push(id);
               }
             }
@@ -789,14 +839,18 @@ export const BattleCore = {
         }
       }
       if (window._evolvedCache.length > 0) {
-        pokemonId = window._evolvedCache[Math.floor(Math.random() * window._evolvedCache.length)];
+        pokemonId =
+          window._evolvedCache[
+            Math.floor(Math.random() * window._evolvedCache.length)
+          ];
         isEvolved = true;
       }
     }
 
     // Se não encontrou especial, busca um Pokémon normal
     if (!pokemonId) {
-      pokemonId = Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+      pokemonId =
+        Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
     }
 
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
@@ -834,7 +888,7 @@ export const BattleCore = {
     // NOVO: Adiciona o status de captura (capturado/novo)
     const isCaught = window.gameState.profile.pokedex.has(wildPokemonData.id);
     const captureStatus = isCaught ? " (JÁ CAPTURADO)" : " (NOVO!)";
-    
+
     // Mensagem especial para evoluídos e lendários
     let specialType = "";
     if (isLegendary) {
@@ -858,12 +912,15 @@ export const BattleCore = {
       ],
       currentMenu: "main",
       participatingIndices: new Set(),
+      forceSwitchSelection: false,
+      forceSwitchMessage: null,
     };
 
     // Adiciona o índice 0 (Pokémon ativo atual) ao set de participantes
     window.gameState.battle.participatingIndices.add(0);
 
     window.Renderer.showScreen("battle");
+    BattleCore._checkActivePokemonOnBattleStart();
   },
 
   /**
@@ -909,8 +966,8 @@ export const BattleCore = {
     // FÓRMULA DE DANO PRINCIPAL
     const baseDamage =
       ((level * LEVEL_FACTOR + 2) * POWER_BASE * attackStat) /
-      defenseStat /
-      50 +
+        defenseStat /
+        50 +
       2;
     let finalDamage = baseDamage;
     let modifier = 1;
@@ -982,7 +1039,10 @@ export const BattleCore = {
    */
   gainExp: function (defeatedLevel, participatingIndices) {
     // Log de Vitória e Dinheiro (se não foi adicionado antes)
-    if (!window.gameState.battle.lastMessage || !window.gameState.battle.lastMessage.includes("Parabéns!")) {
+    if (
+      !window.gameState.battle.lastMessage ||
+      !window.gameState.battle.lastMessage.includes("Parabéns!")
+    ) {
       const winner = window.Utils.getActivePokemon();
       BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
 
@@ -1102,7 +1162,9 @@ export const BattleCore = {
     // NOVO: Incrementa contador de batalhas normais (apenas se não for evoluído ou lendário)
     const profile = window.gameState.profile;
     if (window.gameState.battle && window.gameState.battle.type === "wild") {
-      const isSpecial = window.gameState.battle.isEvolved || window.gameState.battle.isLegendary;
+      const isSpecial =
+        window.gameState.battle.isEvolved ||
+        window.gameState.battle.isLegendary;
       if (!isSpecial) {
         profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
       }
@@ -1209,7 +1271,6 @@ export const BattleCore = {
           }
 
           if (isCaptured) {
-
             const finalMsg = `Sucesso! ${wildPokemon.name} foi capturado!`;
             BattleCore.addBattleLog(finalMsg);
             BattleCore.updateBattleScreen();
@@ -1220,16 +1281,20 @@ export const BattleCore = {
                 forceResetUses: true,
               });
               window.gameState.profile.pokemon.push(wildPokemon);
-              
+
               // NOVO: Treinador ganha XP ao capturar (baseado no nível do Pokémon)
               const captureExp = Math.floor(wildPokemon.level * 5);
               if (captureExp > 0 && window.Utils.giveTrainerExp) {
                 window.Utils.giveTrainerExp(captureExp);
-                BattleCore.addBattleLog(`Treinador ganhou ${captureExp} XP pela captura!`);
+                BattleCore.addBattleLog(
+                  `Treinador ganhou ${captureExp} XP pela captura!`
+                );
               }
-              
+
               // // AÇÃO DE CAPTURA BEM-SUCEDIDA
-              const foiCapturado = window.gameState.profile.pokedex.has(wildPokemon.id);
+              const foiCapturado = window.gameState.profile.pokedex.has(
+                wildPokemon.id
+              );
               if (!foiCapturado) {
                 window.Utils.registerPokemon(wildPokemon.id);
                 window.GameLogic.saveGameData();
@@ -1345,20 +1410,17 @@ export const BattleCore = {
         return;
       }
 
-      const isSpecialMove = window.Utils.isSpecialMove(
-        playerPokemon,
-        moveName
-      );
+      const isSpecialMove = window.Utils.isSpecialMove(playerPokemon, moveName);
       const isNormalMove = !isSpecialMove;
-      
+
       // NOVO: Verifica PA individual do movimento
       const movePA = window.Utils.getMovePA(playerPokemon, moveName);
       if (movePA.remaining <= 0) {
         const moveType = isSpecialMove ? "energia" : "PA";
         BattleCore.addBattleLog(
-          `${playerPokemon.name} está sem ${moveType} para ${window.Utils.formatName(
-            moveName
-          )}!`
+          `${
+            playerPokemon.name
+          } está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
         );
         BattleCore.setBattleMenu("fight", true);
         BattleCore.updateBattleScreen();
@@ -1401,7 +1463,9 @@ export const BattleCore = {
       const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
       if (!paUsed) {
         BattleCore.addBattleLog(
-          `${playerPokemon.name} não conseguiu usar ${window.Utils.formatName(moveName)}!`
+          `${playerPokemon.name} não conseguiu usar ${window.Utils.formatName(
+            moveName
+          )}!`
         );
         BattleCore.setBattleMenu("fight", true);
         BattleCore.updateBattleScreen();
@@ -1504,15 +1568,18 @@ export const BattleCore = {
         return;
       }
 
-      const opponentMoveName = typeof randomOpponentMove === "string" 
-        ? randomOpponentMove 
-        : randomOpponentMove.name || randomOpponentMove;
-      
+      const opponentMoveName =
+        typeof randomOpponentMove === "string"
+          ? randomOpponentMove
+          : randomOpponentMove.name || randomOpponentMove;
+
       // NOVO: Usa PA individual do movimento do oponente
       const opponentPAUsed = window.Utils.useMovePA(opponent, opponentMoveName);
       if (!opponentPAUsed) {
         BattleCore.addBattleLog(
-          `${opponent.name} não conseguiu usar ${window.Utils.formatName(opponentMoveName)}!`
+          `${opponent.name} não conseguiu usar ${window.Utils.formatName(
+            opponentMoveName
+          )}!`
         );
         window.GameLogic.saveGameData();
         BattleCore.updateBattleScreen();
@@ -1578,10 +1645,9 @@ export const BattleCore = {
         );
 
         if (hasLivePokemon) {
-          BattleCore.addBattleLog(
-            `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`
-          );
-          window.Renderer.showScreen("switchPokemon");
+          const faintedMessage = `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`;
+          BattleCore.addBattleLog(faintedMessage);
+          BattleCore.forceSwitchSelection(faintedMessage);
           return;
         } else {
           finalMessage =
@@ -1628,6 +1694,8 @@ export const BattleCore = {
       return;
     }
 
+    const wasForcedSwitch = Boolean(battle.forceSwitchSelection);
+
     // *** CORREÇÃO: REMOVENDO A MANIPULAÇÃO DO ARRAY ***
 
     // 1. Ação: Apenas atualiza o índice do Pokémon ativo.
@@ -1637,6 +1705,10 @@ export const BattleCore = {
     if (battle.type === "wild") {
       battle.participatingIndices.add(newIndex);
     }
+
+    // 2.1 Limpa flags de troca forçada (se existirem)
+    battle.forceSwitchSelection = false;
+    battle.forceSwitchMessage = null;
 
     // 3. Salva o estado sem reordenar a lista.
     window.GameLogic.saveGameData();
@@ -1652,10 +1724,49 @@ export const BattleCore = {
       BattleCore.setBattleMenu("disabled", true); // Desabilita o menu
       window.PvpCore.sendPvpAction("switch", null);
     } else {
-      // No PvE, a troca gasta o turno. O oponente ataca em seguida.
-      BattleCore.setBattleMenu("disabled", true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      await BattleCore.playerTurn("opponent_attack");
+      if (wasForcedSwitch) {
+        BattleCore.setBattleMenu("main", true);
+      } else {
+        // No PvE, a troca gasta o turno. O oponente ataca em seguida.
+        BattleCore.setBattleMenu("disabled", true);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await BattleCore.playerTurn("opponent_attack");
+      }
+    }
+  },
+
+  forceSwitchSelection: function (message) {
+    const battle = window.gameState.battle;
+    if (!battle) {
+      return;
+    }
+
+    const hasReplacement =
+      Array.isArray(window.gameState.profile?.pokemon) &&
+      window.gameState.profile.pokemon.some((pokemon) => pokemon.currentHp > 0);
+
+    if (!hasReplacement) {
+      return;
+    }
+
+    battle.forceSwitchSelection = true;
+    battle.forceSwitchMessage =
+      message || "Selecione um Pokémon em condições de lutar.";
+
+    window.Renderer.showScreen("switchPokemon");
+  },
+
+  _checkActivePokemonOnBattleStart: function () {
+    const battle = window.gameState.battle;
+    if (!battle) {
+      return;
+    }
+    const activePokemon = window.Utils.getActivePokemon();
+    if (!activePokemon || activePokemon.currentHp <= 0) {
+      const message = activePokemon
+        ? `${activePokemon.name} está desmaiado! Escolha outro Pokémon para iniciar a batalha.`
+        : "Escolha um Pokémon em condições de lutar para iniciar a batalha.";
+      BattleCore.forceSwitchSelection(message);
     }
   },
 
@@ -1699,19 +1810,6 @@ export const BattleCore = {
       (playerPokemon.currentHp / playerPokemon.maxHp) * 100;
     const opponentHpPercent = (opponent.currentHp / opponent.maxHp) * 100;
 
-    const playerNormalMax =
-      playerPokemon.normalMoveMaxUses ||
-      window.GameConfig?.NORMAL_MOVE_MAX_USES ||
-      25;
-    const playerNormalRemaining =
-      playerPokemon.normalMoveRemaining ?? playerNormalMax;
-    const playerSpecialMax =
-      playerPokemon.specialMoveMaxUses ||
-      window.GameConfig?.SPECIAL_MOVE_MAX_USES ||
-      10;
-    const playerSpecialRemaining =
-      playerPokemon.specialMoveRemaining ?? playerSpecialMax;
-
     const getHpColor = (percent) => {
       if (percent > 50) return "#22c55e";
       if (percent > 20) return "#facc15";
@@ -1720,14 +1818,23 @@ export const BattleCore = {
 
     const renderTypes = (types) =>
       (types || [])
-        .map(
-          (type) =>
-            `<span class="battle-type-badge">${String(type).toUpperCase()}</span>`
-        )
+        .map((type) => {
+          const lower = String(type).toLowerCase();
+          const colors = TYPE_BADGE_COLORS[lower] || TYPE_BADGE_COLORS.default;
+          return `<span class="battle-type-badge" style="background:${
+            colors.bg
+          }; color:${colors.text}; border-color:${colors.border};">${String(
+            type
+          ).toUpperCase()}</span>`;
+        })
         .join("");
 
     // NOVO: Mostra apenas a última mensagem (substitui a anterior)
-    const lastMessage = battle.lastMessage || (battle.log && battle.log.length > 0 ? battle.log[battle.log.length - 1] : null);
+    const lastMessage =
+      battle.lastMessage ||
+      (battle.log && battle.log.length > 0
+        ? battle.log[battle.log.length - 1]
+        : null);
     const displayMessage = lastMessage || "A batalha começou!";
     const logHtml = `<span class="battle-log-line">${displayMessage}</span>`;
 
@@ -1739,16 +1846,16 @@ export const BattleCore = {
 
     const battleItems = (window.gameState.profile.items || []).filter(
       (i) =>
-        (i.catchRate && battle.type === "wild") ||
-        i.healAmount ||
-        i.ppRestore
+        (i.catchRate && battle.type === "wild") || i.healAmount || i.ppRestore
     );
 
     const escapeMove = (move) =>
       move.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
     const fightButtonHtml = `
-      <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button battle-action-btn bg-red-500 hover:bg-red-600 ${isFightMenu ? "active" : ""}" ${disableInteractions ? "disabled" : ""}>
+      <button onclick="BattleCore.setBattleMenu('fight')" class="gba-button battle-action-btn bg-red-500 hover:bg-red-600 ${
+        isFightMenu ? "active" : ""
+      }" ${disableInteractions ? "disabled" : ""}>
         <i class="fa-solid fa-bolt"></i> Lutar
       </button>
     `;
@@ -1756,12 +1863,16 @@ export const BattleCore = {
       ? "bg-yellow-500 hover:bg-yellow-600"
       : "bg-gray-300 text-gray-700";
     const itemButtonHtml = `
-      <button onclick="BattleCore.setBattleMenu('item')" class="gba-button battle-action-btn ${itemButtonColor} ${isItemMenu ? "active" : ""}" ${disableInteractions ? "disabled" : ""}>
+      <button onclick="BattleCore.setBattleMenu('item')" class="gba-button battle-action-btn ${itemButtonColor} ${
+      isItemMenu ? "active" : ""
+    }" ${disableInteractions ? "disabled" : ""}>
         <i class="fa-solid fa-suitcase-medical"></i> Item
       </button>
     `;
     const pokemonButtonHtml = `
-      <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button battle-action-btn bg-blue-500 hover:bg-blue-600" ${disableInteractions ? "disabled" : ""}>
+      <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button battle-action-btn bg-blue-500 hover:bg-blue-600" ${
+        disableInteractions ? "disabled" : ""
+      }>
         <i class="fa-solid fa-dragon"></i> Pokémon
       </button>
     `;
@@ -1772,8 +1883,14 @@ export const BattleCore = {
         <i class="fa-solid fa-running"></i> Fugir
       </button>
     `;
-    const mainActionsHtml =
-      fightButtonHtml + itemButtonHtml + pokemonButtonHtml + runButtonHtml;
+    const mainActionsHtml = `
+      <div class="battle-main-actions">
+        ${fightButtonHtml}
+        ${itemButtonHtml}
+        ${pokemonButtonHtml}
+        ${runButtonHtml}
+      </div>
+    `;
 
     let secondaryHtml = "";
     if (isFightMenu) {
@@ -1781,15 +1898,15 @@ export const BattleCore = {
         .map((move) => {
           const moveName = typeof move === "string" ? move : move.name || move;
           const isSpecial = window.Utils.isSpecialMove(playerPokemon, moveName);
-          
+
           // NOVO: Usa PA individual por movimento
           const movePA = window.Utils.getMovePA(playerPokemon, moveName);
           const disabled = movePA.remaining <= 0;
-          
+
           const label = window.Utils.formatName(moveName);
           // PA no canto superior direito (menor)
           const paBadge = `<span class="battle-move-pa">${movePA.remaining}/${movePA.max}</span>`;
-          
+
           return `<button onclick="BattleCore.playerTurn('move', '${escapeMove(
             moveName
           )}')" class="gba-button battle-move-btn ${
@@ -1805,79 +1922,71 @@ export const BattleCore = {
       secondaryHtml = `<div class="battle-secondary battle-secondary--moves">${movesHtml}</div>`;
     } else if (isItemMenu) {
       if (!battleItems.length) {
-        secondaryHtml =
-          `<div class="battle-secondary battle-secondary-message">Sem itens utilizáveis no momento.</div>`;
+        secondaryHtml = `<div class="battle-secondary battle-secondary-message">Sem itens utilizáveis no momento.</div>`;
       } else {
         const itemsHtml = battleItems
           .map((item) => {
             const disabled = item.quantity <= 0;
             const typeClass = item.catchRate
-              ? "bg-yellow-400 hover:bg-yellow-500"
+              ? "bg-red-500 hover:bg-red-600"
               : item.ppRestore
-              ? "bg-purple-400 hover:bg-purple-500"
-              : "bg-green-400 hover:bg-green-500";
-            const effectLabel = item.catchRate
-              ? "Capturar"
-              : item.ppRestore
-              ? "Recupera PA"
-              : `Cura ${item.healAmount} HP`;
-            return `<button onclick="BattleCore.playerTurn('item', '${item.name}')" class="gba-button battle-move-btn ${typeClass}${
+              ? "bg-purple-500 hover:bg-purple-600"
+              : "bg-green-500 hover:bg-green-600";
+            return `<button onclick="BattleCore.playerTurn('item', '${
+              item.name
+            }')" class="gba-button battle-move-btn ${typeClass}${
               disabled ? " battle-move-disabled" : ""
             }" ${disabled ? "disabled" : ""}>
                 <span>${item.name}</span>
-                <span class="battle-move-meta">${effectLabel} • x${item.quantity}</span>
+                <span class="battle-move-meta">x${item.quantity}</span>
               </button>`;
           })
           .join("");
         secondaryHtml = `<div class="battle-secondary battle-secondary--items">${itemsHtml}</div>`;
       }
     } else if (isDisabled) {
-      secondaryHtml =
-        `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
+      secondaryHtml = `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
     }
-
-    const normalMoveName = window.Utils.formatName(
-      playerPokemon.normalMove || playerPokemon.moves?.[0] || "Golpe"
-    );
-    const specialMoveName = window.Utils.formatName(
-      playerPokemon.specialMove || playerPokemon.moves?.[1] || "Especial"
-    );
-    const normalHtml = `<div class="battle-special gba-font">
-            <span><i class="fa-solid fa-sword text-red-500"></i> Golpe</span>
-            <span>${normalMoveName} • ${playerNormalRemaining}/${playerNormalMax} PA</span>
-         </div>`;
-    const specialHtml = playerPokemon.specialMove
-      ? `<div class="battle-special gba-font">
-            <span><i class="fa-solid fa-star text-yellow-500"></i> Especial</span>
-            <span>${specialMoveName} • ${playerSpecialRemaining}/${playerSpecialMax}</span>
-         </div>`
-      : "";
 
     const opponentTypes = renderTypes(opponent.types);
     const playerTypes = renderTypes(playerPokemon.types);
 
     // NOVO: Verifica se o oponente já foi capturado
     const pokedex = window.gameState?.profile?.pokedex;
-    const isOpponentCaught = pokedex && (pokedex instanceof Set ? pokedex.has(opponent.id) : pokedex.includes(opponent.id));
-    const caughtIcon = isOpponentCaught 
-      ? '<img src="../assets/sprites/items/poke-ball.png" alt="Capturado" class="inline-block w-4 h-4 ml-1" title="Já capturado" style="image-rendering: pixelated;">' 
-      : '';
+    const isOpponentCaught =
+      pokedex &&
+      (pokedex instanceof Set
+        ? pokedex.has(opponent.id)
+        : pokedex.includes(opponent.id));
+    const caughtIcon = isOpponentCaught
+      ? '<img src="../assets/sprites/items/poke-ball.png" alt="Capturado" class="inline-block w-4 h-4 ml-1" title="Já capturado" style="image-rendering: pixelated;">'
+      : "";
 
-    let menuSections = "";
+    let scrollContent = "";
+    let backButtonHtml = "";
     if (isDisabled) {
-      menuSections =
+      scrollContent =
         secondaryHtml ||
         `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
     } else if (isMainMenu) {
-      menuSections = `<div class="battle-main-actions">${mainActionsHtml}</div>`;
+      scrollContent = mainActionsHtml;
     } else {
-      menuSections = `
-        ${secondaryHtml || ""}
+      scrollContent = secondaryHtml || "";
+      backButtonHtml = `
         <button onclick="BattleCore.setBattleMenu('main')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full">
           Voltar
         </button>
       `;
     }
+
+    const menuSections = `
+      <div class="battle-menu-body">
+        <div class="battle-scroll-area">
+          ${scrollContent}
+        </div>
+        ${backButtonHtml}
+      </div>
+    `;
 
     battleArea.innerHTML = `
       <div class="battle-wrapper">
@@ -1906,7 +2015,9 @@ export const BattleCore = {
                 </div>
               </div>
               <div class="battle-sprite-wrap">
-                <img src="${opponent.sprite}" alt="${opponent.name}" class="battle-sprite opponent-sprite opponent">
+                <img src="${opponent.sprite}" alt="${
+      opponent.name
+    }" class="battle-sprite opponent-sprite opponent">
                 <div class="battle-platform"></div>
               </div>
             </div>
@@ -1915,7 +2026,9 @@ export const BattleCore = {
           <div class="battle-entity player">
             <div class="battle-row battle-row-player">
               <div class="battle-sprite-wrap">
-                <img src="${playerBackSprite}" alt="${playerPokemon.name}" class="battle-sprite player-sprite player">
+                <img src="${playerBackSprite}" alt="${
+      playerPokemon.name
+    }" class="battle-sprite player-sprite player">
                 <div class="battle-platform"></div>
               </div>
               <div class="battle-card">
@@ -1935,11 +2048,11 @@ export const BattleCore = {
                   </div>
                   <div class="battle-hp-text gba-font">
                     <span>HP</span>
-                    <span>${playerPokemon.currentHp}/${playerPokemon.maxHp}</span>
+                    <span>${playerPokemon.currentHp}/${
+      playerPokemon.maxHp
+    }</span>
                   </div>
                 </div>
-                ${normalHtml}
-                ${specialHtml}
               </div>
             </div>
           </div>
@@ -1954,6 +2067,5 @@ export const BattleCore = {
         </div>
       </div>
     `;
-
   },
 };

@@ -1008,17 +1008,25 @@ export const BattleCore = {
    * @param {string} finalMessage Mensagem final para o log de exploração.
    */
   _endBattleAndSyncLog: function (finalMessage) {
-    if (window.gameState.battle) {
-      // 1. Adiciona a mensagem final ao log principal
+    const battle = window.gameState.battle;
+    if (battle) {
+      // 1. contabiliza batalhas normais (exceto fugas)
+      if (battle.type === "wild" && !battle.didEscape) {
+        const profile = window.gameState.profile;
+        profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
+      }
+
+      // 2. Adiciona a mensagem final ao log principal
       window.GameLogic.addExploreLog(finalMessage);
 
-      // 2. Limpa o estado da batalha
+      // 3. Limpa flags temporárias e estado da batalha
+      delete battle.didEscape;
       window.gameState.battle = null;
 
-      // 3. Salva os dados
+      // 4. Salva os dados
       window.GameLogic.saveGameData();
 
-      // 4. LÓGICA DE RETORNO DO MAPA (BETA MODE)
+      // 5. LÓGICA DE RETORNO DO MAPA (BETA MODE)
       if (window.gameState.profile.preferences?.isBetaMode) {
         window.AuthSetup?.handleBattleMusic(false);
         // Chama a função no MapCore para voltar ao mapa e exibir o modal
@@ -1026,7 +1034,7 @@ export const BattleCore = {
         return;
       }
 
-      // 5. Fallback para o Menu Principal (Modo Clássico)
+      // 6. Fallback para o Menu Principal (Modo Clássico)
       window.AuthSetup?.handleBattleMusic(false);
       window.Renderer.showScreen("mainMenu");
     }
@@ -1158,17 +1166,6 @@ export const BattleCore = {
     // A lógica de XP e dinheiro é delegada a gainExp.
     const participatingIndices = window.gameState.battle.participatingIndices;
     BattleCore.gainExp(loser.level, participatingIndices);
-
-    // NOVO: Incrementa contador de batalhas normais (apenas se não for evoluído ou lendário)
-    const profile = window.gameState.profile;
-    if (window.gameState.battle && window.gameState.battle.type === "wild") {
-      const isSpecial =
-        window.gameState.battle.isEvolved ||
-        window.gameState.battle.isLegendary;
-      if (!isSpecial) {
-        profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
-      }
-    }
 
     // A limpeza do Set acontece aqui, ao fim da batalha, ANTES do retorno para o menu.
     if (
@@ -1397,6 +1394,7 @@ export const BattleCore = {
 
     if (action === "run") {
       // NOVO: Fuga sempre bem-sucedida (sem porcentagem de falha)
+      battle.didEscape = true;
       finalMessage = `Você fugiu com sucesso!`;
       BattleCore.addBattleLog(finalMessage);
       ended = true;

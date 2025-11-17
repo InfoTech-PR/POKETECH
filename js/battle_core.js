@@ -618,6 +618,117 @@ const ensureBattleStyles = () => {
       transform: translateY(-10%) scale(1.5);
       z-index: 10;
     }
+    #battle-area .capture-minigame-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      gap: 20px;
+    }
+    #battle-area .capture-minigame-container {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      border: 4px solid #000;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 90%;
+      width: 400px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    #battle-area .capture-minigame-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-align: center;
+      color: #fbbf24;
+      text-shadow: 2px 2px 0px #000;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    #battle-area .capture-timing-bar-container {
+      width: 100%;
+      height: 60px;
+      background: #1e293b;
+      border: 4px solid #000;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    #battle-area .capture-timing-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 20px;
+      background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+      border: 2px solid #fff;
+      border-radius: 4px;
+      transition: left 0.05s linear;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    }
+    #battle-area .capture-success-zone {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+      border: 2px solid #fff;
+      opacity: 0.6;
+      box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.8);
+    }
+    #battle-area .capture-timing-center {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 100%;
+      background: #fbbf24;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+    }
+    #battle-area .capture-minigame-button {
+      width: 100%;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      border: 4px solid #000;
+      border-radius: 10px;
+      color: #fff;
+      text-shadow: 2px 2px 0px #000;
+      cursor: pointer;
+      transition: transform 0.1s;
+      text-transform: uppercase;
+    }
+    #battle-area .capture-minigame-button:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+    #battle-area .capture-minigame-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #battle-area .capture-minigame-instructions {
+      text-align: center;
+      color: #fff;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      text-shadow: 1px 1px 0px #000;
+    }
+    #battle-area .capture-minigame-feedback {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-top: 15px;
+      text-shadow: 2px 2px 0px #000;
+    }
+    #battle-area .capture-minigame-feedback.success {
+      color: #22c55e;
+    }
+    #battle-area .capture-minigame-feedback.fail {
+      color: #ef4444;
+    }
     @media (min-width: 768px) {
       #battle-area .battle-sprite.capture-shake-position,
       #battle-area .capture-shake-position {
@@ -1245,23 +1356,255 @@ export const BattleCore = {
     return Math.min(MAX_CATCH, Math.max(MIN_CATCH, pct));
   },
 
-  animateCapture: function (ballName, ballCatchRate) {
+  // NOVO: Minigame de captura
+  showCaptureMinigame: function (ballName, ballCatchRate) {
     return new Promise((resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
-      const chance = BattleCore.calculateCatchRate(
-        wildPokemon.currentHp,
-        wildPokemon.maxHp,
-        ballCatchRate
-      );
+      const battleMenu = document.querySelector(".battle-menu");
+      
+      if (!battleMenu) {
+        // Fallback se não encontrar o menu
+        resolve({ success: false, chance: BattleCore.calculateCatchRate(
+          wildPokemon.currentHp,
+          wildPokemon.maxHp,
+          ballCatchRate
+        ) });
+        return;
+      }
+      
+      // Calcula a dificuldade baseada nos fatores
+      const hpRatio = Math.max(0, Math.min(1, wildPokemon.currentHp / wildPokemon.maxHp));
+      const level = Math.max(1, wildPokemon.level || 1);
+      
+      // Fatores de dificuldade:
+      // - Vida baixa = mais fácil (zona verde maior)
+      // - Nível alto = mais difícil (zona verde menor)
+      // - Bola melhor = mais fácil (zona verde maior)
+      const baseGreenZoneSize = 20; // Tamanho base da zona verde (centro) em %
+      const baseYellowZoneSize = 15; // Tamanho da zona amarela (meio) em %
+      const hpBonus = (1 - hpRatio) * 15; // Até 15% de bônus se HP baixo
+      const levelPenalty = (level / 100) * 12; // Até 12% de penalidade se nível alto
+      const ballBonus = (ballCatchRate - 0.5) * 8; // Bônus baseado na qualidade da bola
+      
+      // Tamanho das zonas (verde no centro, amarelo ao redor, vermelho nos extremos)
+      const greenZoneSize = Math.max(10, Math.min(35, 
+        baseGreenZoneSize + hpBonus - levelPenalty + ballBonus
+      ));
+      const yellowZoneSize = Math.max(10, Math.min(25,
+        baseYellowZoneSize + (hpBonus * 0.5) - (levelPenalty * 0.5)
+      ));
+      
+      // Velocidade da barra aumentada (nível alto = mais rápido)
+      const baseSpeed = 4; // Velocidade base aumentada (era 2)
+      const speedMultiplier = 1 + (level / 40); // Mais rápido com nível alto
+      const barSpeed = baseSpeed * speedMultiplier;
+      
+      // Substitui o conteúdo do menu pelo minigame
+      battleMenu.innerHTML = `
+        <div class="battle-menu-body">
+          <div style="padding: 15px; text-align: center;">
+            <div style="font-size: 0.9rem; font-weight: bold; color: #fbbf24; text-shadow: 2px 2px 0px #000; margin-bottom: 10px; text-transform: uppercase;">
+              MINIGAME DE CAPTURA
+            </div>
+            <div style="font-size: 0.7rem; color: #fff; margin-bottom: 15px; text-shadow: 1px 1px 0px #000;">
+              Clique na área quando a barra estiver na zona verde!
+            </div>
+            <div id="capture-timing-container" style="width: 100%; height: 60px; background: #1e293b; border: 3px solid #000; border-radius: 8px; position: relative; overflow: hidden; margin: 15px 0; cursor: pointer;">
+              <!-- Zona vermelha (extremos - erro) -->
+              <div id="capture-red-zone-left" style="position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); opacity: 0.5;"></div>
+              <div id="capture-red-zone-right" style="position: absolute; top: 0; right: 0; height: 100%; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); opacity: 0.5;"></div>
+              <!-- Zona amarela (meio - acerta sem bônus) -->
+              <div id="capture-yellow-zone" style="position: absolute; top: 0; height: 100%; background: linear-gradient(180deg, #facc15 0%, #eab308 100%); border: 2px solid #fff; opacity: 0.6; box-shadow: inset 0 0 15px rgba(250, 204, 21, 0.6);"></div>
+              <!-- Zona verde (centro - maior chance) -->
+              <div id="capture-green-zone" style="position: absolute; top: 0; height: 100%; background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); border: 2px solid #fff; opacity: 0.7; box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.8);"></div>
+              <!-- Linha central -->
+              <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.8); z-index: 10;"></div>
+              <!-- Barra móvel -->
+              <div id="capture-timing-bar" style="position: absolute; top: 0; left: 0; height: 100%; width: 20px; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); transition: left 0.03s linear; z-index: 5;"></div>
+            </div>
+            <div id="capture-feedback" style="text-align: center; font-size: 0.8rem; font-weight: bold; margin-top: 10px; text-shadow: 2px 2px 0px #000; min-height: 20px;"></div>
+          </div>
+        </div>
+      `;
+      
+      const barElement = document.getElementById("capture-timing-bar");
+      const greenZoneElement = document.getElementById("capture-green-zone");
+      const yellowZoneElement = document.getElementById("capture-yellow-zone");
+      const redZoneLeftElement = document.getElementById("capture-red-zone-left");
+      const redZoneRightElement = document.getElementById("capture-red-zone-right");
+      const feedbackElement = document.getElementById("capture-feedback");
+      const container = document.getElementById("capture-timing-container");
+      
+      // Aguarda um frame para garantir que o elemento está renderizado
+      setTimeout(() => {
+        // Configura as zonas
+        const containerWidth = container.offsetWidth;
+        
+        // Zona verde (centro - menor)
+        const greenWidth = (containerWidth * greenZoneSize) / 100;
+        const greenLeft = (containerWidth - greenWidth) / 2;
+        
+        // Zona amarela (ao redor do verde - maior que verde)
+        // O amarelo engloba o verde, então precisa ser maior
+        const yellowTotalWidth = (containerWidth * (greenZoneSize + yellowZoneSize)) / 100;
+        const yellowLeft = (containerWidth - yellowTotalWidth) / 2;
+        
+        // Zonas vermelhas (extremas - o que sobra nas laterais, fora do amarelo)
+        const redZoneWidth = (containerWidth - yellowTotalWidth) / 2;
+        
+        // Aplica os tamanhos
+        greenZoneElement.style.width = `${greenWidth}px`;
+        greenZoneElement.style.left = `${greenLeft}px`;
+        
+        yellowZoneElement.style.width = `${yellowTotalWidth}px`;
+        yellowZoneElement.style.left = `${yellowLeft}px`;
+        
+        redZoneLeftElement.style.width = `${redZoneWidth}px`;
+        redZoneRightElement.style.width = `${redZoneWidth}px`;
+        
+        // Variáveis para o handler do clique
+        const greenStart = greenLeft;
+        const greenEnd = greenLeft + greenWidth;
+        const yellowStart = yellowLeft;
+        const yellowEnd = yellowLeft + yellowTotalWidth;
+        
+        let barPosition = 0;
+        let direction = 1; // 1 = direita, -1 = esquerda
+        let gameActive = true;
+        let clicked = false;
+        let animateBarInterval = null;
+        
+        // Animação da barra usando setInterval para melhor controle
+        const startAnimation = () => {
+          animateBarInterval = setInterval(() => {
+            if (!gameActive || clicked) {
+              if (animateBarInterval) clearInterval(animateBarInterval);
+              return;
+            }
+            
+            barPosition += barSpeed * direction;
+            
+            // Inverte direção nas bordas
+            if (barPosition >= containerWidth - 20) {
+              barPosition = containerWidth - 20;
+              direction = -1;
+            } else if (barPosition <= 0) {
+              barPosition = 0;
+              direction = 1;
+            }
+            
+            barElement.style.left = `${barPosition}px`;
+          }, 12); // ~83 FPS para movimento mais suave
+        };
+        
+        startAnimation();
+        
+        // Handler do clique na área toda
+        const handleClick = (e) => {
+          if (!gameActive || clicked) return;
+          
+          clicked = true;
+          gameActive = false;
+          if (animateBarInterval) clearInterval(animateBarInterval);
+          container.style.cursor = "not-allowed";
+          container.style.opacity = "0.7";
+          
+          // Verifica em qual zona a barra está
+          const barCenter = barPosition + 10; // Centro da barra (largura 20px)
+          
+          const baseChance = BattleCore.calculateCatchRate(
+            wildPokemon.currentHp,
+            wildPokemon.maxHp,
+            ballCatchRate
+          );
+          
+          // Verifica primeiro a zona verde (mais interna)
+          if (barCenter >= greenStart && barCenter <= greenEnd) {
+            // ZONA VERDE - Maior chance de captura
+            const zoneCenter = greenLeft + (greenWidth / 2);
+            const distanceFromCenter = Math.abs(barCenter - zoneCenter);
+            const maxDistance = greenWidth / 2;
+            const precision = 1 - (distanceFromCenter / maxDistance); // 0 a 1
+            
+            // Bônus de precisão: até 25% extra se clicou no centro exato
+            const precisionBonus = precision * 25;
+            const finalChance = Math.min(95, baseChance + precisionBonus);
+            
+            feedbackElement.textContent = `PERFEITO! Precisão: ${Math.round(precision * 100)}%!`;
+            feedbackElement.style.color = "#22c55e";
+            
+            setTimeout(() => {
+              resolve({ success: true, chance: finalChance });
+            }, 1000);
+          } 
+          // Depois verifica a zona amarela (meio, mas não no verde)
+          else if (barCenter >= yellowStart && barCenter <= yellowEnd) {
+            // ZONA AMARELA - Acerta mas sem bônus
+            const finalChance = baseChance; // Chance base, sem modificação
+            
+            feedbackElement.textContent = "Bom! Mas poderia ser melhor...";
+            feedbackElement.style.color = "#facc15";
+            
+            setTimeout(() => {
+              resolve({ success: true, chance: finalChance });
+            }, 1000);
+          } 
+          // Por último, zona vermelha (extremos)
+          else {
+            // ZONA VERMELHA - Erra completamente
+            const finalChance = Math.max(5, baseChance * 0.5); // Reduz chance pela metade
+            
+            feedbackElement.textContent = "Errou! A pokébola falhou!";
+            feedbackElement.style.color = "#ef4444";
+            
+            setTimeout(() => {
+              resolve({ success: false, chance: finalChance });
+            }, 1500);
+          }
+        };
+        
+        container.addEventListener("click", handleClick);
+        
+        // Timeout de segurança (se não clicar em 8 segundos, falha)
+        setTimeout(() => {
+          if (!clicked) {
+            gameActive = false;
+            clicked = true;
+            if (animateBarInterval) clearInterval(animateBarInterval);
+            container.style.cursor = "not-allowed";
+            container.style.opacity = "0.7";
+            
+            const baseChance = BattleCore.calculateCatchRate(
+              wildPokemon.currentHp,
+              wildPokemon.maxHp,
+              ballCatchRate
+            );
+            
+            feedbackElement.textContent = "Tempo esgotado!";
+            feedbackElement.style.color = "#ef4444";
+            
+            setTimeout(() => {
+              resolve({ success: false, chance: baseChance * 0.3 });
+            }, 1000);
+          }
+        }, 8000);
+      }, 50); // Pequeno delay para garantir renderização
+      
+    });
+  },
 
-      const roll = Math.floor(Math.random() * 100) + 1;
+  animateCapture: function (ballName, ballCatchRate) {
+    return new Promise(async (resolve) => {
+      const wildPokemon = window.gameState.battle.opponent;
       const opponentSpriteElement = document.querySelector(".opponent-sprite");
-
       const ballSpriteUrl = BattleCore._getBallSpriteUrl(ballName);
 
+      // Mostra o minigame primeiro
+      const minigameResult = await BattleCore.showCaptureMinigame(ballName, ballCatchRate);
+      
+      // Atualiza sprite para pokebola
       if (opponentSpriteElement) {
         opponentSpriteElement.src = ballSpriteUrl;
-
         opponentSpriteElement.classList.remove(
           "top-2",
           "right-0",
@@ -1269,15 +1612,22 @@ export const BattleCore = {
           "transform",
           "-translate-y-1/2"
         );
-
         opponentSpriteElement.classList.add("capture-shake-position");
         opponentSpriteElement.classList.add("animate-spin-slow");
         opponentSpriteElement.style.transform = "scale(1.5)";
       }
 
-      let shakes = 0;
-      let isCaptured = roll <= chance;
+      // Usa a chance ajustada do minigame
+      const finalChance = minigameResult.chance;
+      const roll = Math.floor(Math.random() * 100) + 1;
+      let isCaptured = roll <= finalChance;
 
+      // Se o minigame foi bem-sucedido, aumenta ainda mais a chance
+      if (minigameResult.success) {
+        isCaptured = roll <= finalChance;
+      }
+
+      let shakes = 0;
       const shakeInterval = setInterval(() => {
         shakes++;
 

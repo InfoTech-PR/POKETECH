@@ -56,6 +56,49 @@ export const GameLogic = {
   // Item de evolução pendente (ex.: definido pela UI ao clicar "Usar Pedra")
   _pendingEvolutionItem: null,
 
+  // ==== Sistema de Doces de Pokémon ====
+  
+  // Adiciona doce quando Pokémon é capturado ou solto
+  addPokemonCandy: function(pokemonId, amount = 1) {
+    if (!window.gameState.profile.pokemonCandy) {
+      window.gameState.profile.pokemonCandy = {};
+    }
+    const currentCandy = window.gameState.profile.pokemonCandy[pokemonId] || 0;
+    window.gameState.profile.pokemonCandy[pokemonId] = currentCandy + amount;
+  },
+
+  // Obtém a quantidade de doces de um Pokémon
+  getPokemonCandy: function(pokemonId) {
+    if (!window.gameState.profile.pokemonCandy) {
+      window.gameState.profile.pokemonCandy = {};
+    }
+    return window.gameState.profile.pokemonCandy[pokemonId] || 0;
+  },
+
+  // Verifica se tem doces suficientes para evoluir (baseado no nível)
+  canEvolveWithCandy: function(level) {
+    if (level >= 35) {
+      return 500;
+    } else if (level >= 22) {
+      return 300;
+    } else if (level >= 16) {
+      return 200;
+    }
+    return null; // Não pode evoluir neste nível
+  },
+
+  // Obtém os requisitos de evolução (nível e doces)
+  getEvolutionRequirements: function(level) {
+    if (level >= 35) {
+      return { level: 35, candy: 500 };
+    } else if (level >= 22) {
+      return { level: 22, candy: 300 };
+    } else if (level >= 16) {
+      return { level: 16, candy: 200 };
+    }
+    return null; // Não pode evoluir
+  },
+
   // Consumo simples de item por nome
   consumeItem: function (itemName) {
     if (!itemName) return false;
@@ -235,6 +278,10 @@ export const GameLogic = {
         }
         if (typeof window.gameState.profile.normalBattleCount !== 'number') {
           window.gameState.profile.normalBattleCount = 0;
+        }
+        // NOVO: Garante que o sistema de doces exista
+        if (!window.gameState.profile.pokemonCandy || typeof window.gameState.profile.pokemonCandy !== 'object') {
+          window.gameState.profile.pokemonCandy = {};
         }
 
         console.log("Perfil do usuário carregado do Firestore!");
@@ -740,27 +787,37 @@ export const GameLogic = {
 
     const GameConfig = window.GameConfig;
 
-    // Requisitos do projeto (custo e EXP)
-    if (window.gameState.profile.money < GameConfig.EVOLUTION_COST) {
+    // NOVO: Sistema de evolução baseado em nível e doces
+    const evolutionReqs = window.GameLogic.getEvolutionRequirements(pokemon.level);
+    if (!evolutionReqs) {
       window.Utils.showModal(
         "errorModal",
-        `Você precisa de P$${GameConfig.EVOLUTION_COST} para evoluir ${pokemon.name}.`
+        `${pokemon.name} precisa estar no nível 16, 22 ou 35 para evoluir!`
       );
       return;
     }
 
-    const requiredExp = 1000; // mantido conforme seu código
-    if (pokemon.exp < requiredExp) {
+    // Verifica se está no nível certo
+    if (pokemon.level < evolutionReqs.level) {
       window.Utils.showModal(
         "errorModal",
-        `${pokemon.name} precisa de ${requiredExp} EXP para evoluir!`
+        `${pokemon.name} precisa estar no nível ${evolutionReqs.level} para evoluir! (Atual: ${pokemon.level})`
       );
       return;
     }
 
-    // Débito de custo e EXP
-    window.gameState.profile.money -= GameConfig.EVOLUTION_COST;
-    pokemon.exp -= requiredExp;
+    // Verifica se tem doces suficientes
+    const pokemonCandy = window.GameLogic.getPokemonCandy(pokemon.id);
+    if (pokemonCandy < evolutionReqs.candy) {
+      window.Utils.showModal(
+        "errorModal",
+        `${pokemon.name} precisa de ${evolutionReqs.candy} doces para evoluir! (Você tem: ${pokemonCandy})`
+      );
+      return;
+    }
+
+    // Consome os doces
+    window.gameState.profile.pokemonCandy[pokemon.id] = pokemonCandy - evolutionReqs.candy;
 
     let consumedItemName = null;
 
@@ -809,7 +866,7 @@ export const GameLogic = {
       window.gameState.profile.pokemon[pokemonIndex] = newPokemonData;
       window.GameLogic.saveGameData();
 
-      let successMessage = `Parabéns! Seu ${pokemon.name} evoluiu para **${newPokemonData.name}**!`;
+      let successMessage = `Parabéns! Seu ${pokemon.name} evoluiu para **${newPokemonData.name}**! (${evolutionReqs.candy} doces utilizados)`;
       if (consumedItemName) {
         successMessage += ` (Item **${consumedItemName}** utilizado)`;
       }
@@ -820,9 +877,8 @@ export const GameLogic = {
       );
       window.Renderer.showScreen("pokemonList");
     } else {
-      // Reembolsa o dinheiro se a evolução falhar (dados locais ausentes)
-      window.gameState.profile.money += GameConfig.EVOLUTION_COST;
-      pokemon.exp += requiredExp;
+      // Reembolsa os doces se a evolução falhar (dados locais ausentes)
+      window.gameState.profile.pokemonCandy[pokemon.id] = pokemonCandy;
       window.Utils.showModal(
         "errorModal",
         `Falha ao buscar dados de ${window.Utils.formatName(targetName)}. Evolução cancelada.`
@@ -845,6 +901,9 @@ export const GameLogic = {
       1
     )[0];
     
+    // NOVO: Adiciona doce quando Pokémon é solto
+    window.GameLogic.addPokemonCandy(releasedPokemon.id, 1);
+    
     // NOVO: Remove o pokémon da equipe de batalha e ajusta os índices
     const profile = window.gameState.profile;
     if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
@@ -857,7 +916,8 @@ export const GameLogic = {
     }
     
     window.GameLogic.saveGameData();
-    window.Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name}.`);
+    const pokemonCandy = window.GameLogic.getPokemonCandy(releasedPokemon.id);
+    window.Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name} e ganhou 1 doce! (Total: ${pokemonCandy} doces de ${releasedPokemon.name})`);
     window.Renderer.showScreen("managePokemon");
   },
 

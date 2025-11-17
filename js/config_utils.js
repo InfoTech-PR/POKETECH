@@ -155,6 +155,7 @@ export async function createConfigAndUtils(v) {
         })),
         pokemon: [],
         battleTeam: [], // NOVO: Índices dos até 5 pokémons para batalha (máximo 5)
+        pokemonCandy: {}, // NOVO: Doces por Pokémon ID (ex: {1: 50, 4: 100})
         trainerGender: "MALE",
         pokedex: new Set(),
         trainerLevel: 1, // NOVO: Nível do treinador (começa em 1)
@@ -279,6 +280,11 @@ export async function createConfigAndUtils(v) {
           }
           if (typeof window.gameState.profile.normalBattleCount !== 'number') {
             window.gameState.profile.normalBattleCount = 0;
+          }
+
+          // NOVO: Garante que o sistema de doces exista
+          if (!window.gameState.profile.pokemonCandy || typeof window.gameState.profile.pokemonCandy !== 'object') {
+            window.gameState.profile.pokemonCandy = {};
           }
 
           // Garante que o estado do clima exista com defaults
@@ -677,6 +683,20 @@ export async function createConfigAndUtils(v) {
     },
 
     calculateExpToNextLevel: function (level) {
+      // NOVO: Sistema de XP por faixa de nível
+      // Níveis 1-9: 1000 XP por nível
+      if (level < 10) {
+        return 1000;
+      }
+      // Níveis 10-19: 1500 XP por nível
+      if (level < 20) {
+        return 1500;
+      }
+      // Níveis 20-29: 2200 XP por nível
+      if (level < 30) {
+        return 2200;
+      }
+      // Níveis 30+: Mantém o sistema antigo ou valor padrão alto
       const { EXP_BASE, EXP_GROWTH_RATE } = GameConfig;
       return Math.floor(EXP_BASE * Math.pow(level + 1, EXP_GROWTH_RATE));
     },

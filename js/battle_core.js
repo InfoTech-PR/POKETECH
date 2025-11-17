@@ -1094,7 +1094,7 @@ export const BattleCore = {
       BattleCore.addBattleLog(`Você ganhou P$${moneyGain}.`);
     }
 
-    const totalExpGain = Math.floor((defeatedLevel * 50) / 5);
+    const totalExpGain = Math.floor((defeatedLevel * 50) / 5 * 1.1); // NOVO: Aumentado em 10%
 
     // 1. Converte o Set para Array e ordena pelo índice para log limpo
     // Filtra índices que ainda estão no time (ou seja, não foram soltos, etc.)
@@ -1313,6 +1313,9 @@ export const BattleCore = {
                 forceResetUses: true,
               });
               window.gameState.profile.pokemon.push(wildPokemon);
+
+              // NOVO: Adiciona doce quando Pokémon é capturado
+              window.GameLogic.addPokemonCandy(wildPokemon.id, 1);
 
               // NOVO: Treinador ganha XP ao capturar (baseado no nível do Pokémon)
               const captureExp = Math.floor(wildPokemon.level * 5);

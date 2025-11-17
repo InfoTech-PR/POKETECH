@@ -382,12 +382,14 @@ export const RendererPokemon = {
       // O Pokémon é de Evolução Máxima se não for ramificado E não houver próxima evolução linear
       const isMaxEvolution = !isBranched && nextEvolutionName === null;
 
-
-      const hasMoney = window.gameState.profile.money >= evolutionCost;
-      const hasExp = p.exp >= requiredExp;
+      // NOVO: Sistema de evolução baseado em nível e doces
+      const evolutionReqs = window.GameLogic.getEvolutionRequirements(p.level);
+      const pokemonCandy = window.GameLogic.getPokemonCandy(p.id);
+      const hasLevel = evolutionReqs && p.level >= evolutionReqs.level;
+      const hasCandy = evolutionReqs && pokemonCandy >= evolutionReqs.candy;
 
       // A condição para evoluir (ou ver opções) é: NÃO é max evolution E tem recursos
-      const canEvolve = !isMaxEvolution && hasMoney && hasExp;
+      const canEvolve = !isMaxEvolution && hasLevel && hasCandy;
 
       let evolveButtonText = "Evoluir";
       let evolveButtonClass = "bg-blue-500 hover:bg-blue-600";
@@ -398,11 +400,14 @@ export const RendererPokemon = {
       } else if (isBranched) {
         evolveButtonText = "Ver Evoluções";
         evolveButtonClass = "bg-yellow-500 hover:bg-yellow-600";
-      } else if (!hasMoney) {
-        evolveButtonText = `Falta P$ (${evolutionCost - window.gameState.profile.money}P$)`;
+      } else if (!evolutionReqs) {
+        evolveButtonText = `Nv. ${p.level < 16 ? 16 : p.level < 22 ? 22 : 35} necessário`;
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
-      } else if (!hasExp) {
-        evolveButtonText = `Falta EXP (${requiredExp - p.exp}xp)`;
+      } else if (!hasLevel) {
+        evolveButtonText = `Falta nível (Nv. ${evolutionReqs.level})`;
+        evolveButtonClass = "bg-gray-400 cursor-not-allowed";
+      } else if (!hasCandy) {
+        evolveButtonText = `Falta doce (${evolutionReqs.candy - pokemonCandy})`;
         evolveButtonClass = "bg-gray-400 cursor-not-allowed";
       }
       const isDisabledEvolve = !canEvolve && !isMaxEvolution;
@@ -425,7 +430,7 @@ export const RendererPokemon = {
             <img src="${p.sprite}" alt="${p.name}" class="w-10 h-10 mr-2 flex-shrink-0">
             <div class="flex-grow min-w-0">
               <div class="font-bold gba-font break-words text-xs">${window.Utils.getPokemonDisplayName(p)} (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ""}</div>
-              <div class="text-[8px] gba-font">HP: ${p.currentHp}/${p.maxHp} | EXP: ${p.exp}/${requiredExp}</div>
+              <div class="text-[8px] gba-font">HP: ${p.currentHp}/${p.maxHp} | Doces: ${pokemonCandy}${evolutionReqs ? ` (Necessário: ${evolutionReqs.candy} no Nv. ${evolutionReqs.level})` : ''}</div>
             </div>
           </div>
           <div class="flex space-x-2 w-full sm:w-1/2 justify-end">

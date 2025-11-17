@@ -456,7 +456,7 @@ export const RendererServices = {
                 
                 <div class="flex flex-col flex-grow min-w-0">
                     <div class="font-bold gba-font text-xs truncate">
-                        ${p.name} (Nv. ${p.level}) 
+                        ${window.Utils.getPokemonDisplayName(p)} (Nv. ${p.level}) 
                         ${isCurrent ? '<span class="text-[8px] text-green-600">(Em Campo)</span>' : ''}
                         ${p.currentHp <= 0 && !isCurrent ? '<span class="text-[8px] text-red-600">(Desmaiado)</span>' : ''}
                     </div>

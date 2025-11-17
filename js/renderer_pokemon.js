@@ -197,7 +197,7 @@ export const RendererPokemon = {
             <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${p.name}', ${index})">
                 <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <div class="flex flex-col min-w-0">
-                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${p.name} ${isCurrentActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ''}</div>
+                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${window.Utils.getPokemonDisplayName(p)} ${isCurrentActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ''}</div>
                     <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
@@ -313,7 +313,7 @@ export const RendererPokemon = {
           <div class="flex items-center w-full sm:w-1/2">
             <img src="${p.sprite}" alt="${p.name}" class="w-10 h-10 mr-2 flex-shrink-0">
             <div class="flex-grow min-w-0">
-              <div class="font-bold gba-font break-words text-xs">${p.name} (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ""}</div>
+              <div class="font-bold gba-font break-words text-xs">${window.Utils.getPokemonDisplayName(p)} (Nv. ${p.level}) ${isCurrentlyActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ""}</div>
               <div class="text-[8px] gba-font">HP: ${p.currentHp}/${p.maxHp} | EXP: ${p.exp}/${requiredExp}</div>
             </div>
           </div>
@@ -442,7 +442,7 @@ export const RendererPokemon = {
               <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-12 h-12 mr-2 flex-shrink-0">
               <div class="flex-grow min-w-0">
                 <div class="font-bold gba-font text-xs truncate">
-                  ${p.name} (Nv. ${p.level})
+                  ${window.Utils.getPokemonDisplayName(p)} (Nv. ${p.level})
                   ${isInTeam ? '<span class="text-[8px] text-blue-600 ml-1">(NA EQUIPE)</span>' : ''}
                 </div>
                 <div class="text-[8px] gba-font">HP: ${p.currentHp}/${p.maxHp}</div>
@@ -740,13 +740,20 @@ export const RendererPokemon = {
       </div>
     `;
 
+      const displayName = window.Utils.getPokemonDisplayName(p);
+      const nicknameSection = p.nickname ? `<p class="text-xs gba-font text-gray-600 mt-1">Apelido: <strong>${p.nickname}</strong> | Nome original: ${p.name}</p>` : '';
+      
       // Montagem do modal
       const modalContent = `
       <div class="text-xl font-bold text-gray-800 gba-font mb-2 text-center flex-shrink-0">
-        #${p.id.toString().padStart(3, "0")} - ${p.name} (Nv. ${p.level})
+        #${p.id.toString().padStart(3, "0")} - ${displayName} (Nv. ${p.level})
       </div>
+      ${nicknameSection}
+      <button onclick="window.Renderer.showRenamePokemonModal(${pokemonIndex})" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2 mt-2 flex-shrink-0">
+        <i class="fa-solid fa-pen mr-2"></i>Renomear Pokémon
+      </button>
 
-      <img src="${p.sprite || `../assets/sprites/pokemon/${p.id}_front.png`}" alt="${p.name}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
+      <img src="${p.sprite || `../assets/sprites/pokemon/${p.id}_front.png`}" alt="${displayName}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
       <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
 
       <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
@@ -1135,7 +1142,98 @@ export const RendererPokemon = {
       }
     }
   },
-  // Dentro de export const RendererPokemon = { ... }
+
+  // NOVO: Função para mostrar modal de renomear pokémon
+  showRenamePokemonModal: function (pokemonIndex) {
+    const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon inválido.");
+      return;
+    }
+
+    const currentNickname = pokemon.nickname || "";
+    const modalId = "renamePokemonModal";
+    
+    // Cria o modal se não existir
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = modalId;
+      modal.className = "fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center z-50";
+      modal.innerHTML = `
+        <div class="bg-gray-100 border-4 border-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-sm">
+          <div class="text-lg font-bold text-gray-800 gba-font mb-4 text-center">RENOMEAR POKÉMON</div>
+          <div class="modal-body"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    const modalBody = modal.querySelector(".modal-body");
+    const displayName = window.Utils.getPokemonDisplayName(pokemon);
+    
+    modalBody.innerHTML = `
+      <p class="text-sm gba-font text-gray-700 mb-3 text-center">
+        Renomear <strong>${displayName}</strong><br>
+        <span class="text-xs">Nome original: ${pokemon.name}</span>
+      </p>
+      <input type="text" 
+             id="pokemonNicknameInput" 
+             value="${currentNickname}" 
+             placeholder="Digite um apelido (máx. 20 caracteres)" 
+             maxlength="20"
+             class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm mb-3">
+      <div class="flex gap-2">
+        <button onclick="window.Renderer.confirmRenamePokemon(${pokemonIndex})" 
+                class="gba-button bg-green-500 hover:bg-green-600 flex-1">
+          Salvar
+        </button>
+        ${currentNickname ? `
+          <button onclick="window.GameLogic.renamePokemon(${pokemonIndex}, '')" 
+                  class="gba-button bg-red-500 hover:bg-red-600 flex-1">
+            Remover Apelido
+          </button>
+        ` : ''}
+        <button onclick="window.Utils.hideModal('renamePokemonModal')" 
+                class="gba-button bg-gray-500 hover:bg-gray-600 flex-1">
+          Cancelar
+        </button>
+      </div>
+    `;
+    
+    modal.classList.remove("hidden");
+    
+    // Foca no input e seleciona o texto
+    setTimeout(() => {
+      const input = document.getElementById("pokemonNicknameInput");
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 100);
+  },
+
+  // NOVO: Função para confirmar renomeação do pokémon
+  confirmRenamePokemon: function (pokemonIndex) {
+    const input = document.getElementById("pokemonNicknameInput");
+    if (!input) {
+      window.Utils.showModal("errorModal", "Input não encontrado.");
+      return;
+    }
+    
+    const newNickname = input.value.trim();
+    window.GameLogic.renamePokemon(pokemonIndex, newNickname);
+    window.Utils.hideModal("renamePokemonModal");
+    
+    // Recarrega o modal de stats para mostrar o novo nome
+    setTimeout(() => {
+      const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+      if (pokemon) {
+        window.Renderer.showPokemonStats(pokemon.name, pokemonIndex);
+      }
+    }, 300);
+  },
+
   _useHealItemOnPokemon: function (pokemonIndex) {
     try {
       const modal = document.getElementById("pokemonStatsModal");

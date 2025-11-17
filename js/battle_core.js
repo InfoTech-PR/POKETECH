@@ -1437,7 +1437,7 @@ export const BattleCore = {
     } else if (action === "move") {
       if (playerPokemon.currentHp <= 0) {
         BattleCore.addBattleLog(
-          `${playerPokemon.name} desmaiou e não pode atacar!`
+          `${window.Utils.getPokemonDisplayName(playerPokemon)} desmaiou e não pode atacar!`
         );
         BattleCore.setBattleMenu("main", true);
         return;
@@ -1452,7 +1452,7 @@ export const BattleCore = {
         const moveType = isSpecialMove ? "energia" : "PA";
         BattleCore.addBattleLog(
           `${
-            playerPokemon.name
+            window.Utils.getPokemonDisplayName(playerPokemon)
           } está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
         );
         BattleCore.setBattleMenu("fight", true);
@@ -1496,7 +1496,7 @@ export const BattleCore = {
       const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
       if (!paUsed) {
         BattleCore.addBattleLog(
-          `${playerPokemon.name} não conseguiu usar ${window.Utils.formatName(
+          `${window.Utils.getPokemonDisplayName(playerPokemon)} não conseguiu usar ${window.Utils.formatName(
             moveName
           )}!`
         );
@@ -1508,7 +1508,7 @@ export const BattleCore = {
       // Obtém PA atualizado após o uso
       const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
 
-      let logMessage = `${playerPokemon.name} usou ${window.Utils.formatName(
+      let logMessage = `${window.Utils.getPokemonDisplayName(playerPokemon)} usou ${window.Utils.formatName(
         moveName
       )}!${effectivenessMessage}`;
       if (damageResult.damage > 0) {
@@ -1678,7 +1678,7 @@ export const BattleCore = {
         );
 
         if (hasLivePokemon) {
-          const faintedMessage = `${playerPokemon.name} desmaiou! Você precisa trocar de Pokémon.`;
+          const faintedMessage = `${window.Utils.getPokemonDisplayName(playerPokemon)} desmaiou! Você precisa trocar de Pokémon.`;
           BattleCore.addBattleLog(faintedMessage);
           BattleCore.forceSwitchSelection(faintedMessage);
           return;
@@ -2075,13 +2075,13 @@ export const BattleCore = {
             <div class="battle-row battle-row-player">
               <div class="battle-sprite-wrap">
                 <img src="${playerBackSprite}" alt="${
-      playerPokemon.name
+      window.Utils.getPokemonDisplayName(playerPokemon)
     }" class="battle-sprite player-sprite player">
                 <div class="battle-platform"></div>
               </div>
               <div class="battle-card">
                 <div class="battle-name-row gba-font">
-                  <span>${playerPokemon.name}</span>
+                  <span>${window.Utils.getPokemonDisplayName(playerPokemon)}</span>
                   <span>Nv. ${playerPokemon.level}</span>
                 </div>
                 <div class="battle-type-row">

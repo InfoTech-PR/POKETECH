@@ -861,6 +861,41 @@ export const GameLogic = {
     window.Renderer.showScreen("managePokemon");
   },
 
+  // NOVO: Função para renomear um pokémon
+  renamePokemon: function (pokemonIndex, newNickname) {
+    const profile = window.gameState.profile;
+    const pokemon = profile.pokemon[pokemonIndex];
+    
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon inválido.");
+      return false;
+    }
+
+    // Remove espaços no início e fim, e limita o tamanho
+    const trimmedNickname = newNickname ? newNickname.trim().substring(0, 20) : "";
+    
+    // Se o nickname estiver vazio, remove o nickname (volta ao nome original)
+    if (trimmedNickname === "") {
+      delete pokemon.nickname;
+      window.GameLogic.saveGameData();
+      window.Utils.showModal(
+        "infoModal",
+        `O nome de ${pokemon.name} foi resetado para o nome original.`
+      );
+      return true;
+    }
+
+    pokemon.nickname = trimmedNickname;
+    window.GameLogic.saveGameData();
+    
+    const displayName = window.Utils.getPokemonDisplayName(pokemon);
+    window.Utils.showModal(
+      "infoModal",
+      `${pokemon.name} agora se chama ${displayName}!`
+    );
+    return true;
+  },
+
   // NOVO: Função para alternar um pokémon na equipe de batalha
   toggleBattleTeamPokemon: function (index) {
     const profile = window.gameState.profile;

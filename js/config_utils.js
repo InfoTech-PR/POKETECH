@@ -536,6 +536,13 @@ export async function createConfigAndUtils(v) {
       return { remaining, max };
     },
 
+    // NOVO: Função auxiliar para obter o nome de exibição do pokémon (nickname ou nome original)
+    getPokemonDisplayName: function (pokemon) {
+      if (!pokemon) return "";
+      // Retorna o nickname se existir e não estiver vazio, senão retorna o nome original
+      return (pokemon.nickname && pokemon.nickname.trim()) ? pokemon.nickname.trim() : pokemon.name;
+    },
+
     // NOVO: Função para usar PA de um movimento
     useMovePA: function (pokemon, moveName) {
       if (!pokemon || !moveName) return false;

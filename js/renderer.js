@@ -67,6 +67,8 @@ export async function createRenderer(v) {
 
         showPokemonStats: RendererPokemon.showPokemonStats,
         showPokedexStats: RendererPokemon.showPokedexStats,
+        showRenamePokemonModal: RendererPokemon.showRenamePokemonModal,
+        confirmRenamePokemon: RendererPokemon.confirmRenamePokemon,
         selectStarter: RendererMenus.selectStarter, // Mantido aqui para compatibilidade
 
         // Services and Battle Functions (from renderer_services.js)

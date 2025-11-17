@@ -56,6 +56,7 @@ export async function createRenderer(v) {
         renderPokemonList: RendererPokemon.renderPokemonList,
         renderManagePokemon: RendererPokemon.renderManagePokemon,
         renderBag: RendererPokemon.renderBag,
+        renderBattleTeam: RendererPokemon.renderBattleTeam,
 
         // CORREÇÃO E NOVIDADE: renderPokedex agora é a tela que exibe a lista de regiões
         // A função detalhada é chamada internamente.

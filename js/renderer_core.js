@@ -64,6 +64,9 @@ export const RendererCore = {
         // Passa o objeto seguro
         window.Renderer.renderBag(app, safeExtraData);
         break;
+      case "battleTeam":
+        window.Renderer.renderBattleTeam(app);
+        break;
       case "pokedex":
         // CORREÇÃO APLICADA AQUI: Envia safeExtraData para renderPokedex
         window.Renderer.renderPokedex(app, safeExtraData);

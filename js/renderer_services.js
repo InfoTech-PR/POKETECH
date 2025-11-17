@@ -430,8 +430,19 @@ export const RendererServices = {
       battle?.forceSwitchMessage ||
       "Selecione um Pokémon em condições de lutar.";
 
+    // NOVO: Filtra apenas os pokémons da equipe de batalha
+    const battleTeamIndices = battle?.battleTeamIndices || 
+      (window.gameState.profile.battleTeam && window.gameState.profile.battleTeam.length > 0 
+        ? window.gameState.profile.battleTeam 
+        : pokemonArray.map((_, i) => i).slice(0, 5));
+
     const pokemonHtml = pokemonArray
       .map((p, index) => {
+        // NOVO: Mostra apenas pokémons da equipe de batalha
+        if (!battleTeamIndices.includes(index)) {
+          return null;
+        }
+
         const isCurrent = index === currentActiveIndex;
         const isDisabled = isCurrent || p.currentHp <= 0;
         const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
@@ -460,6 +471,7 @@ export const RendererServices = {
             </div>
         `;
       })
+      .filter(html => html !== null)
       .join("");
 
     const forcedBanner = forceSelection

@@ -232,6 +232,9 @@ export const RendererPokemon = {
       '<p class="text-center text-gray-500 gba-font">Você não tem Pokémons!</p>'
       }
       </div>
+      <button onclick="window.Renderer.showScreen('battleTeam')" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2 flex-shrink-0">
+        <i class="fa-solid fa-users mr-2"></i>Gerenciar Equipe de Batalha
+      </button>
       <button onclick="window.Renderer.showScreen('managePokemon')" class="gba-button bg-cyan-500 hover:bg-cyan-600 w-full mb-2 flex-shrink-0">Gerenciar Pokémons</button>
       <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
     `;
@@ -412,6 +415,78 @@ export const RendererPokemon = {
             </div>
             <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
+    window.Renderer.renderGbaCard(content);
+  },
+
+  // NOVO: Função para renderizar a tela de seleção da equipe de batalha
+  renderBattleTeam: function (app) {
+    const profile = window.gameState.profile;
+    const pokemonArray = profile.pokemon || [];
+    const battleTeam = profile.battleTeam || [];
+    const MAX_BATTLE_TEAM = 5;
+
+    // Garante que battleTeam seja um array válido
+    if (!Array.isArray(battleTeam)) {
+      profile.battleTeam = [];
+    }
+
+    const pokemonHtml = pokemonArray
+      .map((p, index) => {
+        const isInTeam = battleTeam.includes(index);
+        const canToggle = !isInTeam && battleTeam.length < MAX_BATTLE_TEAM;
+        const isDisabled = !canToggle && !isInTeam;
+
+        return `
+          <div class="flex items-center justify-between p-2 border-b border-gray-300 ${isInTeam ? 'bg-blue-50 border-blue-300' : ''}">
+            <div class="flex items-center flex-grow min-w-0">
+              <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-12 h-12 mr-2 flex-shrink-0">
+              <div class="flex-grow min-w-0">
+                <div class="font-bold gba-font text-xs truncate">
+                  ${p.name} (Nv. ${p.level})
+                  ${isInTeam ? '<span class="text-[8px] text-blue-600 ml-1">(NA EQUIPE)</span>' : ''}
+                </div>
+                <div class="text-[8px] gba-font">HP: ${p.currentHp}/${p.maxHp}</div>
+              </div>
+            </div>
+            <button 
+              onclick="window.GameLogic.toggleBattleTeamPokemon(${index})"
+              class="gba-button ${isInTeam ? 'bg-red-500 hover:bg-red-600' : isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'} text-xs px-3 py-1"
+              ${isDisabled ? 'disabled' : ''}>
+              ${isInTeam ? 'Remover' : 'Adicionar'}
+            </button>
+          </div>
+        `;
+      })
+      .join("");
+
+    const teamCount = battleTeam.length;
+    const teamInfo = `
+      <div class="mb-4 p-3 bg-blue-100 border-2 border-blue-300 rounded-lg">
+        <div class="text-center gba-font text-sm font-bold text-blue-800">
+          Equipe de Batalha: ${teamCount} / ${MAX_BATTLE_TEAM}
+        </div>
+        ${teamCount === 0 ? `
+          <p class="text-center text-xs gba-font text-blue-600 mt-2">
+            Selecione até ${MAX_BATTLE_TEAM} pokémons para sua equipe de batalha.
+            Se nenhum for selecionado, os ${MAX_BATTLE_TEAM} primeiros pokémons serão usados.
+          </p>
+        ` : ''}
+        ${teamCount >= MAX_BATTLE_TEAM ? `
+          <p class="text-center text-xs gba-font text-green-600 mt-2">
+            Equipe completa! Você pode remover pokémons para adicionar outros.
+          </p>
+        ` : ''}
+      </div>
+    `;
+
+    const content = `
+      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">EQUIPE DE BATALHA</div>
+      ${teamInfo}
+      <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
+        ${pokemonHtml || '<p class="text-center text-gray-500 gba-font p-4">Você não tem Pokémons!</p>'}
+      </div>
+      <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar à Mochila</button>
+    `;
     window.Renderer.renderGbaCard(content);
   },
 

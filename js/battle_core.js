@@ -675,6 +675,31 @@ const ensureAttackAudioContext = async () => {
   return attackAudioCtx;
 };
 
+// NOVO: Função auxiliar para obter os índices dos pokémons disponíveis para batalha
+function getBattleTeamIndices() {
+  const profile = window.gameState.profile;
+  const battleTeam = profile.battleTeam || [];
+  const pokemonArray = profile.pokemon || [];
+  const MAX_BATTLE_TEAM = 5;
+
+  // Se há uma equipe definida e válida, usa ela
+  if (Array.isArray(battleTeam) && battleTeam.length > 0) {
+    // Filtra apenas índices válidos e pokémons que existem
+    return battleTeam.filter(index => 
+      index >= 0 && 
+      index < pokemonArray.length && 
+      pokemonArray[index]
+    ).slice(0, MAX_BATTLE_TEAM);
+  }
+
+  // Se não há equipe definida, usa os 5 primeiros pokémons
+  const defaultIndices = [];
+  for (let i = 0; i < Math.min(MAX_BATTLE_TEAM, pokemonArray.length); i++) {
+    defaultIndices.push(i);
+  }
+  return defaultIndices;
+}
+
 export const BattleCore = {
   opponentPokemon: null,
 
@@ -752,13 +777,16 @@ export const BattleCore = {
 
   startWildBattle: async function () {
     const profile = window.gameState.profile;
-    const hasAvailablePokemon =
-      Array.isArray(profile.pokemon) &&
-      profile.pokemon.some((pokemon) => pokemon.currentHp > 0);
+    
+    // NOVO: Verifica pokémons da equipe de batalha especificamente
+    const battleTeamIndices = getBattleTeamIndices();
+    const battleTeamPokemon = battleTeamIndices
+      .map(index => profile.pokemon[index])
+      .filter(p => p && p.currentHp > 0);
 
-    if (!hasAvailablePokemon) {
+    if (battleTeamPokemon.length === 0) {
       window.GameLogic.addExploreLog(
-        "Todos os seus Pokémons estão desmaiados! Visite o Centro Pokémon antes de explorar novamente."
+        "Nenhum pokémon da sua equipe de batalha está em condições de lutar! Visite o Centro Pokémon antes de explorar novamente."
       );
       window.AuthSetup?.handleBattleMusic(false);
       return;
@@ -897,13 +925,20 @@ export const BattleCore = {
       specialType = " ⚡ EVOLUÍDO ⚡";
     }
 
+    // NOVO: Encontra o primeiro pokémon da equipe que está vivo para ser o inicial
+    const firstAvailableIndex = battleTeamIndices.find(index => 
+      profile.pokemon[index] && profile.pokemon[index].currentHp > 0
+    ) ?? battleTeamIndices[0] ?? 0;
+
     window.gameState.battle = {
       type: "wild",
       opponent: wildPokemonData,
       isEvolved: isEvolved,
       isLegendary: isLegendary,
-      // CORREÇÃO: Usa o índice 0 como padrão para o Pokémon no slot de líder (o primeiro na lista)
-      playerPokemonIndex: 0,
+      // NOVO: Usa o primeiro pokémon da equipe de batalha disponível
+      playerPokemonIndex: firstAvailableIndex,
+      // NOVO: Armazena os índices da equipe de batalha na batalha
+      battleTeamIndices: battleTeamIndices,
       turn: 0,
       // Mensagem inicial com o status de captura
       lastMessage: `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
@@ -916,8 +951,8 @@ export const BattleCore = {
       forceSwitchMessage: null,
     };
 
-    // Adiciona o índice 0 (Pokémon ativo atual) ao set de participantes
-    window.gameState.battle.participatingIndices.add(0);
+    // Adiciona o índice do pokémon inicial ao set de participantes
+    window.gameState.battle.participatingIndices.add(firstAvailableIndex);
 
     window.Renderer.showScreen("battle");
     BattleCore._checkActivePokemonOnBattleStart();
@@ -1685,6 +1720,21 @@ export const BattleCore = {
   switchPokemon: async function (newIndex) {
     const battle = window.gameState.battle;
     const currentPokemon = window.Utils.getActivePokemon();
+    
+    // NOVO: Verifica se o pokémon está na equipe de batalha
+    const battleTeamIndices = battle?.battleTeamIndices || 
+      (window.gameState.profile.battleTeam && window.gameState.profile.battleTeam.length > 0 
+        ? window.gameState.profile.battleTeam 
+        : window.gameState.profile.pokemon.map((_, i) => i).slice(0, 5));
+    
+    if (!battleTeamIndices.includes(newIndex)) {
+      window.Utils.showModal(
+        'infoModal',
+        'Este pokémon não está na sua equipe de batalha! Selecione um pokémon da equipe.'
+      );
+      return;
+    }
+    
     // NOTA: newPokemon aqui referencia o Pokémon no índice da lista NÃO REORDENADA.
     const newPokemon = window.gameState.profile.pokemon[newIndex];
 

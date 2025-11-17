@@ -154,6 +154,7 @@ export async function createConfigAndUtils(v) {
               : 5,
         })),
         pokemon: [],
+        battleTeam: [], // NOVO: Índices dos até 5 pokémons para batalha (máximo 5)
         trainerGender: "MALE",
         pokedex: new Set(),
         trainerLevel: 1, // NOVO: Nível do treinador (começa em 1)

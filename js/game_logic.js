@@ -844,9 +844,52 @@ export const GameLogic = {
       index,
       1
     )[0];
+    
+    // NOVO: Remove o pokémon da equipe de batalha e ajusta os índices
+    const profile = window.gameState.profile;
+    if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
+      // Remove o índice do pokémon solto da equipe
+      profile.battleTeam = profile.battleTeam.filter(teamIndex => teamIndex !== index);
+      // Ajusta os índices dos pokémons que vinham depois do solto (diminui 1)
+      profile.battleTeam = profile.battleTeam.map(teamIndex => 
+        teamIndex > index ? teamIndex - 1 : teamIndex
+      );
+    }
+    
     window.GameLogic.saveGameData();
     window.Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name}.`);
     window.Renderer.showScreen("managePokemon");
+  },
+
+  // NOVO: Função para alternar um pokémon na equipe de batalha
+  toggleBattleTeamPokemon: function (index) {
+    const profile = window.gameState.profile;
+    if (!profile.battleTeam) {
+      profile.battleTeam = [];
+    }
+    
+    const battleTeam = profile.battleTeam;
+    const MAX_BATTLE_TEAM = 5;
+    const pokemonIndex = battleTeam.indexOf(index);
+
+    if (pokemonIndex !== -1) {
+      // Remove da equipe
+      battleTeam.splice(pokemonIndex, 1);
+      window.GameLogic.saveGameData();
+      window.Renderer.showScreen('battleTeam');
+    } else {
+      // Adiciona à equipe se não estiver cheia
+      if (battleTeam.length < MAX_BATTLE_TEAM) {
+        battleTeam.push(index);
+        window.GameLogic.saveGameData();
+        window.Renderer.showScreen('battleTeam');
+      } else {
+        window.Utils.showModal(
+          'infoModal',
+          `A equipe de batalha está completa (${MAX_BATTLE_TEAM} pokémons). Remova um pokémon antes de adicionar outro.`
+        );
+      }
+    }
   },
 
   setPokemonAsActive: function (index) {
@@ -866,6 +909,25 @@ export const GameLogic = {
 
     const [activePokemon] = pokemonArray.splice(index, 1);
     pokemonArray.unshift(activePokemon);
+
+    // NOVO: Ajusta os índices da equipe de batalha após mover para o primeiro lugar
+    const profile = window.gameState.profile;
+    if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
+      const newBattleTeam = profile.battleTeam.map(oldIndex => {
+        if (oldIndex === index) {
+          // O pokémon movido vai para o índice 0
+          return 0;
+        } else if (oldIndex < index) {
+          // Pokémons que estavam antes do movido: incrementam 1
+          return oldIndex + 1;
+        }
+        // Pokémons que estavam depois do movido: mantêm o índice
+        return oldIndex;
+      });
+      profile.battleTeam = newBattleTeam.filter(i => 
+        i >= 0 && i < pokemonArray.length
+      );
+    }
 
     window.GameLogic.saveGameData();
     window.Utils.showModal(
@@ -921,6 +983,29 @@ export const GameLogic = {
     const pokemonArray = window.gameState.profile.pokemon;
     const [removed] = pokemonArray.splice(draggedIndex, 1);
     pokemonArray.splice(droppedOnIndex, 0, removed);
+
+    // NOVO: Ajusta os índices da equipe de batalha após reordenar
+    const profile = window.gameState.profile;
+    if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
+      // Cria um mapeamento dos índices antigos para os novos após a reordenação
+      const newBattleTeam = profile.battleTeam.map(oldIndex => {
+        if (oldIndex === draggedIndex) {
+          // O pokémon arrastado vai para o novo índice
+          return droppedOnIndex;
+        } else if (draggedIndex < oldIndex && oldIndex <= droppedOnIndex) {
+          // Pokémons que estavam depois do arrastado e antes do destino: movem 1 para trás
+          return oldIndex - 1;
+        } else if (droppedOnIndex <= oldIndex && oldIndex < draggedIndex) {
+          // Pokémons que estavam antes do arrastado mas depois do destino: movem 1 para frente
+          return oldIndex + 1;
+        }
+        // Pokémons não afetados mantêm o mesmo índice
+        return oldIndex;
+      });
+      profile.battleTeam = newBattleTeam.filter(index => 
+        index >= 0 && index < pokemonArray.length
+      );
+    }
 
     window.GameLogic.saveGameData();
 

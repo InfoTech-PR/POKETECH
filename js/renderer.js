@@ -35,7 +35,6 @@ export async function createRenderer(v) {
         renderProfile: RendererMenus.renderProfile,
         renderPreferences: RendererMenus.renderPreferences,
         renderPokemonMenu: RendererMenus.renderPokemonMenu,
-        renderServiceMenu: RendererMenus.renderServiceMenu,
         renderProfileMenu: RendererMenus.renderProfileMenu,
         renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
         handleFriendLinkGeneration: RendererMenus.handleFriendLinkGeneration,

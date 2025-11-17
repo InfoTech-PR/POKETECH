@@ -173,7 +173,7 @@ export const RendererServices = {
       }" ${!canHeal ? "disabled" : ""}>
                 CURAR TODOS
             </button>
-            <button onclick="window.Renderer.showScreen('serviceMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
   },
@@ -257,7 +257,7 @@ export const RendererServices = {
             <p class="text-center text-sm gba-font mb-4 flex-shrink-0">Seu Dinheiro: P$${window.gameState.profile.money}</p>
             <!-- flex-grow e overflow-y-auto para a lista de compras -->
             <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">${shopItemsHtml}</div>
-            <button onclick="window.Renderer.showScreen('serviceMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
         `;
     window.Renderer.renderGbaCard(content);
   },

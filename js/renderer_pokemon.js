@@ -8,6 +8,13 @@ window.currentPokedexFilters = window.currentPokedexFilters || {
   region: null // Adicionado para rastrear a região atual
 };
 
+// NOVO ESTADO GLOBAL: Variável para persistir os filtros da lista de pokémons
+window.currentPokemonListFilters = window.currentPokemonListFilters || {
+  search: '',
+  type: 'all',
+  favorite: 'all' // 'all', 'favorite', 'not-favorite'
+};
+
 // NOVO ESTADO GLOBAL: Variável temporária para carregar o payload (extraData)
 // para a próxima tela de forma robusta, contornando o bug de passagem de argumentos.
 window.nextScreenPayload = null;
@@ -162,27 +169,76 @@ export const RendererPokemon = {
         : null;
     window.gameState.pendingSupportItem = pendingSupportItem || null;
 
-    const pokemonArray = window.gameState.profile.pokemon;
+    // NOVO: Inicializa filtros se não existirem
+    const filters = window.currentPokemonListFilters || {
+      search: '',
+      type: 'all',
+      favorite: 'all'
+    };
+    window.currentPokemonListFilters = filters;
+
+    // NOVO: Filtra os pokémons
+    let pokemonArray = window.gameState.profile.pokemon;
+    
+    // Filtro por busca (nome)
+    if (filters.search && filters.search.trim()) {
+      const searchTerm = filters.search.trim().toLowerCase();
+      pokemonArray = pokemonArray.filter(p => {
+        const displayName = window.Utils.getPokemonDisplayName(p).toLowerCase();
+        const originalName = p.name.toLowerCase();
+        return displayName.includes(searchTerm) || originalName.includes(searchTerm);
+      });
+    }
+    
+    // Filtro por tipo
+    if (filters.type && filters.type !== 'all') {
+      pokemonArray = pokemonArray.filter(p => {
+        const types = p.types || [];
+        return types.some(t => t.toLowerCase() === filters.type.toLowerCase());
+      });
+    }
+    
+    // Filtro por favorito
+    if (filters.favorite && filters.favorite !== 'all') {
+      if (filters.favorite === 'favorite') {
+        pokemonArray = pokemonArray.filter(p => p.isFavorite === true);
+      } else if (filters.favorite === 'not-favorite') {
+        pokemonArray = pokemonArray.filter(p => !p.isFavorite);
+      }
+    }
+
+    // NOVO: Obtém todos os tipos únicos dos pokémons para o filtro
+    const allTypes = new Set();
+    window.gameState.profile.pokemon.forEach(p => {
+      if (p.types && Array.isArray(p.types)) {
+        p.types.forEach(t => allTypes.add(t.toLowerCase()));
+      }
+    });
+    const uniqueTypes = Array.from(allTypes).sort();
 
     const pokemonHtml = pokemonArray
-      .map((p, index) => {
+      .map((p, originalIndex) => {
+        // NOVO: Encontra o índice original no array completo
+        const fullArray = window.gameState.profile.pokemon;
+        const actualIndex = fullArray.findIndex(pok => pok === p);
         const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
         const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
-        const isCurrentActive = index === 0;
+        const isCurrentActive = actualIndex === 0;
+        const isFavorite = p.isFavorite === true;
 
         return `
         <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
-        <div id="pokemon-list-item-${index}" 
-             data-pokemon-index="${index}"
+        <div id="pokemon-list-item-${actualIndex}" 
+             data-pokemon-index="${actualIndex}"
              ondragover="window.GameLogic.allowDrop(event)"
              ondrop="window.GameLogic.drop(event)"
              ondragenter="window.GameLogic.dragEnter(event)"
              ondragleave="window.GameLogic.dragLeave(event)"
-             class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${p.currentHp <= 0 ? "opacity-50" : ""}">
+             class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${p.currentHp <= 0 ? "opacity-50" : ""} ${isFavorite ? 'bg-yellow-50 border-yellow-300' : ''}">
             
             <!-- ÁREA 1: DRAG HANDLE (PONTINHOS) - ÚNICO ELEMENTO ARRASTÁVEL -->
             <div data-drag-handle="true"
-                 data-pokemon-index="${index}"
+                 data-pokemon-index="${actualIndex}"
                  draggable="true"
                  ondragstart="window.GameLogic.dragStart(event)"
                  class="p-2 cursor-grab text-gray-500 hover:text-gray-800 active:text-blue-600 flex-shrink-0"
@@ -194,13 +250,16 @@ export const RendererPokemon = {
             </div>
 
             <!-- ÁREA 2: INFORMAÇÕES DO POKÉMON (CLICÁVEL) - OCUPA O ESPAÇO RESTANTE -->
-            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${p.name}', ${index})">
+            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${p.name}', ${actualIndex})">
                 <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                 <div class="flex flex-col min-w-0">
-                    <div class="font-bold gba-font text-xs sm:text-sm truncate">${window.Utils.getPokemonDisplayName(p)} ${isCurrentActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ''}</div>
+                    <div class="font-bold gba-font text-xs sm:text-sm truncate">
+                      ${isFavorite ? '<span class="text-yellow-500">⭐</span> ' : ''}${window.Utils.getPokemonDisplayName(p)} ${isCurrentActive ? '<span class="text-[8px] text-green-600">(ATUAL)</span>' : ''}
+                    </div>
                     <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
+                      ${p.types && p.types.length > 0 ? `<span class="text-[8px]">${p.types.map(t => window.Utils.formatName(t)).join('/')}</span>` : ''}
                       <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
                         <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
                         <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
@@ -211,10 +270,28 @@ export const RendererPokemon = {
                     </div>
                 </div>
             </div>
+            
+            <!-- NOVO: ÁREA 3: BOTÃO DE FAVORITAR -->
+            <div class="flex-shrink-0 ml-2" onclick="event.stopPropagation(); window.GameLogic.toggleFavoritePokemon(${actualIndex}); setTimeout(() => window.Renderer.showScreen('pokemonList'), 100);">
+              <button class="p-2 text-yellow-500 hover:text-yellow-600 transition-colors ${isFavorite ? 'opacity-100' : 'opacity-30 hover:opacity-60'}" title="${isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                </svg>
+              </button>
+            </div>
         </div>
     `;
       })
       .join("");
+
+    // NOVO: Função global para filtrar
+    window.filterPokemonList = function(newSearch, newType, newFavorite) {
+      const filters = window.currentPokemonListFilters;
+      if (newSearch !== undefined) filters.search = newSearch;
+      if (newType !== undefined) filters.type = newType;
+      if (newFavorite !== undefined) filters.favorite = newFavorite;
+      window.Renderer.showScreen('pokemonList');
+    };
 
     const actionBanner = pendingSupportItem
       ? `<div class="gba-font text-xs text-center text-indigo-700 bg-indigo-100 border border-indigo-300 rounded-md px-3 py-2 mb-3">
@@ -224,13 +301,47 @@ export const RendererPokemon = {
         </div>`
       : "";
 
+    // NOVO: Cria HTML dos filtros
+    const filtersHtml = `
+      <div class="mb-4 flex-shrink-0 space-y-2">
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input type="text" 
+                 id="pokemonSearchInput" 
+                 value="${filters.search || ''}" 
+                 placeholder="Buscar por nome..." 
+                 oninput="window.filterPokemonList(this.value, undefined, undefined)"
+                 class="flex-1 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
+          <select id="pokemonTypeFilter" 
+                  onchange="window.filterPokemonList(undefined, this.value, undefined)"
+                  class="flex-1 sm:flex-initial sm:w-32 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
+            <option value="all" ${filters.type === 'all' ? 'selected' : ''}>TODOS OS TIPOS</option>
+            ${uniqueTypes.map(type => 
+              `<option value="${type}" ${filters.type === type ? 'selected' : ''}>${window.Utils.formatName(type)}</option>`
+            ).join('')}
+          </select>
+          <select id="pokemonFavoriteFilter" 
+                  onchange="window.filterPokemonList(undefined, undefined, this.value)"
+                  class="flex-1 sm:flex-initial sm:w-36 p-2 border-2 border-gray-800 rounded gba-font text-sm bg-white shadow-inner">
+            <option value="all" ${filters.favorite === 'all' ? 'selected' : ''}>TODOS</option>
+            <option value="favorite" ${filters.favorite === 'favorite' ? 'selected' : ''}>⭐ FAVORITOS</option>
+            <option value="not-favorite" ${filters.favorite === 'not-favorite' ? 'selected' : ''}>NÃO FAVORITOS</option>
+          </select>
+        </div>
+        ${(filters.search || filters.type !== 'all' || filters.favorite !== 'all') ? `
+          <button onclick="window.currentPokemonListFilters = { search: '', type: 'all', favorite: 'all' }; window.Renderer.showScreen('pokemonList');" 
+                  class="w-full p-2 border-2 border-gray-600 rounded gba-font text-xs bg-gray-200 hover:bg-gray-300">
+            Limpar Filtros
+          </button>
+        ` : ''}
+      </div>
+    `;
+
     const content = `
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
       ${actionBanner}
+      ${filtersHtml}
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
-        ${pokemonHtml ||
-      '<p class="text-center text-gray-500 gba-font">Você não tem Pokémons!</p>'
-      }
+        ${pokemonHtml || '<p class="text-center text-gray-500 gba-font">Nenhum Pokémon encontrado com os filtros atuais.</p>'}
       </div>
       <button onclick="window.Renderer.showScreen('battleTeam')" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2 flex-shrink-0">
         <i class="fa-solid fa-users mr-2"></i>Gerenciar Equipe de Batalha
@@ -485,7 +596,7 @@ export const RendererPokemon = {
       <div class="flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
         ${pokemonHtml || '<p class="text-center text-gray-500 gba-font p-4">Você não tem Pokémons!</p>'}
       </div>
-      <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar à Mochila</button>
+      <button onclick="window.Renderer.showScreen('pokemonList')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
     `;
     window.Renderer.renderGbaCard(content);
   },

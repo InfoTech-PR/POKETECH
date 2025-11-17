@@ -105,9 +105,6 @@ export const RendererCore = {
       case "pokemonMenu":
         window.Renderer.renderPokemonMenu(app);
         break;
-      case "serviceMenu":
-        window.Renderer.renderServiceMenu(app);
-        break;
       case "profileMenu":
         window.Renderer.renderProfileMenu(app);
         break;

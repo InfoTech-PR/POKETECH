@@ -1,19 +1,54 @@
 // js/renderer_menus.js
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import {
+  doc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-if (typeof window.Renderer === 'undefined') {
+if (typeof window.Renderer === "undefined") {
   window.Renderer = {};
 }
 
 const TRAINER_AVATAR_CHOICES = [
-  { key: "default", label: "Avatar 1", url: "https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg" },
-  { key: "alt1", label: "Avatar 2", url: "https://static.wikia.nocookie.net/pokepediabr/images/c/cd/182Bellossom.png/revision/latest?cb=20171211223455&path-prefix=pt-br" },
-  { key: "alt2", label: "Avatar 3", url: "https://pm1.aminoapps.com/6761/d63cf8f1a27519a70c9e5b86c45a5b2bb1fe8f85v2_hq.jpg" },
-  { key: "alt3", label: "Avatar 4", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlWjHugl5ST10ChrNyv8VHfuFmVjZnTIATdg&s" },
-  { key: "alt4", label: "Avatar 5", url: "https://i.redd.it/pokemon-scarlet-e-violet-na-copa-feito-por-mim-mesma-v0-sxwmn2n88k0a1.jpg?width=2814&format=pjpg&auto=webp&s=93cf4267551095bb519b3a9505ce29b7b93c83ee" },
-  { key: "alt5", label: "Avatar 6", url: "https://i.redd.it/c8z5m7o3osk81.jpg" },
-  { key: "alt6", label: "Avatar 7", url: "https://wallpapers-clan.com/wp-content/uploads/2023/11/pokemon-gengar-spooky-smile-black-background-scaled.jpg" },
-  { key: "alt7", label: "Avatar 8", url: "https://oyster.ignimgs.com/wordpress/stg.ign.com/2012/10/SQUIRTLE.jpg" },
+  {
+    key: "default",
+    label: "Avatar 1",
+    url: "https://pbs.twimg.com/profile_images/1896626291606011904/IcRwMWBB.jpg",
+  },
+  {
+    key: "alt1",
+    label: "Avatar 2",
+    url: "https://static.wikia.nocookie.net/pokepediabr/images/c/cd/182Bellossom.png/revision/latest?cb=20171211223455&path-prefix=pt-br",
+  },
+  {
+    key: "alt2",
+    label: "Avatar 3",
+    url: "https://pm1.aminoapps.com/6761/d63cf8f1a27519a70c9e5b86c45a5b2bb1fe8f85v2_hq.jpg",
+  },
+  {
+    key: "alt3",
+    label: "Avatar 4",
+    url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlWjHugl5ST10ChrNyv8VHfuFmVjZnTIATdg&s",
+  },
+  {
+    key: "alt4",
+    label: "Avatar 5",
+    url: "https://i.redd.it/pokemon-scarlet-e-violet-na-copa-feito-por-mim-mesma-v0-sxwmn2n88k0a1.jpg?width=2814&format=pjpg&auto=webp&s=93cf4267551095bb519b3a9505ce29b7b93c83ee",
+  },
+  {
+    key: "alt5",
+    label: "Avatar 6",
+    url: "https://i.redd.it/c8z5m7o3osk81.jpg",
+  },
+  {
+    key: "alt6",
+    label: "Avatar 7",
+    url: "https://wallpapers-clan.com/wp-content/uploads/2023/11/pokemon-gengar-spooky-smile-black-background-scaled.jpg",
+  },
+  {
+    key: "alt7",
+    label: "Avatar 8",
+    url: "https://oyster.ignimgs.com/wordpress/stg.ign.com/2012/10/SQUIRTLE.jpg",
+  },
 ];
 
 const getTrainerAvatarUrl = (profile) => {
@@ -31,24 +66,26 @@ window.Renderer.copyPlayerId = function () {
   const copyIcon = document.getElementById("copyIdIcon");
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(playerId).then(() => {
+    navigator.clipboard
+      .writeText(playerId)
+      .then(() => {
+        const originalHtml = copyIcon.dataset.originalHtml;
 
-      const originalHtml = copyIcon.dataset.originalHtml;
+        copyIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
+        copyIcon.classList.remove("text-blue-600", "hover:text-blue-800");
+        copyIcon.classList.add("text-green-600");
 
-      copyIcon.innerHTML = `<i class="fa-solid fa-check"></i>`;
-      copyIcon.classList.remove("text-blue-600", "hover:text-blue-800");
-      copyIcon.classList.add("text-green-600");
-
-      setTimeout(() => {
-        copyIcon.innerHTML = originalHtml;
-        copyIcon.classList.remove("text-green-600");
-        copyIcon.classList.add("text-blue-600", "hover:text-blue-800");
-      }, 1500);
-    }).catch(err => {
-      console.error('Falha ao copiar usando navigator.clipboard:', err);
-      // Fallback para document.execCommand
-      RendererMenus.fallbackCopy(playerId, copyIcon);
-    });
+        setTimeout(() => {
+          copyIcon.innerHTML = originalHtml;
+          copyIcon.classList.remove("text-green-600");
+          copyIcon.classList.add("text-blue-600", "hover:text-blue-800");
+        }, 1500);
+      })
+      .catch((err) => {
+        console.error("Falha ao copiar usando navigator.clipboard:", err);
+        // Fallback para document.execCommand
+        RendererMenus.fallbackCopy(playerId, copyIcon);
+      });
   } else {
     // 2. Fallback
     RendererMenus.fallbackCopy(playerId, copyIcon);
@@ -61,7 +98,7 @@ const fallbackCopy = function (text, iconElement) {
   document.body.appendChild(textarea);
   textarea.select();
   try {
-    document.execCommand('copy');
+    document.execCommand("copy");
 
     const originalHtml = iconElement.dataset.originalHtml;
 
@@ -75,8 +112,11 @@ const fallbackCopy = function (text, iconElement) {
       iconElement.classList.add("text-blue-600", "hover:text-blue-800");
     }, 1500);
   } catch (err) {
-    console.error('Falha ao copiar o ID: ', err);
-    window.Utils.showModal("errorModal", "Falha ao copiar o ID. Por favor, copie manualmente.");
+    console.error("Falha ao copiar o ID: ", err);
+    window.Utils.showModal(
+      "errorModal",
+      "Falha ao copiar o ID. Por favor, copie manualmente."
+    );
   }
   document.body.removeChild(textarea);
 };
@@ -192,10 +232,11 @@ export const RendererMenus = {
                         <div class="flex justify-center gap-6 sm:gap-10">
                             <div onclick="window.Renderer.selectGender('MALE')" 
                                 class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                ${currentGender === "MALE"
-        ? "border-blue-600 bg-blue-200 shadow-lg"
-        : "border-gray-300 bg-white hover:bg-gray-200"
-      }">
+                                ${
+                                  currentGender === "MALE"
+                                    ? "border-blue-600 bg-blue-200 shadow-lg"
+                                    : "border-gray-300 bg-white hover:bg-gray-200"
+                                }">
                                 <img id="maleTrainerImage" src="https://i.redd.it/3mmmx0dz9nmb1.gif" 
                                     alt="Treinador Masculino" 
                                     class="h-24 object-contain" 
@@ -204,10 +245,11 @@ export const RendererMenus = {
                             </div>
                             <div onclick="window.Renderer.selectGender('FEMALE')" 
                                 class="flex flex-col items-center p-3 border-4 rounded-lg transition-all duration-200 cursor-pointer 
-                                ${currentGender === "FEMALE"
-        ? "border-pink-600 bg-pink-200 shadow-lg"
-        : "border-gray-300 bg-white hover:bg-gray-200"
-      }">
+                                ${
+                                  currentGender === "FEMALE"
+                                    ? "border-pink-600 bg-pink-200 shadow-lg"
+                                    : "border-gray-300 bg-white hover:bg-gray-200"
+                                }">
                                 <img id="femaleTrainerImage" src="https://i.pinimg.com/564x/6a/dd/3a/6add3a02c42a1e3085599c409fd8013e.jpg" 
                                     alt="Treinadora Feminina" 
                                     class="h-24 object-contain" 
@@ -221,17 +263,18 @@ export const RendererMenus = {
                         <p class="text-xs font-bold gba-font mb-3 mt-6 text-center">Escolha seu Inicial:</p>
                         <div class="flex flex-col sm:flex-row justify-around gap-4"> 
                             ${window.GameConfig.STARTERS.map(
-        (name) => `
+                              (name) => `
                                 <div onclick="window.selectStarter('${name}')" class="flex flex-col items-center flex-1 cursor-pointer">
-                                    <img src="../assets/sprites/pokemon/${starterSpriteIds[name]
-          }_front.png" alt="${name}" 
+                                    <img src="../assets/sprites/pokemon/${
+                                      starterSpriteIds[name]
+                                    }_front.png" alt="${name}" 
                                         class="mx-auto w-20 h-20 sm:w-24 sm:h-24 transition-transform duration-200 hover:scale-125">
                                     <div class="text-xs gba-font text-gray-800 mt-2 text-center">${window.Utils.formatName(
-            name
-          )}</div>
+                                      name
+                                    )}</div>
                                 </div>
                             `
-      ).join("")}
+                            ).join("")}
                         </div>
                     </div>
                 </div>
@@ -242,7 +285,9 @@ export const RendererMenus = {
 
   selectGender: function (gender) {
     window.gameState.profile.trainerGender = gender;
-    window.Renderer.renderStarterSelection(document.getElementById("app-container"));
+    window.Renderer.renderStarterSelection(
+      document.getElementById("app-container")
+    );
   },
 
   selectStarter: async function (name) {
@@ -285,39 +330,55 @@ export const RendererMenus = {
   renderMainMenu: function (app) {
     const profile = window.gameState.profile;
     const isBetaMode = profile.preferences?.isBetaMode || false;
-    const exploreAction = isBetaMode ? `window.Renderer.showScreen('mapView')` : `window.GameLogic.explore()`;
+    const exploreAction = isBetaMode
+      ? `window.Renderer.showScreen('mapView')`
+      : `window.GameLogic.explore()`;
     const exploreButtonText = isBetaMode ? "MAPA MUNDIAL (BETA)" : "ANDAR";
-    const exploreButtonColor = isBetaMode ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600";
+    const exploreButtonColor = isBetaMode
+      ? "bg-orange-500 hover:bg-orange-600"
+      : "bg-green-500 hover:bg-green-600";
 
     const allFainted =
       profile.pokemon.length > 0 &&
       profile.pokemon.every((p) => p.currentHp <= 0);
 
     const trainerImage = getTrainerAvatarUrl(profile);
-    
+
     // NOVO: Usa o nível do treinador do profile (sistema de XP do treinador)
-    const trainerLevel = typeof profile.trainerLevel === 'number' 
-      ? Math.min(100, Math.max(1, profile.trainerLevel))
-      : (profile.pokemon.length > 0
-          ? Math.min(100, Math.max(1, Math.max(...profile.pokemon.map(p => p.level || 1))))
-          : 1);
-    
+    const trainerLevel =
+      typeof profile.trainerLevel === "number"
+        ? Math.min(100, Math.max(1, profile.trainerLevel))
+        : profile.pokemon.length > 0
+        ? Math.min(
+            100,
+            Math.max(1, Math.max(...profile.pokemon.map((p) => p.level || 1)))
+          )
+        : 1;
+
     // Calcula pokémon capturados (pokedex)
-    const pokedexCount = profile.pokedex ? 
-      (profile.pokedex instanceof Set ? profile.pokedex.size : profile.pokedex.length) : 0;
-    
+    const pokedexCount = profile.pokedex
+      ? profile.pokedex instanceof Set
+        ? profile.pokedex.size
+        : profile.pokedex.length
+      : 0;
+
     // Determina cor do nível baseado no nível do treinador
     const getLevelColor = (level) => {
-      if (level >= 50) return { bg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' };
-      if (level >= 30) return { bg: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)' };
-      if (level >= 20) return { bg: 'linear-gradient(135deg, #22c55e 0%, #10b981 100%)' };
-      if (level >= 10) return { bg: 'linear-gradient(135deg, #eab308 0%, #f97316 100%)' };
-      return { bg: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' };
+      if (level >= 50)
+        return { bg: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)" };
+      if (level >= 30)
+        return { bg: "linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)" };
+      if (level >= 20)
+        return { bg: "linear-gradient(135deg, #22c55e 0%, #10b981 100%)" };
+      if (level >= 10)
+        return { bg: "linear-gradient(135deg, #eab308 0%, #f97316 100%)" };
+      return { bg: "linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)" };
     };
-    
+
     const levelColor = getLevelColor(trainerLevel);
-    const genderIcon = profile.trainerGender === "MALE" ? '♂' : '♀';
-    const genderColor = profile.trainerGender === "MALE" ? 'text-blue-400' : 'text-pink-400';
+    const genderIcon = profile.trainerGender === "MALE" ? "♂" : "♀";
+    const genderColor =
+      profile.trainerGender === "MALE" ? "text-blue-400" : "text-pink-400";
 
     const statsHtml = `
   <div class="trainer-profile-card">
@@ -345,7 +406,9 @@ export const RendererMenus = {
         <div class="stat-icon">💰</div>
         <div class="stat-content">
           <div class="stat-label">DINHEIRO</div>
-          <div class="stat-value stat-value-money">P$${profile.money.toLocaleString('pt-BR')}</div>
+          <div class="stat-value stat-value-money">P$${profile.money.toLocaleString(
+            "pt-BR"
+          )}</div>
         </div>
       </div>
       
@@ -354,7 +417,9 @@ export const RendererMenus = {
         <div class="stat-icon">⚡</div>
         <div class="stat-content">
           <div class="stat-label">TIME</div>
-          <div class="stat-value stat-value-pokemon">${profile.pokemon.length} Pokémon</div>
+          <div class="stat-value stat-value-pokemon">${
+            profile.pokemon.length
+          } Pokémon</div>
         </div>
       </div>
       
@@ -630,11 +695,13 @@ export const RendererMenus = {
 
     const menuHtml = `
             <div class="p-2">
-                <!-- Primeira linha: TIME e SERVIÇOS -->
-                <div class="grid grid-cols-2 gap-3 mb-3">
+                <!-- Grid de botões: TIME (50%) | LOJA (25%) CENTRO (25%) / PVP (50%) | CONFIG (50%) -->
+                <div class="menu-buttons-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px;">
+                    <!-- TIME - 50% (primeira linha, esquerda - ocupa 2 colunas) -->
                     <button
                         onclick="window.Renderer.showScreen('pokemonMenu')"
-                        class="gba-button bg-red-500 hover:bg-red-600 h-full flex items-center justify-center gap-3 py-4"
+                        class="gba-button bg-red-500 hover:bg-red-600 flex items-center justify-center gap-3"
+                        style="grid-column: 1 / 3; grid-row: 1; min-height: 120px;"
                     >
                         <span class="text-2xl sm:text-3xl">
                             <i class="fa-solid fa-people-group"></i>
@@ -644,24 +711,40 @@ export const RendererMenus = {
                             <span class="text-xs opacity-80 leading-tight hidden sm:block">Gerencie seus Pokémon</span>
                         </span>
                     </button>
-                    <button
-                        onclick="window.Renderer.showScreen('serviceMenu')"
-                        class="gba-button bg-cyan-500 hover:bg-cyan-600 h-full flex items-center justify-center gap-3 py-4"
-                    >
-                        <span class="text-2xl sm:text-3xl">
-                            <i class="fa-solid fa-shop"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-sm font-bold leading-none">SERVIÇOS</span>
-                            <span class="text-xs opacity-80 leading-tight hidden sm:block">Centro Pokémon e Loja</span>
-                        </span>
-                    </button>
-                </div>
-                <!-- Segunda linha: PVP e PERFIL (apenas ícone) -->
-                <div class="grid grid-cols-2 gap-3">
+                    <!-- Container para LOJA e CENTRO (primeira linha, direita) -->
+                    <div style="grid-column: 3 / 4; grid-row: 1; display: flex; flex-direction: column; gap: 12px; height: 100%;">
+                        <!-- LOJA - 25% -->
+                        <button
+                            onclick="window.Renderer.showScreen('shop')"
+                            class="gba-button bg-cyan-500 hover:bg-cyan-600 flex items-center justify-center gap-2"
+                            style="flex: 1; min-height: 0;"
+                        >
+                            <span class="text-xl sm:text-2xl">
+                                <i class="fa-solid fa-shop"></i>
+                            </span>
+                            <span class="flex flex-col text-left">
+                                <span class="text-xs sm:text-sm font-bold leading-none">LOJA</span>
+                            </span>
+                        </button>
+                        <!-- CENTRO - 25% -->
+                        <button
+                            onclick="window.Renderer.showScreen('healCenter')"
+                            class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center gap-2"
+                            style="flex: 1; min-height: 0;"
+                        >
+                            <span class="text-xl sm:text-2xl">
+                                <i class="fa-solid fa-hospital"></i>
+                            </span>
+                            <span class="flex flex-col text-left">
+                                <span class="text-xs sm:text-sm font-bold leading-none">CENTRO</span>
+                            </span>
+                        </button>
+                    </div>
+                    <!-- PVP - 50% (segunda linha, esquerda - ocupa 2 colunas) -->
                     <button
                         onclick="window.Renderer.showScreen('pvpSetup')"
-                        class="gba-button bg-purple-500 hover:bg-purple-600 h-full flex items-center justify-center gap-3 py-4"
+                        class="gba-button bg-purple-500 hover:bg-purple-600 flex items-center justify-center gap-3"
+                        style="grid-column: 1 / 2; grid-row: 2; min-height: 90px;"
                     >
                         <span class="text-2xl sm:text-3xl">
                             <i class="fa-solid fa-shield-halved"></i>
@@ -671,13 +754,19 @@ export const RendererMenus = {
                             <span class="text-xs opacity-80 leading-tight hidden sm:block">Duele com outros treinadores</span>
                         </span>
                     </button>
+                    <!-- CONFIG - 50% (segunda linha, direita - ocupa 2 colunas) -->
                     <button
                         onclick="window.Renderer.showScreen('profileMenu')"
-                        class="gba-button bg-gray-500 hover:bg-gray-600 h-full flex items-center justify-center py-4"
+                        class="gba-button bg-gray-500 hover:bg-gray-600 flex items-center justify-center gap-3"
+                        style="grid-column: 2 / 4; grid-row: 2; min-height: 90px;"
                         title="Perfil e Opções"
                     >
-                        <span class="text-3xl sm:text-4xl">
+                        <span class="text-2xl sm:text-3xl">
                             <i class="fa-solid fa-user-gear"></i>
+                        </span>
+                        <span class="flex flex-col text-left">
+                            <span class="text-sm font-bold leading-none">CONFIG</span>
+                            <span class="text-xs opacity-80 leading-tight hidden sm:block">Configurações</span>
                         </span>
                     </button>
                 </div>
@@ -687,9 +776,10 @@ export const RendererMenus = {
     const exploreDisabled = allFainted && !isBetaMode ? "disabled" : "";
 
     const exploreLog = window.gameState.exploreLog || [];
-    const exploreMsg = allFainted && !isBetaMode
-      ? '<span class="text-red-500">TODOS DESMAIADOS! Vá para o Centro Pokémon.</span>'
-      : exploreLog.length > 0
+    const exploreMsg =
+      allFainted && !isBetaMode
+        ? '<span class="text-red-500">TODOS DESMAIADOS! Vá para o Centro Pokémon.</span>'
+        : exploreLog.length > 0
         ? exploreLog.slice(-1)[0]
         : "O que você fará?";
 
@@ -697,22 +787,30 @@ export const RendererMenus = {
     const normalBattleCount = profile.normalBattleCount || 0;
     // Se normalBattleCount % 10 === 0, a próxima batalha será evoluído (faltam 0)
     // Se normalBattleCount % 10 !== 0, faltam (10 - (normalBattleCount % 10))
-    const battlesToEvolved = normalBattleCount % 10 === 0 ? 0 : (10 - (normalBattleCount % 10));
+    const battlesToEvolved =
+      normalBattleCount % 10 === 0 ? 0 : 10 - (normalBattleCount % 10);
     // Se normalBattleCount % 100 === 0, a próxima batalha será lendário (faltam 0)
     // Se normalBattleCount % 100 !== 0, faltam (100 - (normalBattleCount % 100))
-    const battlesToLegendary = normalBattleCount % 100 === 0 ? 0 : (100 - (normalBattleCount % 100));
-    
-    let specialIndicator = '';
+    const battlesToLegendary =
+      normalBattleCount % 100 === 0 ? 0 : 100 - (normalBattleCount % 100);
+
+    let specialIndicator = "";
     // Prioridade: se ambos são 0, lendário tem prioridade (mais raro)
     if (battlesToLegendary === 0 && normalBattleCount > 0) {
-      specialIndicator = '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⭐ PRÓXIMO: LENDÁRIO! ⭐</div>';
+      specialIndicator =
+        '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⭐ PRÓXIMO: LENDÁRIO! ⭐</div>';
     } else if (battlesToEvolved === 0 && normalBattleCount > 0) {
-      specialIndicator = '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⚡ PRÓXIMO: EVOLUÍDO! ⚡</div>';
+      specialIndicator =
+        '<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center animate-pulse" style="text-shadow: 2px 2px 0px #000;">⚡ PRÓXIMO: EVOLUÍDO! ⚡</div>';
     } else {
       // Mostra o mais próximo
-      const nextSpecial = battlesToEvolved <= battlesToLegendary ? battlesToEvolved : battlesToLegendary;
-      const nextType = battlesToEvolved <= battlesToLegendary ? 'EVOLUÍDO' : 'LENDÁRIO';
-      const nextIcon = battlesToEvolved <= battlesToLegendary ? '⚡' : '⭐';
+      const nextSpecial =
+        battlesToEvolved <= battlesToLegendary
+          ? battlesToEvolved
+          : battlesToLegendary;
+      const nextType =
+        battlesToEvolved <= battlesToLegendary ? "EVOLUÍDO" : "LENDÁRIO";
+      const nextIcon = battlesToEvolved <= battlesToLegendary ? "⚡" : "⭐";
       specialIndicator = `<div class="text-xs font-bold text-yellow-300 gba-font mb-2 text-center" style="text-shadow: 2px 2px 0px #000;">${nextIcon} ${nextSpecial} batalhas para ${nextType}</div>`;
     }
 
@@ -733,7 +831,9 @@ export const RendererMenus = {
                         onclick="handleExploreClick(event, '${exploreAction}')" 
                         class="pokeball-button ${exploreDisabled}" 
                         ${exploreDisabled}
-                        style="position: relative; width: 80px; height: 80px; cursor: ${exploreDisabled ? 'not-allowed' : 'pointer'}; opacity: ${exploreDisabled ? '0.5' : '1'};"
+                        style="position: relative; width: 80px; height: 80px; cursor: ${
+                          exploreDisabled ? "not-allowed" : "pointer"
+                        }; opacity: ${exploreDisabled ? "0.5" : "1"};"
                     >
                         <div class="pokeball-container" style="width: 100%; height: 100%; position: relative;">
                             <div class="pokeball-top" style="position: absolute; top: 0; left: 0; right: 0; height: 50%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 4px solid #000; border-radius: 50px 50px 0 0; border-bottom: 2px solid #000;"></div>
@@ -789,51 +889,52 @@ export const RendererMenus = {
         `;
 
     window.Renderer.renderGbaCard(combinedHtml);
-    
+
     // Função global para lidar com o clique na Pokébola
-    window.handleExploreClick = async function(event, action) {
+    window.handleExploreClick = async function (event, action) {
       event.preventDefault();
-      const button = document.getElementById('explore-action-btn');
-      const resultBox = document.getElementById('explore-result');
-      
+      const button = document.getElementById("explore-action-btn");
+      const resultBox = document.getElementById("explore-result");
+
       if (!button || button.disabled) return;
-      
+
       // Adiciona classe de spinning
-      button.classList.add('spinning');
+      button.classList.add("spinning");
       button.disabled = true;
-      button.style.cursor = 'wait';
-      
+      button.style.cursor = "wait";
+
       // Atualiza o resultado com mensagem de loading
       if (resultBox) {
-        resultBox.innerHTML = '<div class="flex items-center gap-2 text-gray-700 gba-font text-xs"><span class="inline-flex h-4 w-4 border-[3px] border-gray-400 border-t-transparent rounded-full animate-spin"></span><span>Procurando aventuras...</span></div>';
+        resultBox.innerHTML =
+          '<div class="flex items-center gap-2 text-gray-700 gba-font text-xs"><span class="inline-flex h-4 w-4 border-[3px] border-gray-400 border-t-transparent rounded-full animate-spin"></span><span>Procurando aventuras...</span></div>';
       }
-      
+
       // Executa a ação após um pequeno delay para a animação
       setTimeout(async () => {
         try {
           // Remove a classe de spinning
-          button.classList.remove('spinning');
-          
+          button.classList.remove("spinning");
+
           // Executa a ação (pode ser explore() ou showScreen('mapView'))
-          if (action.includes('GameLogic.explore')) {
+          if (action.includes("GameLogic.explore")) {
             await window.GameLogic.explore();
-          } else if (action.includes('showScreen')) {
-            window.Renderer.showScreen('mapView');
+          } else if (action.includes("showScreen")) {
+            window.Renderer.showScreen("mapView");
           } else {
             // Fallback: executa como código
             eval(action);
           }
         } catch (error) {
-          console.error('Erro na exploração:', error);
+          console.error("Erro na exploração:", error);
           if (resultBox) {
-            resultBox.innerHTML = '<span class="text-red-500">Erro ao explorar. Tente novamente.</span>';
+            resultBox.innerHTML =
+              '<span class="text-red-500">Erro ao explorar. Tente novamente.</span>';
           }
           button.disabled = false;
-          button.style.cursor = 'pointer';
+          button.style.cursor = "pointer";
         }
       }, 600); // Tempo da animação
     };
-    
   },
 
   renderProfileMenu: function (app) {
@@ -871,7 +972,12 @@ export const RendererMenus = {
     `;
     window.Renderer.renderGbaCard(loadingView);
 
-    if (!window.db || !window.userId || window.userId === "anonimo" || window.userId === "anonimo-erro") {
+    if (
+      !window.db ||
+      !window.userId ||
+      window.userId === "anonimo" ||
+      window.userId === "anonimo-erro"
+    ) {
       const requireLoginView = `
         <div class="gba-card-wrapper text-white">
           <div class="flex flex-col h-full justify-center items-center gap-4 text-center">
@@ -953,7 +1059,8 @@ export const RendererMenus = {
           if (docSnap.exists()) {
             const data = docSnap.data();
             // Busca o nome do treinador no perfil (pode estar em data.profile.trainerName ou data.trainerName)
-            friendName = data.profile?.trainerName || data.trainerName || "Treinador";
+            friendName =
+              data.profile?.trainerName || data.trainerName || "Treinador";
             // NOVO: Busca o avatar do amigo
             if (data.preferences && data.preferences.avatarTrainerKey) {
               friendAvatarUrl = getTrainerAvatarUrl(data);
@@ -989,8 +1096,12 @@ export const RendererMenus = {
     const accepted = enriched
       .filter((f) => f.status === "accepted")
       .sort((a, b) => a.friendName.localeCompare(b.friendName, "pt-BR"));
-    const incoming = enriched.filter((f) => f.status === "pending" && !f.isRequester);
-    const outgoing = enriched.filter((f) => f.status === "pending" && f.isRequester);
+    const incoming = enriched.filter(
+      (f) => f.status === "pending" && !f.isRequester
+    );
+    const outgoing = enriched.filter(
+      (f) => f.status === "pending" && f.isRequester
+    );
 
     const buildFriendCard = (friend) => {
       const safeName = escapeHtml(friend.friendName);
@@ -1003,7 +1114,9 @@ export const RendererMenus = {
         <div class="bg-slate-800/80 border border-emerald-400/60 rounded-xl p-4 shadow-inner hover:shadow-emerald-400/40 transition-shadow duration-200 flex flex-col gap-3">
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg overflow-hidden border-2 border-emerald-300">
-              <img src="${friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url}" 
+              <img src="${
+                friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url
+              }" 
                    alt="${safeName}" 
                    class="w-full h-full object-cover"
                    onerror="this.src='${TRAINER_AVATAR_CHOICES[0].url}'">
@@ -1014,10 +1127,14 @@ export const RendererMenus = {
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button onclick="window.GameLogic.startTrade('${friend.friendId}', '${attrName}')" class="gba-button bg-green-500 hover:bg-green-600" style="width:auto;">
+            <button onclick="window.GameLogic.startTrade('${
+              friend.friendId
+            }', '${attrName}')" class="gba-button bg-green-500 hover:bg-green-600" style="width:auto;">
               Trocar Pokémon
             </button>
-            <button onclick="window.PokeFriendship.removeFriendship('${friend.id}')" class="gba-button bg-red-500 hover:bg-red-600" style="width:auto;">
+            <button onclick="window.PokeFriendship.removeFriendship('${
+              friend.id
+            }')" class="gba-button bg-red-500 hover:bg-red-600" style="width:auto;">
               Remover
             </button>
           </div>
@@ -1053,7 +1170,9 @@ export const RendererMenus = {
         <div class="bg-slate-800/80 border border-amber-400/60 rounded-xl p-4 shadow-inner flex flex-col gap-3">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center shadow-lg overflow-hidden border-2 border-amber-300">
-              <img src="${friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url}" 
+              <img src="${
+                friend.friendAvatarUrl || TRAINER_AVATAR_CHOICES[0].url
+              }" 
                    alt="${safeName}" 
                    class="w-full h-full object-cover"
                    onerror="this.src='${TRAINER_AVATAR_CHOICES[0].url}'">
@@ -1081,13 +1200,19 @@ export const RendererMenus = {
       <div class="bg-slate-900/90 border-4 border-emerald-400 rounded-2xl p-4 shadow-2xl">
         <div class="flex items-center gap-2 mb-3">
           <i class="fa-solid fa-handshake-simple text-xl text-emerald-300"></i>
-          <h2 class="gba-font text-sm text-emerald-200 tracking-widest">AMIGOS DISPONÍVEIS (${accepted.length})</h2>
+          <h2 class="gba-font text-sm text-emerald-200 tracking-widest">AMIGOS DISPONÍVEIS (${
+            accepted.length
+          })</h2>
         </div>
         <div class="grid gap-3 md:grid-cols-2">
-          ${accepted.length > 0
-        ? accepted.map(buildFriendCard).join("")
-        : emptyMessage("fa-sparkles", "SEM AMIGOS CONFIRMADOS AINDA. ENVIE UM PEDIDO!")
-      }
+          ${
+            accepted.length > 0
+              ? accepted.map(buildFriendCard).join("")
+              : emptyMessage(
+                  "fa-sparkles",
+                  "SEM AMIGOS CONFIRMADOS AINDA. ENVIE UM PEDIDO!"
+                )
+          }
         </div>
       </div>
     `;
@@ -1101,21 +1226,33 @@ export const RendererMenus = {
         <div class="grid gap-3 md:grid-cols-2">
           <div class="bg-slate-800/70 rounded-xl p-3 flex flex-col gap-2 border border-amber-400/40">
             <div class="flex items-center gap-2 text-xs text-amber-100 uppercase tracking-widest">
-              <i class="fa-solid fa-inbox text-amber-200"></i> Recebidas (${incoming.length})
+              <i class="fa-solid fa-inbox text-amber-200"></i> Recebidas (${
+                incoming.length
+              })
             </div>
-            ${incoming.length > 0
-        ? incoming.map((f) => buildRequestCard(f, true)).join("")
-        : emptyMessage("fa-hand-holding-heart", "NENHUM PEDIDO RECEBIDO NO MOMENTO.")
-      }
+            ${
+              incoming.length > 0
+                ? incoming.map((f) => buildRequestCard(f, true)).join("")
+                : emptyMessage(
+                    "fa-hand-holding-heart",
+                    "NENHUM PEDIDO RECEBIDO NO MOMENTO."
+                  )
+            }
           </div>
           <div class="bg-slate-800/70 rounded-xl p-3 flex flex-col gap-2 border border-amber-400/40">
             <div class="flex items-center gap-2 text-xs text-amber-100 uppercase tracking-widest">
-              <i class="fa-solid fa-paper-plane text-amber-200"></i> Enviadas (${outgoing.length})
+              <i class="fa-solid fa-paper-plane text-amber-200"></i> Enviadas (${
+                outgoing.length
+              })
             </div>
-            ${outgoing.length > 0
-        ? outgoing.map((f) => buildRequestCard(f, false)).join("")
-        : emptyMessage("fa-paper-plane", "VOCÊ NÃO ENVIOU NENHUM CONVITE AINDA.")
-      }
+            ${
+              outgoing.length > 0
+                ? outgoing.map((f) => buildRequestCard(f, false)).join("")
+                : emptyMessage(
+                    "fa-paper-plane",
+                    "VOCÊ NÃO ENVIOU NENHUM CONVITE AINDA."
+                  )
+            }
           </div>
         </div>
       </div>
@@ -1132,7 +1269,9 @@ export const RendererMenus = {
           </div>
           <div class="bg-black/40 border border-white/40 rounded-xl px-4 py-3 text-center shadow-lg">
             <div class="text-[10px] text-white/70 uppercase tracking-widest mb-1">Seu ID de treinador</div>
-            <div class="gba-font text-sm text-white tracking-widest break-all">${escapeHtml(window.userId)}</div>
+            <div class="gba-font text-sm text-white tracking-widest break-all">${escapeHtml(
+              window.userId
+            )}</div>
             <button onclick="window.Renderer.copyTrainerIdFromCard()" class="gba-button bg-white text-gray-900 hover:bg-gray-200 mt-3" style="width:auto;">
               Copiar ID
             </button>
@@ -1214,7 +1353,8 @@ export const RendererMenus = {
         `;
         feedback.className = "";
       } else {
-        feedback.textContent = result.message || "Não foi possível gerar o link.";
+        feedback.textContent =
+          result.message || "Não foi possível gerar o link.";
         feedback.className = `${baseClass} text-rose-200`;
       }
     } catch (error) {
@@ -1239,7 +1379,10 @@ export const RendererMenus = {
     } catch (error) {
       console.error("Falha ao copiar link:", error);
       if (window.Utils) {
-        window.Utils.showModal("errorModal", "Falha ao copiar o link. Copie manualmente.");
+        window.Utils.showModal(
+          "errorModal",
+          "Falha ao copiar o link. Copie manualmente."
+        );
       }
     }
   },
@@ -1250,7 +1393,8 @@ export const RendererMenus = {
       await navigator.clipboard.writeText(window.userId || "");
       if (feedback) {
         feedback.textContent = "ID copiado!";
-        feedback.className = "mt-2 text-[10px] uppercase tracking-widest text-emerald-200";
+        feedback.className =
+          "mt-2 text-[10px] uppercase tracking-widest text-emerald-200";
         setTimeout(() => {
           feedback.textContent = "";
         }, 2000);
@@ -1259,7 +1403,8 @@ export const RendererMenus = {
       console.error("Não foi possível copiar o ID:", error);
       if (feedback) {
         feedback.textContent = "Não foi possível copiar.";
-        feedback.className = "mt-2 text-[10px] uppercase tracking-widest text-rose-200";
+        feedback.className =
+          "mt-2 text-[10px] uppercase tracking-widest text-rose-200";
       }
     }
   },
@@ -1287,7 +1432,8 @@ export const RendererMenus = {
       feedback.className = `${baseClass} text-emerald-200`;
     } catch (error) {
       console.error("Erro ao entrar na sala PvP:", error);
-      feedback.textContent = "Erro ao entrar na sala. Confirme o código e tente novamente.";
+      feedback.textContent =
+        "Erro ao entrar na sala. Confirme o código e tente novamente.";
       feedback.className = `${baseClass} text-rose-200`;
     }
   },
@@ -1312,7 +1458,8 @@ export const RendererMenus = {
     } catch (error) {
       console.error("Erro ao criar sala PvP:", error);
       if (feedback) {
-        feedback.textContent = "Não foi possível criar a sala. Tente novamente.";
+        feedback.textContent =
+          "Não foi possível criar a sala. Tente novamente.";
         feedback.className = `${baseClass} text-rose-200`;
       }
     }
@@ -1342,26 +1489,6 @@ export const RendererMenus = {
     window.Renderer.renderGbaCard(content);
   },
 
-  renderServiceMenu: function (app) {
-    const content = `
-            <div class="text-2xl font-bold text-center mb-6 text-white gba-font flex-shrink-0" style="text-shadow: 3px 3px 0px #000, 5px 5px 0px rgba(0,0,0,0.3); color: #fbbf24;">SERVIÇOS</div>
-            
-            <div class="space-y-4 p-4 flex-grow overflow-y-auto">
-                <button onclick="window.Renderer.showScreen('healCenter')" class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
-                    <i class="fa-solid fa-hospital text-2xl"></i>
-                    <span>CENTRO POKÉMON</span>
-                </button>
-                <button onclick="window.Renderer.showScreen('shop')" class="gba-button bg-cyan-500 hover:bg-cyan-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
-                    <i class="fa-solid fa-shop text-2xl"></i>
-                    <span>LOJA</span>
-                </button> 
-            </div>
-            
-            <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>
-        `;
-    window.Renderer.renderGbaCard(content);
-  },
-
   renderPreferences: function (app) {
     const prefs = window.gameState.profile.preferences;
     const volumePercent = Math.round(prefs.volume * 100);
@@ -1376,18 +1503,20 @@ export const RendererMenus = {
               <div class="text-sm font-bold text-white gba-font mb-4 pb-3 flex justify-between items-center border-b" style="border-color: rgba(255, 255, 255, 0.2); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">
                   <span>MODO BETA</span>
                   <button onclick="window.Utils.toggleBetaMode()" 
-                          class="gba-button w-28 h-9 text-[10px] ${isBetaMode
-        ? "bg-red-500 hover:bg-red-600"
-        : "bg-green-500 hover:bg-green-600"
-      }" style="border: 3px solid #000;">
+                          class="gba-button w-28 h-9 text-[10px] ${
+                            isBetaMode
+                              ? "bg-red-500 hover:bg-red-600"
+                              : "bg-green-500 hover:bg-green-600"
+                          }" style="border: 3px solid #000;">
                       ${isBetaMode ? "DESATIVAR" : "ATIVAR"}
                   </button>
               </div>
               <p class="text-xs gba-font text-white mb-6" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">
-                ${isBetaMode
-        ? 'Ativado. A tela "Explorar" agora é o Mapa Mundial (WIP).'
-        : 'Desativado. A navegação será por texto e botões.'
-      }
+                ${
+                  isBetaMode
+                    ? 'Ativado. A tela "Explorar" agora é o Mapa Mundial (WIP).'
+                    : "Desativado. A navegação será por texto e botões."
+                }
               </p>
 
               <div class="text-sm font-bold text-white gba-font mb-4 pb-3 border-b" style="border-color: rgba(255, 255, 255, 0.2); text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);">CONTROLE DE SOM</div>
@@ -1396,25 +1525,31 @@ export const RendererMenus = {
                   <label for="volumeSlider" class="block text-xs font-bold gba-font mb-3 text-white" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">
                       Volume da Música: ${volumePercent}%
                   </label>
-                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${prefs.volume
-      }" 
+                  <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="${
+                    prefs.volume
+                  }" 
                          oninput="window.updateVolume(this.value)"
                          class="w-full h-3 rounded-lg appearance-none cursor-pointer" style="background: rgba(255, 255, 255, 0.2); border: 2px solid #000;">
               </div>
 
               <button onclick="window.toggleMute()" 
-                      class="gba-button w-full py-4 text-base font-bold ${isMuted
-        ? "bg-red-500 hover:bg-red-600"
-        : "bg-green-500 hover:bg-green-600"
-      }" style="border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
-                  <i class="fa-solid ${isMuted ? 'fa-volume-xmark' : 'fa-volume-high'} mr-2"></i>
-                  ${isMuted
-        ? "SOM MUDO (CLIQUE PARA LIGAR)"
-        : "SOM LIGADO (CLIQUE PARA MUTAR)"
-      }
+                      class="gba-button w-full py-4 text-base font-bold ${
+                        isMuted
+                          ? "bg-red-500 hover:bg-red-600"
+                          : "bg-green-500 hover:bg-green-600"
+                      }" style="border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                  <i class="fa-solid ${
+                    isMuted ? "fa-volume-xmark" : "fa-volume-high"
+                  } mr-2"></i>
+                  ${
+                    isMuted
+                      ? "SOM MUDO (CLIQUE PARA LIGAR)"
+                      : "SOM LIGADO (CLIQUE PARA MUTAR)"
+                  }
               </button>
-              <p class="text-xs gba-font text-white mt-2 text-center" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">(O volume atual do jogo é ${isMuted ? "MUDO" : "LIGADO"
-      })</p>
+              <p class="text-xs gba-font text-white mt-2 text-center" style="text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);">(O volume atual do jogo é ${
+                isMuted ? "MUDO" : "LIGADO"
+              })</p>
 
           </div>
           
@@ -1430,42 +1565,44 @@ export const RendererMenus = {
     const avatarKey = prefs.avatarTrainerKey || TRAINER_AVATAR_CHOICES[0].key;
     const trainerImage = getTrainerAvatarUrl(profile);
 
-    const avatarGrid = TRAINER_AVATAR_CHOICES
-      .map((option) => {
-        const isSelected = option.key === avatarKey;
-        return `
+    const avatarGrid = TRAINER_AVATAR_CHOICES.map((option) => {
+      const isSelected = option.key === avatarKey;
+      return `
           <button
-            class="relative flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900/70 border ${isSelected
-            ? "border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.6)]"
-            : "border-slate-700 hover:border-emerald-400 hover:shadow-[0_0_12px_rgba(52,211,153,0.35)]"
-          } transition-all duration-200 group"
+            class="relative flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900/70 border ${
+              isSelected
+                ? "border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.6)]"
+                : "border-slate-700 hover:border-emerald-400 hover:shadow-[0_0_12px_rgba(52,211,153,0.35)]"
+            } transition-all duration-200 group"
             onclick="window.Renderer.updateTrainerAvatar('${option.key}')"
             type="button"
           >
-            <div class="w-20 h-20 flex items-center justify-center rounded-full bg-slate-800/80 ring-4 ${isSelected
-            ? "ring-yellow-200"
-            : "ring-slate-700 group-hover:ring-emerald-300"
-          } overflow-hidden">
+            <div class="w-20 h-20 flex items-center justify-center rounded-full bg-slate-800/80 ring-4 ${
+              isSelected
+                ? "ring-yellow-200"
+                : "ring-slate-700 group-hover:ring-emerald-300"
+            } overflow-hidden">
               <img
                 src="${option.url}"
                 alt="${option.label}"
                 class="w-full h-full object-cover rounded-full"
               >
             </div>
-            <span class="gba-font text-[10px] uppercase tracking-widest ${isSelected
-            ? "text-yellow-200"
-            : "text-gray-300 group-hover:text-emerald-200"
-          }">
+            <span class="gba-font text-[10px] uppercase tracking-widest ${
+              isSelected
+                ? "text-yellow-200"
+                : "text-gray-300 group-hover:text-emerald-200"
+            }">
               ${option.label}
             </span>
-            ${isSelected
-            ? `<span class="absolute -top-2 -right-2 text-yellow-300"><i class="fa-solid fa-star"></i></span>`
-            : ""
-          }
+            ${
+              isSelected
+                ? `<span class="absolute -top-2 -right-2 text-yellow-300"><i class="fa-solid fa-star"></i></span>`
+                : ""
+            }
           </button>
         `;
-      })
-      .join("");
+    }).join("");
 
     const isAnonymous = window.userId.startsWith("anonimo");
 
@@ -1514,7 +1651,11 @@ export const RendererMenus = {
                 <div>
             <p class="text-xs font-bold mb-1 uppercase">Gênero:</p>
                     <div class="flex justify-center space-x-4 text-xs">
-              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${profile.trainerGender === "MALE" ? "border-blue-500 bg-blue-100" : "border-gray-300"} cursor-pointer transition">
+              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${
+                profile.trainerGender === "MALE"
+                  ? "border-blue-500 bg-blue-100"
+                  : "border-gray-300"
+              } cursor-pointer transition">
                 <input
                   type="radio"
                   name="newTrainerGender"
@@ -1524,7 +1665,11 @@ export const RendererMenus = {
                 >
                             <span>Homem</span>
                         </label>
-              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${profile.trainerGender === "FEMALE" ? "border-pink-500 bg-pink-100" : "border-gray-300"} cursor-pointer transition">
+              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${
+                profile.trainerGender === "FEMALE"
+                  ? "border-pink-500 bg-pink-100"
+                  : "border-gray-300"
+              } cursor-pointer transition">
                 <input
                   type="radio"
                   name="newTrainerGender"
@@ -1549,11 +1694,20 @@ export const RendererMenus = {
           </div>
 
           ${(() => {
-            const trainerLevel = typeof profile.trainerLevel === 'number' ? profile.trainerLevel : 1;
-            const trainerExp = typeof profile.trainerExp === 'number' ? profile.trainerExp : 0;
-            const expToNext = window.Utils ? window.Utils.calculateTrainerExpToNextLevel(trainerLevel) : (100 * trainerLevel * trainerLevel);
-            const expPercent = trainerLevel >= 100 ? 100 : Math.min(100, Math.floor((trainerExp / expToNext) * 100));
-            
+            const trainerLevel =
+              typeof profile.trainerLevel === "number"
+                ? profile.trainerLevel
+                : 1;
+            const trainerExp =
+              typeof profile.trainerExp === "number" ? profile.trainerExp : 0;
+            const expToNext = window.Utils
+              ? window.Utils.calculateTrainerExpToNextLevel(trainerLevel)
+              : 100 * trainerLevel * trainerLevel;
+            const expPercent =
+              trainerLevel >= 100
+                ? 100
+                : Math.min(100, Math.floor((trainerExp / expToNext) * 100));
+
             return `
             <div class="mt-4 bg-gradient-to-r from-blue-900 to-purple-900 text-white border-2 border-gray-800 rounded-xl p-3 shadow-inner">
               <div class="flex justify-between items-center mb-2">
@@ -1562,14 +1716,18 @@ export const RendererMenus = {
               </div>
               <div class="mb-2">
                 <div class="flex justify-between text-[10px] mb-1">
-                  <span>XP: ${trainerExp.toLocaleString('pt-BR')}</span>
-                  <span>Próximo: ${expToNext.toLocaleString('pt-BR')}</span>
+                  <span>XP: ${trainerExp.toLocaleString("pt-BR")}</span>
+                  <span>Próximo: ${expToNext.toLocaleString("pt-BR")}</span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-3 border-2 border-gray-900 overflow-hidden">
                   <div class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 h-full transition-all duration-300" style="width: ${expPercent}%; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);"></div>
                 </div>
               </div>
-              ${trainerLevel >= 100 ? '<div class="text-[10px] text-center text-yellow-300">Nível Máximo!</div>' : `<div class="text-[10px] text-center text-gray-400">${expPercent}% para próximo nível</div>`}
+              ${
+                trainerLevel >= 100
+                  ? '<div class="text-[10px] text-center text-yellow-300">Nível Máximo!</div>'
+                  : `<div class="text-[10px] text-center text-gray-400">${expPercent}% para próximo nível</div>`
+              }
             </div>
             `;
           })()}
@@ -1600,8 +1758,9 @@ export const RendererMenus = {
           <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 w-full">
             Salvar Perfil
           </button>
-            ${isAnonymous
-        ? `
+            ${
+              isAnonymous
+                ? `
             <div class="text-center text-xs gba-font text-gray-200">
                     Faça login para salvar na nuvem!
                 </div>
@@ -1613,11 +1772,12 @@ export const RendererMenus = {
                         <span>LOGIN COM GOOGLE</span>
                     </button>
           `
-        : `
+                : `
         <button onclick="window.signOutUser()" class="gba-button bg-red-500 hover:bg-red-600 w-full">
             LOGOUT
         </button>
-          `}
+          `
+            }
     </div>
 
         <div class="border-t-2 border-gray-800 pt-4 space-y-3">

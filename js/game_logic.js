@@ -861,6 +861,29 @@ export const GameLogic = {
     window.Renderer.showScreen("managePokemon");
   },
 
+  // NOVO: Função para favoritar/desfavoritar um pokémon
+  toggleFavoritePokemon: function (pokemonIndex) {
+    const profile = window.gameState.profile;
+    const pokemon = profile.pokemon[pokemonIndex];
+    
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon inválido.");
+      return false;
+    }
+
+    // Alterna o status de favorito
+    pokemon.isFavorite = !pokemon.isFavorite;
+    window.GameLogic.saveGameData();
+    
+    const displayName = window.Utils.getPokemonDisplayName(pokemon);
+    const message = pokemon.isFavorite 
+      ? `${displayName} foi adicionado aos favoritos! ⭐`
+      : `${displayName} foi removido dos favoritos.`;
+    
+    window.Utils.showModal("infoModal", message);
+    return true;
+  },
+
   // NOVO: Função para renomear um pokémon
   renamePokemon: function (pokemonIndex, newNickname) {
     const profile = window.gameState.profile;

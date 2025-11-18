@@ -437,7 +437,7 @@ export const RendererMenus = {
         <div class="stat-icon">🏅</div>
         <div class="stat-content">
           <div class="stat-label">INSÍGNIAS</div>
-          <div class="stat-value stat-value-badges">8 / 8</div>
+          <div class="stat-value stat-value-badges">${(profile.badges && Array.isArray(profile.badges) ? profile.badges.length : 0)}</div>
         </div>
       </div>
     </div>

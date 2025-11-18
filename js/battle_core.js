@@ -350,6 +350,11 @@ const ensureBattleStyles = () => {
       gap: 10px;
       overflow: hidden;
     }
+    #battle-area .boss-battle-header ~ .battle-scene {
+      min-height: 180px;
+      padding: 8px;
+      gap: 8px;
+    }
     #battle-area .battle-scene::after {
       content: "";
       position: absolute;
@@ -796,11 +801,12 @@ function getBattleTeamIndices() {
   // Se há uma equipe definida e válida, usa ela
   if (Array.isArray(battleTeam) && battleTeam.length > 0) {
     // Filtra apenas índices válidos e pokémons que existem
-    return battleTeam.filter(index => 
-      index >= 0 && 
-      index < pokemonArray.length && 
-      pokemonArray[index]
-    ).slice(0, MAX_BATTLE_TEAM);
+    return battleTeam
+      .filter(
+        (index) =>
+          index >= 0 && index < pokemonArray.length && pokemonArray[index]
+      )
+      .slice(0, MAX_BATTLE_TEAM);
   }
 
   // Se não há equipe definida, usa os 5 primeiros pokémons
@@ -888,12 +894,12 @@ export const BattleCore = {
 
   startWildBattle: async function () {
     const profile = window.gameState.profile;
-    
+
     // NOVO: Verifica pokémons da equipe de batalha especificamente
     const battleTeamIndices = getBattleTeamIndices();
     const battleTeamPokemon = battleTeamIndices
-      .map(index => profile.pokemon[index])
-      .filter(p => p && p.currentHp > 0);
+      .map((index) => profile.pokemon[index])
+      .filter((p) => p && p.currentHp > 0);
 
     if (battleTeamPokemon.length === 0) {
       window.GameLogic.addExploreLog(
@@ -914,8 +920,27 @@ export const BattleCore = {
     if (typeof profile.trainerExp !== "number") profile.trainerExp = 0;
     if (typeof profile.normalBattleCount !== "number")
       profile.normalBattleCount = 0;
+    if (!Array.isArray(profile.badges)) profile.badges = [];
 
     const trainerLevel = profile.trainerLevel;
+
+    // NOVO: Verifica se é hora do chefe de zona (a cada 50 batalhas)
+    if (profile.normalBattleCount > 0 && profile.normalBattleCount % 50 === 0) {
+      // Calcula qual zona é baseado no número de batalhas
+      const zoneNumber = Math.floor(profile.normalBattleCount / 50);
+      const zoneBadgeName = `Zona ${zoneNumber}`;
+
+      // Verifica se o jogador já tem essa insígnia (para evitar repetir)
+      if (!profile.badges.includes(zoneBadgeName)) {
+        await BattleCore.startBossBattle(
+          zoneNumber,
+          trainerLevel,
+          battleTeamIndices
+        );
+        return;
+      }
+    }
+
     let pokemonId = null;
     let isEvolved = false;
     let isLegendary = false;
@@ -1037,9 +1062,13 @@ export const BattleCore = {
     }
 
     // NOVO: Encontra o primeiro pokémon da equipe que está vivo para ser o inicial
-    const firstAvailableIndex = battleTeamIndices.find(index => 
-      profile.pokemon[index] && profile.pokemon[index].currentHp > 0
-    ) ?? battleTeamIndices[0] ?? 0;
+    const firstAvailableIndex =
+      battleTeamIndices.find(
+        (index) =>
+          profile.pokemon[index] && profile.pokemon[index].currentHp > 0
+      ) ??
+      battleTeamIndices[0] ??
+      0;
 
     window.gameState.battle = {
       type: "wild",
@@ -1055,6 +1084,147 @@ export const BattleCore = {
       lastMessage: `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
       log: [
         `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
+      ],
+      currentMenu: "main",
+      participatingIndices: new Set(),
+      forceSwitchSelection: false,
+      forceSwitchMessage: null,
+    };
+
+    // Adiciona o índice do pokémon inicial ao set de participantes
+    window.gameState.battle.participatingIndices.add(firstAvailableIndex);
+
+    window.Renderer.showScreen("battle");
+    BattleCore._checkActivePokemonOnBattleStart();
+  },
+
+  /**
+   * Inicia uma batalha contra um chefe de zona com 5 pokémons.
+   * @param {number} zoneNumber - Número da zona (1, 2, 3, etc.)
+   * @param {number} trainerLevel - Nível do treinador
+   * @param {Array<number>} battleTeamIndices - Índices da equipe de batalha do jogador
+   */
+  startBossBattle: async function (
+    zoneNumber,
+    trainerLevel,
+    battleTeamIndices
+  ) {
+    const profile = window.gameState.profile;
+
+    // Gera 5 pokémons para o chefe (todos evoluídos e com nível maior)
+    const bossPokemon = [];
+    const bossLevel = trainerLevel + 10; // Chefe sempre 10 níveis acima
+
+    // Busca pokémons evoluídos para o chefe
+    if (!window._evolvedCache) {
+      window._evolvedCache = [];
+      for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+        try {
+          const chain = await window.PokeAPI.fetchEvolutionChainData(id);
+          if (chain && chain.length > 1) {
+            const chainFirstId = chain[0]?.id;
+            if (
+              chainFirstId &&
+              id !== chainFirstId &&
+              !window._evolvedCache.includes(id)
+            ) {
+              window._evolvedCache.push(id);
+            }
+          }
+        } catch (e) {
+          // Ignora erros
+        }
+      }
+    }
+
+    // Seleciona 5 pokémons aleatórios evoluídos
+    const availableEvolved = [...window._evolvedCache];
+    const selectedIds = [];
+    for (let i = 0; i < 5 && availableEvolved.length > 0; i++) {
+      const randomIndex = Math.floor(Math.random() * availableEvolved.length);
+      const selectedId = availableEvolved.splice(randomIndex, 1)[0];
+      selectedIds.push(selectedId);
+    }
+
+    // Se não tiver 5 evoluídos, completa com pokémons normais
+    while (selectedIds.length < 5) {
+      const randomId =
+        Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+      if (!selectedIds.includes(randomId)) {
+        selectedIds.push(randomId);
+      }
+    }
+
+    // Carrega os dados dos pokémons do chefe
+    for (const pokemonId of selectedIds) {
+      try {
+        const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
+        if (pokemonData) {
+          pokemonData.level = Math.max(1, Math.min(100, bossLevel));
+          pokemonData.maxHp = window.Utils.calculateMaxHp(
+            pokemonData.stats.hp,
+            pokemonData.level
+          );
+          pokemonData.currentHp = pokemonData.maxHp;
+          window.Utils.applyMoveTemplate(pokemonData, { forceResetUses: true });
+          bossPokemon.push(pokemonData);
+        }
+      } catch (e) {
+        console.error(`Erro ao carregar pokémon ${pokemonId} do chefe:`, e);
+      }
+    }
+
+    if (bossPokemon.length === 0) {
+      window.GameLogic.addExploreLog("Erro ao gerar chefe de zona.");
+      window.AuthSetup?.handleBattleMusic(false);
+      return;
+    }
+
+    // Encontra o primeiro pokémon da equipe que está vivo
+    const firstAvailableIndex =
+      battleTeamIndices.find(
+        (index) =>
+          profile.pokemon[index] && profile.pokemon[index].currentHp > 0
+      ) ??
+      battleTeamIndices[0] ??
+      0;
+
+    const zoneBadgeName = `Zona ${zoneNumber}`;
+
+    // Nomes de líderes por zona
+    const leaderNames = [
+      "Líder Brock",
+      "Líder Misty",
+      "Líder Lt. Surge",
+      "Líder Erika",
+      "Líder Koga",
+      "Líder Sabrina",
+      "Líder Blaine",
+      "Líder Giovanni",
+    ];
+    const leaderName =
+      leaderNames[(zoneNumber - 1) % leaderNames.length] ||
+      `Líder da ${zoneBadgeName}`;
+
+    window.gameState.battle = {
+      type: "boss",
+      opponent: bossPokemon[0], // Primeiro pokémon do chefe
+      bossTeam: bossPokemon, // Todos os 5 pokémons do chefe
+      currentBossIndex: 0, // Índice do pokémon atual do chefe
+      zoneNumber: zoneNumber,
+      zoneBadgeName: zoneBadgeName,
+      leaderName: leaderName,
+      playerPokemonIndex: firstAvailableIndex,
+      battleTeamIndices: battleTeamIndices,
+      turn: 0,
+      lastMessage: `🏆 ${leaderName.toUpperCase()} DESAFIOU VOCÊ PARA UMA BATALHA! 🏆\n${
+        bossPokemon[0].name
+      } (Nv. ${bossPokemon[0].level}) lidera o time do ${leaderName}!`,
+      log: [
+        `🏆 ${leaderName.toUpperCase()} DESAFIOU VOCÊ PARA UMA BATALHA! 🏆`,
+        `${bossPokemon[0].name} (Nv. ${bossPokemon[0].level}) lidera o time do ${leaderName}!`,
+        `O ${leaderName} tem ${bossPokemon.length} pokémons poderosos!`,
+        `Próxima luta: Batalha contra ${leaderName}`,
       ],
       currentMenu: "main",
       participatingIndices: new Set(),
@@ -1156,7 +1326,8 @@ export const BattleCore = {
   _endBattleAndSyncLog: function (finalMessage) {
     const battle = window.gameState.battle;
     if (battle) {
-      // 1. contabiliza batalhas normais (exceto fugas)
+      // 1. contabiliza batalhas normais (exceto fugas e chefes)
+      // Chefes não contam como batalhas normais para o contador
       if (battle.type === "wild" && !battle.didEscape) {
         const profile = window.gameState.profile;
         profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
@@ -1205,7 +1376,7 @@ export const BattleCore = {
       BattleCore.addBattleLog(`Você ganhou P$${moneyGain}.`);
     }
 
-    const totalExpGain = Math.floor((defeatedLevel * 50) / 5 * 1.1); // NOVO: Aumentado em 10%
+    const totalExpGain = Math.floor(((defeatedLevel * 50) / 5) * 1.1); // NOVO: Aumentado em 10%
 
     // 1. Converte o Set para Array e ordena pelo índice para log limpo
     // Filtra índices que ainda estão no time (ou seja, não foram soltos, etc.)
@@ -1361,21 +1532,27 @@ export const BattleCore = {
     return new Promise((resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
       const battleMenu = document.querySelector(".battle-menu");
-      
+
       if (!battleMenu) {
         // Fallback se não encontrar o menu
-        resolve({ success: false, chance: BattleCore.calculateCatchRate(
-          wildPokemon.currentHp,
-          wildPokemon.maxHp,
-          ballCatchRate
-        ) });
+        resolve({
+          success: false,
+          chance: BattleCore.calculateCatchRate(
+            wildPokemon.currentHp,
+            wildPokemon.maxHp,
+            ballCatchRate
+          ),
+        });
         return;
       }
-      
+
       // Calcula a dificuldade baseada nos fatores
-      const hpRatio = Math.max(0, Math.min(1, wildPokemon.currentHp / wildPokemon.maxHp));
+      const hpRatio = Math.max(
+        0,
+        Math.min(1, wildPokemon.currentHp / wildPokemon.maxHp)
+      );
       const level = Math.max(1, wildPokemon.level || 1);
-      
+
       // Fatores de dificuldade:
       // - Vida baixa = mais fácil (zona verde maior)
       // - Nível alto = mais difícil (zona verde menor)
@@ -1385,20 +1562,22 @@ export const BattleCore = {
       const hpBonus = (1 - hpRatio) * 15; // Até 15% de bônus se HP baixo
       const levelPenalty = (level / 100) * 12; // Até 12% de penalidade se nível alto
       const ballBonus = (ballCatchRate - 0.5) * 8; // Bônus baseado na qualidade da bola
-      
+
       // Tamanho das zonas (verde no centro, amarelo ao redor, vermelho nos extremos)
-      const greenZoneSize = Math.max(10, Math.min(35, 
-        baseGreenZoneSize + hpBonus - levelPenalty + ballBonus
-      ));
-      const yellowZoneSize = Math.max(10, Math.min(25,
-        baseYellowZoneSize + (hpBonus * 0.5) - (levelPenalty * 0.5)
-      ));
-      
+      const greenZoneSize = Math.max(
+        10,
+        Math.min(35, baseGreenZoneSize + hpBonus - levelPenalty + ballBonus)
+      );
+      const yellowZoneSize = Math.max(
+        10,
+        Math.min(25, baseYellowZoneSize + hpBonus * 0.5 - levelPenalty * 0.5)
+      );
+
       // Velocidade da barra aumentada (nível alto = mais rápido)
       const baseSpeed = 4; // Velocidade base aumentada (era 2)
-      const speedMultiplier = 1 + (level / 40); // Mais rápido com nível alto
+      const speedMultiplier = 1 + level / 40; // Mais rápido com nível alto
       const barSpeed = baseSpeed * speedMultiplier;
-      
+
       // Substitui o conteúdo do menu pelo minigame
       battleMenu.innerHTML = `
         <div class="battle-menu-body">
@@ -1426,54 +1605,59 @@ export const BattleCore = {
           </div>
         </div>
       `;
-      
+
       const barElement = document.getElementById("capture-timing-bar");
       const greenZoneElement = document.getElementById("capture-green-zone");
       const yellowZoneElement = document.getElementById("capture-yellow-zone");
-      const redZoneLeftElement = document.getElementById("capture-red-zone-left");
-      const redZoneRightElement = document.getElementById("capture-red-zone-right");
+      const redZoneLeftElement = document.getElementById(
+        "capture-red-zone-left"
+      );
+      const redZoneRightElement = document.getElementById(
+        "capture-red-zone-right"
+      );
       const feedbackElement = document.getElementById("capture-feedback");
       const container = document.getElementById("capture-timing-container");
-      
+
       // Aguarda um frame para garantir que o elemento está renderizado
       setTimeout(() => {
         // Configura as zonas
         const containerWidth = container.offsetWidth;
-        
+
         // Zona verde (centro - menor)
         const greenWidth = (containerWidth * greenZoneSize) / 100;
         const greenLeft = (containerWidth - greenWidth) / 2;
-        
+
         // Zona amarela (ao redor do verde - maior que verde)
         // O amarelo engloba o verde, então precisa ser maior
-        const yellowTotalWidth = (containerWidth * (greenZoneSize + yellowZoneSize)) / 100;
+        const yellowTotalWidth =
+          (containerWidth * (greenZoneSize + yellowZoneSize)) / 100;
         const yellowLeft = (containerWidth - yellowTotalWidth) / 2;
-        
+
         // Zonas vermelhas (extremas - o que sobra nas laterais, fora do amarelo)
         const redZoneWidth = (containerWidth - yellowTotalWidth) / 2;
-        
+
         // Aplica os tamanhos
         greenZoneElement.style.width = `${greenWidth}px`;
         greenZoneElement.style.left = `${greenLeft}px`;
-        
+
         yellowZoneElement.style.width = `${yellowTotalWidth}px`;
         yellowZoneElement.style.left = `${yellowLeft}px`;
-        
+
         redZoneLeftElement.style.width = `${redZoneWidth}px`;
         redZoneRightElement.style.width = `${redZoneWidth}px`;
-        
+
         // Variáveis para o handler do clique
         const greenStart = greenLeft;
         const greenEnd = greenLeft + greenWidth;
         const yellowStart = yellowLeft;
         const yellowEnd = yellowLeft + yellowTotalWidth;
-        
+
         let barPosition = 0;
         let direction = 1; // 1 = direita, -1 = esquerda
         let gameActive = true;
         let clicked = false;
         let animateBarInterval = null;
-        
+
         // Animação da barra usando setInterval para melhor controle
         const startAnimation = () => {
           animateBarInterval = setInterval(() => {
@@ -1481,9 +1665,9 @@ export const BattleCore = {
               if (animateBarInterval) clearInterval(animateBarInterval);
               return;
             }
-            
+
             barPosition += barSpeed * direction;
-            
+
             // Inverte direção nas bordas
             if (barPosition >= containerWidth - 20) {
               barPosition = containerWidth - 20;
@@ -1492,79 +1676,81 @@ export const BattleCore = {
               barPosition = 0;
               direction = 1;
             }
-            
+
             barElement.style.left = `${barPosition}px`;
           }, 12); // ~83 FPS para movimento mais suave
         };
-        
+
         startAnimation();
-        
+
         // Handler do clique na área toda
         const handleClick = (e) => {
           if (!gameActive || clicked) return;
-          
+
           clicked = true;
           gameActive = false;
           if (animateBarInterval) clearInterval(animateBarInterval);
           container.style.cursor = "not-allowed";
           container.style.opacity = "0.7";
-          
+
           // Verifica em qual zona a barra está
           const barCenter = barPosition + 10; // Centro da barra (largura 20px)
-          
+
           const baseChance = BattleCore.calculateCatchRate(
             wildPokemon.currentHp,
             wildPokemon.maxHp,
             ballCatchRate
           );
-          
+
           // Verifica primeiro a zona verde (mais interna)
           if (barCenter >= greenStart && barCenter <= greenEnd) {
             // ZONA VERDE - Maior chance de captura
-            const zoneCenter = greenLeft + (greenWidth / 2);
+            const zoneCenter = greenLeft + greenWidth / 2;
             const distanceFromCenter = Math.abs(barCenter - zoneCenter);
             const maxDistance = greenWidth / 2;
-            const precision = 1 - (distanceFromCenter / maxDistance); // 0 a 1
-            
+            const precision = 1 - distanceFromCenter / maxDistance; // 0 a 1
+
             // Bônus de precisão: até 25% extra se clicou no centro exato
             const precisionBonus = precision * 25;
             const finalChance = Math.min(95, baseChance + precisionBonus);
-            
-            feedbackElement.textContent = `PERFEITO! Precisão: ${Math.round(precision * 100)}%!`;
+
+            feedbackElement.textContent = `PERFEITO! Precisão: ${Math.round(
+              precision * 100
+            )}%!`;
             feedbackElement.style.color = "#22c55e";
-            
+
             setTimeout(() => {
               resolve({ success: true, chance: finalChance });
             }, 1000);
-          } 
+          }
           // Depois verifica a zona amarela (meio, mas não no verde)
           else if (barCenter >= yellowStart && barCenter <= yellowEnd) {
             // ZONA AMARELA - Acerta mas sem bônus
             const finalChance = baseChance; // Chance base, sem modificação
-            
+
             feedbackElement.textContent = "Bom! Mas poderia ser melhor...";
             feedbackElement.style.color = "#facc15";
-            
+
             setTimeout(() => {
               resolve({ success: true, chance: finalChance });
             }, 1000);
-          } 
+          }
           // Por último, zona vermelha (extremos)
           else {
             // ZONA VERMELHA - Erra completamente
             const finalChance = Math.max(5, baseChance * 0.5); // Reduz chance pela metade
-            
+
             feedbackElement.textContent = "Errou! A pokébola falhou!";
             feedbackElement.style.color = "#ef4444";
-            
+
             setTimeout(() => {
               resolve({ success: false, chance: finalChance });
             }, 1500);
           }
         };
-        
+
         container.addEventListener("click", handleClick);
-        
+
         // Timeout de segurança (se não clicar em 8 segundos, falha)
         setTimeout(() => {
           if (!clicked) {
@@ -1573,23 +1759,22 @@ export const BattleCore = {
             if (animateBarInterval) clearInterval(animateBarInterval);
             container.style.cursor = "not-allowed";
             container.style.opacity = "0.7";
-            
+
             const baseChance = BattleCore.calculateCatchRate(
               wildPokemon.currentHp,
               wildPokemon.maxHp,
               ballCatchRate
             );
-            
+
             feedbackElement.textContent = "Tempo esgotado!";
             feedbackElement.style.color = "#ef4444";
-            
+
             setTimeout(() => {
               resolve({ success: false, chance: baseChance * 0.3 });
             }, 1000);
           }
         }, 8000);
       }, 50); // Pequeno delay para garantir renderização
-      
     });
   },
 
@@ -1600,8 +1785,11 @@ export const BattleCore = {
       const ballSpriteUrl = BattleCore._getBallSpriteUrl(ballName);
 
       // Mostra o minigame primeiro
-      const minigameResult = await BattleCore.showCaptureMinigame(ballName, ballCatchRate);
-      
+      const minigameResult = await BattleCore.showCaptureMinigame(
+        ballName,
+        ballCatchRate
+      );
+
       // Atualiza sprite para pokebola
       if (opponentSpriteElement) {
         opponentSpriteElement.src = ballSpriteUrl;
@@ -1790,7 +1978,9 @@ export const BattleCore = {
     } else if (action === "move") {
       if (playerPokemon.currentHp <= 0) {
         BattleCore.addBattleLog(
-          `${window.Utils.getPokemonDisplayName(playerPokemon)} desmaiou e não pode atacar!`
+          `${window.Utils.getPokemonDisplayName(
+            playerPokemon
+          )} desmaiou e não pode atacar!`
         );
         BattleCore.setBattleMenu("main", true);
         return;
@@ -1804,9 +1994,9 @@ export const BattleCore = {
       if (movePA.remaining <= 0) {
         const moveType = isSpecialMove ? "energia" : "PA";
         BattleCore.addBattleLog(
-          `${
-            window.Utils.getPokemonDisplayName(playerPokemon)
-          } está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
+          `${window.Utils.getPokemonDisplayName(
+            playerPokemon
+          )} está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
         );
         BattleCore.setBattleMenu("fight", true);
         BattleCore.updateBattleScreen();
@@ -1849,9 +2039,9 @@ export const BattleCore = {
       const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
       if (!paUsed) {
         BattleCore.addBattleLog(
-          `${window.Utils.getPokemonDisplayName(playerPokemon)} não conseguiu usar ${window.Utils.formatName(
-            moveName
-          )}!`
+          `${window.Utils.getPokemonDisplayName(
+            playerPokemon
+          )} não conseguiu usar ${window.Utils.formatName(moveName)}!`
         );
         BattleCore.setBattleMenu("fight", true);
         BattleCore.updateBattleScreen();
@@ -1861,9 +2051,9 @@ export const BattleCore = {
       // Obtém PA atualizado após o uso
       const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
 
-      let logMessage = `${window.Utils.getPokemonDisplayName(playerPokemon)} usou ${window.Utils.formatName(
-        moveName
-      )}!${effectivenessMessage}`;
+      let logMessage = `${window.Utils.getPokemonDisplayName(
+        playerPokemon
+      )} usou ${window.Utils.formatName(moveName)}!${effectivenessMessage}`;
       if (damageResult.damage > 0) {
         logMessage += ` Causou ${damageResult.damage} de dano.`;
       }
@@ -1918,9 +2108,68 @@ export const BattleCore = {
     }
 
     if (opponent.currentHp === 0) {
-      BattleCore.battleWin(playerPokemon, opponent);
-      ended = true;
-      finalMessage = `${opponent.name} desmaiou! Batalha vencida!`;
+      const battle = window.gameState.battle;
+
+      // NOVO: Lógica especial para chefe de zona
+      if (
+        battle.type === "boss" &&
+        battle.bossTeam &&
+        battle.currentBossIndex !== undefined
+      ) {
+        // Derrotou o pokémon atual do chefe
+        BattleCore.battleWin(playerPokemon, opponent);
+
+        // Verifica se há mais pokémons no time do chefe
+        const nextBossIndex = battle.currentBossIndex + 1;
+        if (nextBossIndex < battle.bossTeam.length) {
+          // Ainda há pokémons, troca para o próximo
+          const nextBossPokemon = battle.bossTeam[nextBossIndex];
+          nextBossPokemon.currentHp = nextBossPokemon.maxHp; // Restaura HP
+          battle.opponent = nextBossPokemon;
+          battle.currentBossIndex = nextBossIndex;
+
+          BattleCore.addBattleLog(`${opponent.name} desmaiou!`);
+          const remainingCount = battle.bossTeam.length - nextBossIndex;
+          BattleCore.addBattleLog(
+            `O ${battle.leaderName || "chefe"} enviou ${
+              nextBossPokemon.name
+            } (Nv. ${nextBossPokemon.level})!`
+          );
+          BattleCore.addBattleLog(
+            `Restam ${remainingCount} pokémon${
+              remainingCount > 1 ? "s" : ""
+            } do ${battle.leaderName || "chefe"}!`
+          );
+
+          // Atualiza a tela para mostrar as pokébolas atualizadas
+          BattleCore.updateBattleScreen();
+
+          // Não encerra a batalha, continua
+          ended = false;
+          finalMessage = null;
+        } else {
+          // Todos os pokémons do chefe foram derrotados!
+          ended = true;
+          const profile = window.gameState.profile;
+          const zoneBadgeName = battle.zoneBadgeName;
+
+          // Adiciona a insígnia se ainda não tiver
+          if (!profile.badges.includes(zoneBadgeName)) {
+            profile.badges.push(zoneBadgeName);
+            finalMessage = `🎉 VITÓRIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! 🎉\nVocê recebeu a Insígnia ${zoneBadgeName}!`;
+            BattleCore.addBattleLog(
+              `🏅 Você recebeu a Insígnia ${zoneBadgeName}!`
+            );
+          } else {
+            finalMessage = `🎉 VITÓRIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! 🎉`;
+          }
+        }
+      } else {
+        // Batalha normal (wild)
+        BattleCore.battleWin(playerPokemon, opponent);
+        ended = true;
+        finalMessage = `${opponent.name} desmaiou! Batalha vencida!`;
+      }
     }
 
     if (
@@ -2031,7 +2280,9 @@ export const BattleCore = {
         );
 
         if (hasLivePokemon) {
-          const faintedMessage = `${window.Utils.getPokemonDisplayName(playerPokemon)} desmaiou! Você precisa trocar de Pokémon.`;
+          const faintedMessage = `${window.Utils.getPokemonDisplayName(
+            playerPokemon
+          )} desmaiou! Você precisa trocar de Pokémon.`;
           BattleCore.addBattleLog(faintedMessage);
           BattleCore.forceSwitchSelection(faintedMessage);
           return;
@@ -2073,21 +2324,23 @@ export const BattleCore = {
   switchPokemon: async function (newIndex) {
     const battle = window.gameState.battle;
     const currentPokemon = window.Utils.getActivePokemon();
-    
+
     // NOVO: Verifica se o pokémon está na equipe de batalha
-    const battleTeamIndices = battle?.battleTeamIndices || 
-      (window.gameState.profile.battleTeam && window.gameState.profile.battleTeam.length > 0 
-        ? window.gameState.profile.battleTeam 
+    const battleTeamIndices =
+      battle?.battleTeamIndices ||
+      (window.gameState.profile.battleTeam &&
+      window.gameState.profile.battleTeam.length > 0
+        ? window.gameState.profile.battleTeam
         : window.gameState.profile.pokemon.map((_, i) => i).slice(0, 5));
-    
+
     if (!battleTeamIndices.includes(newIndex)) {
       window.Utils.showModal(
-        'infoModal',
-        'Este pokémon não está na sua equipe de batalha! Selecione um pokémon da equipe.'
+        "infoModal",
+        "Este pokémon não está na sua equipe de batalha! Selecione um pokémon da equipe."
       );
       return;
     }
-    
+
     // NOTA: newPokemon aqui referencia o Pokémon no índice da lista NÃO REORDENADA.
     const newPokemon = window.gameState.profile.pokemon[newIndex];
 
@@ -2389,8 +2642,57 @@ export const BattleCore = {
       </div>
     `;
 
+    // NOVO: Indicador de pokébolas para batalha de chefe
+    let bossIndicatorHtml = "";
+    if (
+      battle.type === "boss" &&
+      battle.bossTeam &&
+      battle.currentBossIndex !== undefined
+    ) {
+      const totalBossPokemon = battle.bossTeam.length;
+      const defeatedCount = battle.currentBossIndex;
+      const remainingCount = totalBossPokemon - defeatedCount;
+
+      const pokeballsHtml = battle.bossTeam
+        .map((_, index) => {
+          const isDefeated = index < battle.currentBossIndex;
+          const isCurrent = index === battle.currentBossIndex;
+          const opacity = isDefeated ? "0.3" : isCurrent ? "1" : "0.7";
+          const scale = isCurrent ? "1.2" : "1";
+          return `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" 
+                     alt="Pokébola" 
+                     class="boss-pokeball-indicator" 
+                     style="width: 20px; height: 20px; opacity: ${opacity}; transform: scale(${scale}); image-rendering: pixelated; transition: all 0.3s;" 
+                     title="${
+                       isDefeated
+                         ? "Derrotado"
+                         : isCurrent
+                         ? "Em batalha"
+                         : "Aguardando"
+                     }">`;
+        })
+        .join("");
+
+      bossIndicatorHtml = `
+        <div class="boss-battle-header" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: 3px solid #7f1d1d; border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="flex: 1;">
+              <div class="gba-font" style="font-size: 0.5rem; color: #fbbf24; text-shadow: 2px 2px 0px #000; line-height: 1.2;">
+                🏆 ${battle.leaderName || "LÍDER DE ZONA"}
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2);">
+              ${pokeballsHtml}
+              <span class="gba-font" style="font-size: 0.55rem; color: #fbbf24; margin-left: 3px;">${remainingCount}/${totalBossPokemon}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     battleArea.innerHTML = `
       <div class="battle-wrapper">
+        ${bossIndicatorHtml}
         <div class="battle-scene">
           <div class="battle-entity opponent">
             <div class="battle-row battle-row-opponent">
@@ -2427,14 +2729,16 @@ export const BattleCore = {
           <div class="battle-entity player">
             <div class="battle-row battle-row-player">
               <div class="battle-sprite-wrap">
-                <img src="${playerBackSprite}" alt="${
-      window.Utils.getPokemonDisplayName(playerPokemon)
-    }" class="battle-sprite player-sprite player">
+                <img src="${playerBackSprite}" alt="${window.Utils.getPokemonDisplayName(
+      playerPokemon
+    )}" class="battle-sprite player-sprite player">
                 <div class="battle-platform"></div>
               </div>
               <div class="battle-card">
                 <div class="battle-name-row gba-font">
-                  <span>${window.Utils.getPokemonDisplayName(playerPokemon)}</span>
+                  <span>${window.Utils.getPokemonDisplayName(
+                    playerPokemon
+                  )}</span>
                   <span>Nv. ${playerPokemon.level}</span>
                 </div>
                 <div class="battle-type-row">

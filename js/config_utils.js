@@ -161,6 +161,7 @@ export async function createConfigAndUtils(v) {
         trainerLevel: 1, // NOVO: Nível do treinador (começa em 1)
         trainerExp: 0, // NOVO: XP do treinador
         normalBattleCount: 0, // NOVO: Contador de batalhas normais
+        badges: [], // NOVO: Array de insígnias conquistadas (ex: ["Zona 1", "Zona 2"])
         preferences: {
           volume: 0.5,
           isMuted: false,

@@ -279,6 +279,10 @@ export const GameLogic = {
         if (typeof window.gameState.profile.normalBattleCount !== 'number') {
           window.gameState.profile.normalBattleCount = 0;
         }
+        // NOVO: Garante que o sistema de insígnias exista
+        if (!Array.isArray(window.gameState.profile.badges)) {
+          window.gameState.profile.badges = [];
+        }
         // NOVO: Garante que o sistema de doces exista
         if (!window.gameState.profile.pokemonCandy || typeof window.gameState.profile.pokemonCandy !== 'object') {
           window.gameState.profile.pokemonCandy = {};

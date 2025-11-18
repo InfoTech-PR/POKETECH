@@ -43,6 +43,8 @@ export async function createRenderer(v) {
         joinPvpFromFriendship: RendererMenus.joinPvpFromFriendship,
         challengeFriendToPvp: RendererMenus.challengeFriendToPvp,
         updateTrainerAvatar: RendererMenus.updateTrainerAvatar,
+        handleCustomAvatarUpload: RendererMenus.handleCustomAvatarUpload,
+        removeCustomAvatar: RendererMenus.removeCustomAvatar,
 
         // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
         copyPlayerId: RendererMenus.copyPlayerId,

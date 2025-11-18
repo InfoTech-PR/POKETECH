@@ -54,6 +54,12 @@ const TRAINER_AVATAR_CHOICES = [
 const getTrainerAvatarUrl = (profile) => {
   if (!profile) return TRAINER_AVATAR_CHOICES[0].url;
   const prefs = profile.preferences || {};
+  
+  // NOVO: Verifica se há uma imagem customizada do celular
+  if (prefs.customAvatarImage) {
+    return prefs.customAvatarImage;
+  }
+  
   const selectedKey = prefs.avatarTrainerKey || TRAINER_AVATAR_CHOICES[0].key;
   return (
     TRAINER_AVATAR_CHOICES.find((choice) => choice.key === selectedKey)?.url ||
@@ -1628,8 +1634,27 @@ export const RendererMenus = {
             <div class="flex-1">
               <h2 class="text-lg uppercase tracking-widest">Galeria de Treinadores</h2>
               <p class="text-xs text-white/80 mb-3 uppercase tracking-widest">
-                Escolha um avatar oficial da PokéAPI para representar seu perfil.
+                Escolha um avatar oficial da PokéAPI ou use sua própria foto.
               </p>
+              <div class="mb-3">
+                <div class="relative">
+                  <input
+                    type="file"
+                    id="customAvatarInput"
+                    accept="image/*"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onchange="window.Renderer.handleCustomAvatarUpload(event)"
+                  >
+                  <button class="gba-button bg-purple-500 hover:bg-purple-600 w-full text-xs">
+                    <i class="fa-solid fa-image mr-2"></i>Escolher Foto do Celular
+                  </button>
+                </div>
+                ${prefs.customAvatarImage ? `
+                  <button onclick="window.Renderer.removeCustomAvatar()" class="gba-button bg-red-500 hover:bg-red-600 w-full mt-2 text-xs">
+                    <i class="fa-solid fa-trash mr-2"></i>Remover Foto Customizada
+                  </button>
+                ` : ''}
+              </div>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 ${avatarGrid}
               </div>
@@ -1815,10 +1840,93 @@ export const RendererMenus = {
     if (profile.preferences.avatarTrainerKey === nextKey) {
       return;
     }
+    // NOVO: Remove imagem customizada ao escolher um avatar padrão
+    if (profile.preferences.customAvatarImage) {
+      delete profile.preferences.customAvatarImage;
+    }
     profile.preferences.avatarTrainerKey = nextKey;
     if (window.GameLogic?.saveGameData) {
       window.GameLogic.saveGameData();
     }
     window.Renderer.showScreen("profile");
+  },
+
+  // NOVO: Função para fazer upload de imagem customizada
+  handleCustomAvatarUpload: function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Valida se é uma imagem
+    if (!file.type.startsWith('image/')) {
+      window.Utils.showModal('errorModal', 'Por favor, selecione um arquivo de imagem válido.');
+      return;
+    }
+
+    // Limita o tamanho (máximo 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      window.Utils.showModal('errorModal', 'A imagem deve ter no máximo 2MB. Por favor, escolha uma imagem menor.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const profile = window.gameState.profile;
+      profile.preferences = profile.preferences || {};
+      
+      // Salva a imagem como base64
+      profile.preferences.customAvatarImage = e.target.result;
+      
+      // Remove a seleção de avatar padrão quando usa imagem customizada
+      if (profile.preferences.avatarTrainerKey) {
+        delete profile.preferences.avatarTrainerKey;
+      }
+      
+      // Salva os dados
+      if (window.GameLogic?.saveGameData) {
+        window.GameLogic.saveGameData();
+      }
+      
+      // Recarrega a tela de perfil
+      window.Renderer.showScreen("profile");
+      
+      window.Utils.showModal('infoModal', 'Foto de perfil atualizada com sucesso!');
+    };
+    
+    reader.onerror = function () {
+      window.Utils.showModal('errorModal', 'Erro ao ler a imagem. Tente novamente.');
+    };
+    
+    // Lê a imagem como Data URL (base64)
+    reader.readAsDataURL(file);
+    
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente
+    event.target.value = '';
+  },
+
+  // NOVO: Função para remover imagem customizada
+  removeCustomAvatar: function () {
+    const profile = window.gameState.profile;
+    if (!profile.preferences) {
+      profile.preferences = {};
+    }
+    
+    if (profile.preferences.customAvatarImage) {
+      delete profile.preferences.customAvatarImage;
+      
+      // Volta para o avatar padrão
+      if (!profile.preferences.avatarTrainerKey) {
+        profile.preferences.avatarTrainerKey = TRAINER_AVATAR_CHOICES[0].key;
+      }
+      
+      // Salva os dados
+      if (window.GameLogic?.saveGameData) {
+        window.GameLogic.saveGameData();
+      }
+      
+      // Recarrega a tela de perfil
+      window.Renderer.showScreen("profile");
+      
+      window.Utils.showModal('infoModal', 'Foto customizada removida!');
+    }
   },
 };

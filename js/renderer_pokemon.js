@@ -79,7 +79,7 @@ export const RendererPokemon = {
     const isActive = evo.id === currentPokemonId;
 
     return `
-      <div class="flex flex-col items-center flex-shrink-0 w-20 p-1 bg-white shadow-md rounded-lg mb-1">
+      <div class="flex flex-col items-center flex-shrink-0 w-20 p-1 bg-white shadow-md rounded-lg mb-1 transition-transform hover:scale-105">
         <img src="../assets/sprites/pokemon/${spriteId}_front.png" alt="${displayName}" class="w-12 h-12 mb-1  ${isActive ? 'border border-4 border-yellow-500 rounded-full' : ''}" style="${filterStyle}">
         <span class="text-[8px] gba-font text-center">${displayName}</span>
       </div>
@@ -750,9 +750,12 @@ export const RendererPokemon = {
       if (isShowingFullBranch) {
         const chain = (evolutionChain || []).slice();
         const baseEvo = chain.shift();
+        const isBaseKnown = pokedexSet.has(baseEvo?.id);
 
         let baseHtml = `<div class="flex flex-col items-center flex-shrink-0 w-20">`;
+        baseHtml += `<div onclick="window.Renderer.showPokedexStats(${baseEvo?.id}, ${!isBaseKnown})" class="cursor-pointer">`;
         baseHtml += self._renderEvoItem(baseEvo, baseEvo?.id, pokedexSet, p.id);
+        baseHtml += `</div>`;
         baseHtml += `
         <div class="flex-shrink-0 flex flex-col items-center justify-center text-yellow-700 text-xs font-bold -mt-1 mb-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shuffle" viewBox="0 0 16 16">
@@ -765,7 +768,10 @@ export const RendererPokemon = {
 
         const otherEvos = chain || [];
         const evosHtml = otherEvos
-          .map(evo => self._renderEvoItem(evo, evo?.id, pokedexSet, p.id))
+          .map(evo => {
+            const isKnown = pokedexSet.has(evo.id);
+            return `<div onclick="window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">${self._renderEvoItem(evo, evo?.id, pokedexSet, p.id)}</div>`;
+          })
           .join('');
 
         evolutionItemsHtml = baseHtml + `
@@ -787,7 +793,8 @@ export const RendererPokemon = {
             </div>
           `;
           }
-          evoItem += self._renderEvoItem(evo, evo?.id, pokedexSet, p.id);
+          const isKnown = pokedexSet.has(evo.id);
+          evoItem += `<div onclick="window.Renderer.showPokedexStats(${evo.id}, ${!isKnown})" class="cursor-pointer">${self._renderEvoItem(evo, evo?.id, pokedexSet, p.id)}</div>`;
           return evoItem;
         }).join('');
       }

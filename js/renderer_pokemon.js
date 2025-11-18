@@ -877,6 +877,28 @@ export const RendererPokemon = {
         <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${speciesData.description}</p>
       </div>
 
+      ${p.captureDate || p.captureBall ? `
+      <div class="p-2 bg-blue-50 rounded-lg border border-blue-300 mb-2 flex-shrink-0">
+        <h3 class="font-bold gba-font text-xs mb-1 text-center text-blue-700">INFORMAÇÕES DE CAPTURA</h3>
+        ${p.captureDate ? `
+          <p class="text-[8px] sm:text-xs gba-font text-gray-700 mb-1">
+            <strong>📅 Data de Captura:</strong> ${new Date(p.captureDate).toLocaleDateString('pt-BR', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        ` : ''}
+        ${p.captureBall ? `
+          <p class="text-[8px] sm:text-xs gba-font text-gray-700">
+            <strong> Pokébola:</strong> ${p.captureBall}
+          </p>
+        ` : ''}
+      </div>
+      ` : ''}
+
       <div class="p-2 bg-gray-100 rounded-lg border border-gray-300 mb-2">
         <div class="flex items-center justify-between">
           <span class="gba-font text-[10px] text-gray-700">HP</span>

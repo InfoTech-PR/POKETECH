@@ -1850,6 +1850,11 @@ export const BattleCore = {
               window.Utils.applyMoveTemplate(wildPokemon, {
                 forceResetUses: true,
               });
+
+              // NOVO: Adiciona data de captura e pokébola usada
+              wildPokemon.captureDate = new Date().toISOString();
+              wildPokemon.captureBall = ballName;
+
               window.gameState.profile.pokemon.push(wildPokemon);
 
               // NOVO: Adiciona doce quando Pokémon é capturado

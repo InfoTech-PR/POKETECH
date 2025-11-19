@@ -58,21 +58,53 @@ export const GameLogic = {
 
   // ==== Sistema de Doces de Pokémon ====
   
-  // Adiciona doce quando Pokémon é capturado ou solto
+  // NOVO: Obtém o ID base da linha evolutiva (primeiro Pokémon da cadeia)
+  // Exemplo: Bulbasaur(1), Ivysaur(2) e Venusaur(3) todos retornam 1
+  getEvolutionChainBaseId: function(pokemonId) {
+    if (!window.EVOLUTION_CHAINS) {
+      return pokemonId; // Fallback se não houver dados
+    }
+    
+    const pokemonIdStr = String(pokemonId);
+    
+    // Procura em todas as cadeias de evolução
+    for (const chainKey in window.EVOLUTION_CHAINS) {
+      const chain = window.EVOLUTION_CHAINS[chainKey];
+      if (Array.isArray(chain)) {
+        // Verifica se o pokemonId está nesta cadeia
+        const found = chain.find(p => String(p.id) === pokemonIdStr);
+        if (found) {
+          // Retorna o ID do primeiro Pokémon da cadeia (o base)
+          return chain[0].id;
+        }
+      }
+    }
+    
+    // Se não encontrou em nenhuma cadeia, retorna o próprio ID (Pokémon sem evolução)
+    return pokemonId;
+  },
+  
+  // Adiciona doce quando Pokémon é capturado, solto ou vence batalha
+  // NOVO: Usa o ID base da linha evolutiva para compartilhar doces
   addPokemonCandy: function(pokemonId, amount = 1) {
     if (!window.gameState.profile.pokemonCandy) {
       window.gameState.profile.pokemonCandy = {};
     }
-    const currentCandy = window.gameState.profile.pokemonCandy[pokemonId] || 0;
-    window.gameState.profile.pokemonCandy[pokemonId] = currentCandy + amount;
+    // Usa o ID base da linha evolutiva
+    const baseId = window.GameLogic.getEvolutionChainBaseId(pokemonId);
+    const currentCandy = window.gameState.profile.pokemonCandy[baseId] || 0;
+    window.gameState.profile.pokemonCandy[baseId] = currentCandy + amount;
   },
 
   // Obtém a quantidade de doces de um Pokémon
+  // NOVO: Usa o ID base da linha evolutiva para compartilhar doces
   getPokemonCandy: function(pokemonId) {
     if (!window.gameState.profile.pokemonCandy) {
       window.gameState.profile.pokemonCandy = {};
     }
-    return window.gameState.profile.pokemonCandy[pokemonId] || 0;
+    // Usa o ID base da linha evolutiva
+    const baseId = window.GameLogic.getEvolutionChainBaseId(pokemonId);
+    return window.gameState.profile.pokemonCandy[baseId] || 0;
   },
 
   // Verifica se tem doces suficientes para evoluir (baseado no nível)
@@ -820,8 +852,9 @@ export const GameLogic = {
       return;
     }
 
-    // Consome os doces
-    window.gameState.profile.pokemonCandy[pokemon.id] = pokemonCandy - evolutionReqs.candy;
+    // Consome os doces (usando ID base da linha evolutiva)
+    const baseId = window.GameLogic.getEvolutionChainBaseId(pokemon.id);
+    window.gameState.profile.pokemonCandy[baseId] = pokemonCandy - evolutionReqs.candy;
 
     let consumedItemName = null;
 
@@ -882,7 +915,8 @@ export const GameLogic = {
       window.Renderer.showScreen("pokemonList");
     } else {
       // Reembolsa os doces se a evolução falhar (dados locais ausentes)
-      window.gameState.profile.pokemonCandy[pokemon.id] = pokemonCandy;
+      const baseId = window.GameLogic.getEvolutionChainBaseId(pokemon.id);
+      window.gameState.profile.pokemonCandy[baseId] = pokemonCandy;
       window.Utils.showModal(
         "errorModal",
         `Falha ao buscar dados de ${window.Utils.formatName(targetName)}. Evolução cancelada.`

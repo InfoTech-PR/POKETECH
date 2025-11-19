@@ -1011,6 +1011,9 @@ export async function createConfigAndUtils(v) {
     }
   };
 
+  // Expõe EVOLUTION_CHAINS globalmente para uso no sistema de doces
+  window.EVOLUTION_CHAINS = EVOLUTION_CHAINS;
+
   return {
     GameConfig,
     initializeGameState,

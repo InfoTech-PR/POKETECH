@@ -1504,6 +1504,30 @@ export const BattleCore = {
     const participatingIndices = window.gameState.battle.participatingIndices;
     BattleCore.gainExp(loser.level, participatingIndices);
 
+    // NOVO: Recompensa doces aos Pokémon que participaram da batalha
+    // Cada Pokémon ganha doces baseado na linha evolutiva do oponente derrotado
+    if (participatingIndices && participatingIndices.size > 0) {
+      // Calcula quantos doces ganhar (baseado no nível do oponente)
+      const candyAmount = Math.max(1, Math.floor(loser.level / 5) + 1); // 1-20 doces baseado no nível
+      
+      // Adiciona doces para cada Pokémon participante (baseado na linha evolutiva do oponente)
+      participatingIndices.forEach(index => {
+        const pokemon = window.gameState.profile.pokemon[index];
+        if (pokemon) {
+          // O doce é baseado na linha evolutiva do oponente derrotado
+          window.GameLogic.addPokemonCandy(loser.id, candyAmount);
+        }
+      });
+      
+      // Mostra mensagem de doces ganhos (apenas uma vez, não por Pokémon)
+      const baseId = window.GameLogic.getEvolutionChainBaseId(loser.id);
+      const totalCandy = window.GameLogic.getPokemonCandy(baseId);
+      const loserName = window.Utils.formatName(loser.name);
+      BattleCore.addBattleLog(
+        `Você ganhou ${candyAmount} doces de ${loserName}! (Total: ${totalCandy} doces)`
+      );
+    }
+
     // A limpeza do Set acontece aqui, ao fim da batalha, ANTES do retorno para o menu.
     if (
       window.gameState.battle &&

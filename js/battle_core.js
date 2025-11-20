@@ -979,12 +979,18 @@ export const BattleCore = {
       profile.normalBattleCount > 0 &&
       profile.normalBattleCount % 10 === 0
     ) {
-      // Busca um Pokémon evoluído usando cache global
+      // Busca um Pokémon evoluído usando cache global (sem lendários/miticos)
       if (!window._evolvedCache) {
         window._evolvedCache = [];
-        // Busca cadeias evolutivas e identifica evoluídos
+        // Busca cadeias evolutivas e identifica evoluídos (excluindo lendários/miticos)
         for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
           try {
+            // Verifica se é lendário ou mitico
+            const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+            if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+              continue; // Pula lendários e miticos
+            }
+
             const chain = await window.PokeAPI.fetchEvolutionChainData(id);
             if (chain && chain.length > 1) {
               // Verifica se este ID não é o primeiro da cadeia (ou seja, é evoluído)
@@ -1011,10 +1017,35 @@ export const BattleCore = {
       }
     }
 
-    // Se não encontrou especial, busca um Pokémon normal
+    // Se não encontrou especial, busca um Pokémon normal (sem lendários/miticos)
     if (!pokemonId) {
-      pokemonId =
-        Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+      // Cria cache de Pokémon comuns (sem lendários/miticos) se não existir
+      if (!window._commonPokemonCache) {
+        window._commonPokemonCache = [];
+        for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+          try {
+            const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+            // Inclui apenas se NÃO for lendário e NÃO for mitico
+            if (speciesData && !speciesData.isLegendary && !speciesData.isMythical) {
+              window._commonPokemonCache.push(id);
+            }
+          } catch (e) {
+            // Se não conseguir buscar species, adiciona ao cache para evitar travamentos
+            window._commonPokemonCache.push(id);
+          }
+        }
+      }
+      
+      if (window._commonPokemonCache.length > 0) {
+        pokemonId =
+          window._commonPokemonCache[
+            Math.floor(Math.random() * window._commonPokemonCache.length)
+          ];
+      } else {
+        // Fallback: escolhe aleatoriamente (pode incluir lendários/miticos, mas é raro)
+        pokemonId =
+          Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+      }
     }
 
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
@@ -1085,7 +1116,7 @@ export const BattleCore = {
       log: [
         `Um ${wildPokemonData.name} selvagem${specialType} (Nv. ${wildPokemonData.level}) apareceu!${captureStatus}`,
       ],
-      currentMenu: "main",
+      currentMenu: "disabled",
       participatingIndices: new Set(),
       forceSwitchSelection: false,
       forceSwitchMessage: null,
@@ -1106,6 +1137,13 @@ export const BattleCore = {
 
     window.Renderer.showScreen("battle");
     BattleCore._checkActivePokemonOnBattleStart();
+
+    // NOVO: Inimigo toma a primeira ação após um pequeno delay
+    setTimeout(async () => {
+      if (window.gameState.battle && !window.gameState.battle.forceSwitchSelection) {
+        await BattleCore.playerTurn("opponent_attack");
+      }
+    }, 1500);
   },
 
   /**
@@ -1236,7 +1274,7 @@ export const BattleCore = {
         `O ${leaderName} tem ${bossPokemon.length} pokémons poderosos!`,
         `Próxima luta: Batalha contra ${leaderName}`,
       ],
-      currentMenu: "main",
+      currentMenu: "disabled",
       participatingIndices: new Set(),
       forceSwitchSelection: false,
       forceSwitchMessage: null,
@@ -1257,6 +1295,13 @@ export const BattleCore = {
 
     window.Renderer.showScreen("battle");
     BattleCore._checkActivePokemonOnBattleStart();
+
+    // NOVO: Inimigo toma a primeira ação após um pequeno delay
+    setTimeout(async () => {
+      if (window.gameState.battle && !window.gameState.battle.forceSwitchSelection) {
+        await BattleCore.playerTurn("opponent_attack");
+      }
+    }, 1500);
   },
 
   /**
@@ -1505,27 +1550,35 @@ export const BattleCore = {
     BattleCore.gainExp(loser.level, participatingIndices);
 
     // NOVO: Recompensa doces aos Pokémon que participaram da batalha
-    // Cada Pokémon ganha doces baseado na linha evolutiva do oponente derrotado
+    // 1 doce do Pokémon derrotado + 2 doces para cada Pokémon próprio que lutou
     if (participatingIndices && participatingIndices.size > 0) {
-      // Calcula quantos doces ganhar (baseado no nível do oponente)
-      const candyAmount = Math.max(1, Math.floor(loser.level / 5) + 1); // 1-20 doces baseado no nível
-      
-      // Adiciona doces para cada Pokémon participante (baseado na linha evolutiva do oponente)
-      participatingIndices.forEach(index => {
-        const pokemon = window.gameState.profile.pokemon[index];
-        if (pokemon) {
-          // O doce é baseado na linha evolutiva do oponente derrotado
-          window.GameLogic.addPokemonCandy(loser.id, candyAmount);
-        }
-      });
-      
-      // Mostra mensagem de doces ganhos (apenas uma vez, não por Pokémon)
-      const baseId = window.GameLogic.getEvolutionChainBaseId(loser.id);
-      const totalCandy = window.GameLogic.getPokemonCandy(baseId);
+      // 1. Adiciona 1 doce do Pokémon derrotado (baseado na linha evolutiva do oponente)
+      const loserBaseId = window.GameLogic.getEvolutionChainBaseId(loser.id);
+      window.GameLogic.addPokemonCandy(loser.id, 1);
+      const loserTotalCandy = window.GameLogic.getPokemonCandy(loserBaseId);
       const loserName = window.Utils.formatName(loser.name);
       BattleCore.addBattleLog(
-        `Você ganhou ${candyAmount} doces de ${loserName}! (Total: ${totalCandy} doces)`
+        `Você ganhou 1 doce de ${loserName}! (Total: ${loserTotalCandy} doces)`
       );
+
+      // 2. Adiciona 2 doces para cada Pokémon próprio que participou da batalha
+      const indicesArray = Array.from(participatingIndices)
+        .filter((index) => window.gameState.profile.pokemon[index])
+        .sort((a, b) => a - b);
+
+      indicesArray.forEach(index => {
+        const pokemon = window.gameState.profile.pokemon[index];
+        if (pokemon) {
+          // Adiciona 2 doces baseado na linha evolutiva do Pokémon próprio
+          window.GameLogic.addPokemonCandy(pokemon.id, 2);
+          const pokemonBaseId = window.GameLogic.getEvolutionChainBaseId(pokemon.id);
+          const pokemonTotalCandy = window.GameLogic.getPokemonCandy(pokemonBaseId);
+          const pokemonName = window.Utils.formatName(pokemon.name);
+          BattleCore.addBattleLog(
+            `${pokemonName} ganhou 2 doces! (Total: ${pokemonTotalCandy} doces)`
+          );
+        }
+      });
     }
 
     // A limpeza do Set acontece aqui, ao fim da batalha, ANTES do retorno para o menu.
@@ -1601,20 +1654,21 @@ export const BattleCore = {
       // - Vida baixa = mais fácil (zona verde maior)
       // - Nível alto = mais difícil (zona verde menor)
       // - Bola melhor = mais fácil (zona verde maior)
-      const baseGreenZoneSize = 20; // Tamanho base da zona verde (centro) em %
-      const baseYellowZoneSize = 15; // Tamanho da zona amarela (meio) em %
-      const hpBonus = (1 - hpRatio) * 15; // Até 15% de bônus se HP baixo
-      const levelPenalty = (level / 100) * 12; // Até 12% de penalidade se nível alto
-      const ballBonus = (ballCatchRate - 0.5) * 8; // Bônus baseado na qualidade da bola
+      // NOVO: Verde é o menor, amarelo médio, vermelho maior
+      const baseGreenZoneSize = 12; // Tamanho base da zona verde (centro, menor) em %
+      const baseYellowZoneSize = 35; // Tamanho total da zona amarela (médio, engloba verde) em % - aumentado 10%
+      const hpBonus = (1 - hpRatio) * 8; // Até 8% de bônus se HP baixo
+      const levelPenalty = (level / 100) * 6; // Até 6% de penalidade se nível alto
+      const ballBonus = (ballCatchRate - 0.5) * 4; // Bônus baseado na qualidade da bola
 
-      // Tamanho das zonas (verde no centro, amarelo ao redor, vermelho nos extremos)
+      // Tamanho das zonas: verde menor (centro), amarelo médio (ao redor), vermelho maior (extremas)
       const greenZoneSize = Math.max(
-        10,
-        Math.min(35, baseGreenZoneSize + hpBonus - levelPenalty + ballBonus)
+        8,
+        Math.min(20, baseGreenZoneSize + hpBonus - levelPenalty + ballBonus)
       );
-      const yellowZoneSize = Math.max(
-        10,
-        Math.min(25, baseYellowZoneSize + hpBonus * 0.5 - levelPenalty * 0.5)
+      const yellowTotalZoneSize = Math.max(
+        30,
+        Math.min(50, baseYellowZoneSize + hpBonus - levelPenalty * 0.5)
       );
 
       // Velocidade da barra aumentada (nível alto = mais rápido)
@@ -1667,17 +1721,15 @@ export const BattleCore = {
         // Configura as zonas
         const containerWidth = container.offsetWidth;
 
-        // Zona verde (centro - menor)
+        // Zona verde (centro - MENOR)
         const greenWidth = (containerWidth * greenZoneSize) / 100;
         const greenLeft = (containerWidth - greenWidth) / 2;
 
-        // Zona amarela (ao redor do verde - maior que verde)
-        // O amarelo engloba o verde, então precisa ser maior
-        const yellowTotalWidth =
-          (containerWidth * (greenZoneSize + yellowZoneSize)) / 100;
+        // Zona amarela (ao redor do verde - MÉDIO, engloba o verde)
+        const yellowTotalWidth = (containerWidth * yellowTotalZoneSize) / 100;
         const yellowLeft = (containerWidth - yellowTotalWidth) / 2;
 
-        // Zonas vermelhas (extremas - o que sobra nas laterais, fora do amarelo)
+        // Zonas vermelhas (extremas - MAIOR, o que sobra nas laterais, fora do amarelo)
         const redZoneWidth = (containerWidth - yellowTotalWidth) / 2;
 
         // Aplica os tamanhos
@@ -1748,7 +1800,7 @@ export const BattleCore = {
 
           // Verifica primeiro a zona verde (mais interna)
           if (barCenter >= greenStart && barCenter <= greenEnd) {
-            // ZONA VERDE - Maior chance de captura
+            // ZONA VERDE - Aumenta probabilidade de captura
             const zoneCenter = greenLeft + greenWidth / 2;
             const distanceFromCenter = Math.abs(barCenter - zoneCenter);
             const maxDistance = greenWidth / 2;
@@ -1764,31 +1816,29 @@ export const BattleCore = {
             feedbackElement.style.color = "#22c55e";
 
             setTimeout(() => {
-              resolve({ success: true, chance: finalChance });
+              resolve({ success: true, chance: finalChance, missed: false });
             }, 1000);
           }
           // Depois verifica a zona amarela (meio, mas não no verde)
           else if (barCenter >= yellowStart && barCenter <= yellowEnd) {
-            // ZONA AMARELA - Acerta mas sem bônus
+            // ZONA AMARELA - Não aumenta nem diminui (neutral)
             const finalChance = baseChance; // Chance base, sem modificação
 
             feedbackElement.textContent = "Bom! Mas poderia ser melhor...";
             feedbackElement.style.color = "#facc15";
 
             setTimeout(() => {
-              resolve({ success: true, chance: finalChance });
+              resolve({ success: true, chance: finalChance, missed: false });
             }, 1000);
           }
           // Por último, zona vermelha (extremos)
           else {
-            // ZONA VERMELHA - Erra completamente
-            const finalChance = Math.max(5, baseChance * 0.5); // Reduz chance pela metade
-
+            // ZONA VERMELHA - Errou completamente, perde pokébola e passa turno
             feedbackElement.textContent = "Errou! A pokébola falhou!";
             feedbackElement.style.color = "#ef4444";
 
             setTimeout(() => {
-              resolve({ success: false, chance: finalChance });
+              resolve({ success: false, chance: 0, missed: true });
             }, 1500);
           }
         };
@@ -1814,7 +1864,7 @@ export const BattleCore = {
             feedbackElement.style.color = "#ef4444";
 
             setTimeout(() => {
-              resolve({ success: false, chance: baseChance * 0.3 });
+              resolve({ success: false, chance: baseChance * 0.3, missed: false });
             }, 1000);
           }
         }, 8000);
@@ -1826,13 +1876,21 @@ export const BattleCore = {
     return new Promise(async (resolve) => {
       const wildPokemon = window.gameState.battle.opponent;
       const opponentSpriteElement = document.querySelector(".opponent-sprite");
-      const ballSpriteUrl = BattleCore._getBallSpriteUrl(ballName);
 
       // Mostra o minigame primeiro
       const minigameResult = await BattleCore.showCaptureMinigame(
         ballName,
         ballCatchRate
       );
+
+      // NOVO: Se errou no vermelho, não mostra animação de captura
+      if (minigameResult.missed) {
+        // Retorna informação de que errou
+        resolve({ battleEnded: false, missed: true });
+        return;
+      }
+
+      const ballSpriteUrl = BattleCore._getBallSpriteUrl(ballName);
 
       // Atualiza sprite para pokebola
       if (opponentSpriteElement) {
@@ -1924,7 +1982,7 @@ export const BattleCore = {
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
 
-              resolve(true);
+              resolve({ battleEnded: true, missed: false });
             }, 1000);
           } else {
             // O Pokémon não foi capturado.
@@ -1944,11 +2002,11 @@ export const BattleCore = {
               setTimeout(() => {
                 // Usa a função de encerramento para sincronizar o log
                 BattleCore._endBattleAndSyncLog(finalMsg);
-                resolve(true);
+                resolve({ battleEnded: true, missed: false });
               }, 1500);
             } else {
               // O Pokémon escapou, mas a batalha continua
-              resolve(false);
+              resolve({ battleEnded: false, missed: false });
             }
           }
         }
@@ -1968,22 +2026,38 @@ export const BattleCore = {
     BattleCore.addBattleLog(`Você joga a ${ballName}!`);
     BattleCore.setBattleMenu("disabled", true);
 
-    const battleEnded = await BattleCore.animateCapture(
+    const captureResult = await BattleCore.animateCapture(
       ballName,
       ballCatchRate
     );
 
+    // NOVO: Se errou no vermelho (missed), perde pokébola e passa turno imediatamente
+    if (captureResult.missed) {
+      BattleCore.addBattleLog("Errou! A pokébola falhou!");
+      ballItem.quantity--;
+      window.GameLogic.saveGameData();
+      BattleCore.updateBattleScreen();
+      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await BattleCore.playerTurn("opponent_attack");
+      
+      if (window.gameState.battle && !captureResult.battleEnded) {
+        BattleCore.setBattleMenu("main");
+      }
+      return;
+    }
+
+    // Se não errou, subtrai a pokébola normalmente
     ballItem.quantity--;
     window.GameLogic.saveGameData();
-
     BattleCore.updateBattleScreen();
 
-    if (!battleEnded) {
+    if (!captureResult.battleEnded) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await BattleCore.playerTurn("opponent_attack");
     }
 
-    if (window.gameState.battle && !battleEnded) {
+    if (window.gameState.battle && !captureResult.battleEnded) {
       BattleCore.setBattleMenu("main");
     }
   },

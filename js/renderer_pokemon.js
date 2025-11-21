@@ -64,7 +64,8 @@ export const RendererPokemon = {
       kalos: '#f57c00',
       alola: '#00897b',
       galar: '#c2185b',
-      paldea: '#512da8'
+      paldea: '#512da8',
+      paranagua: '#00acc1'
     };
     return MAP[regionId] || '#3b82f6';
   },

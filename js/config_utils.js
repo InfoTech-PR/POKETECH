@@ -83,6 +83,7 @@ export async function createConfigAndUtils(v) {
       { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
       { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
       { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
+      { name: "PARANAGUA", id: "paranagua", startId: 1026, endId: 1027, starters: [1026, 1027] },
     ],
 
     // ====================================================================

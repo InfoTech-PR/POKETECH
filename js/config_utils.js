@@ -20,7 +20,7 @@ export async function createConfigAndUtils(v) {
     POKEBALL_BASE_CATCH_RATE: 100,
     STARTERS: ["bulbasaur", "charmander", "squirtle"],
     EVOLUTION_COST: 500,
-    HEAL_COST_PER_POKE: 50,
+    HEAL_COST_PER_POKE: 500,
     NORMAL_MOVE_MAX_USES: 25,
     SHOP_ITEMS: [
       {

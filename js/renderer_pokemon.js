@@ -178,8 +178,30 @@ export const RendererPokemon = {
     };
     window.currentPokemonListFilters = filters;
 
-    // NOVO: Filtra os pokémons
-    let pokemonArray = window.gameState.profile.pokemon;
+    // NOVO: Filtra e ordena os pokémons
+    let pokemonArray = [...window.gameState.profile.pokemon];
+    
+    // NOVO: Ordena por data de captura (mais recentes primeiro)
+    // Prioridade: 1) Favoritos primeiro, 2) Mais recentes primeiro
+    pokemonArray.sort((a, b) => {
+      // Primeiro, separa favoritos dos não-favoritos
+      const aIsFavorite = a.isFavorite === true;
+      const bIsFavorite = b.isFavorite === true;
+      
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
+      
+      // Se ambos são favoritos ou ambos não são, ordena por data de captura
+      if (a.captureDate && b.captureDate) {
+        return new Date(b.captureDate) - new Date(a.captureDate);
+      }
+      // Se apenas A tem data, A vem primeiro
+      if (a.captureDate && !b.captureDate) return -1;
+      // Se apenas B tem data, B vem primeiro
+      if (!a.captureDate && b.captureDate) return 1;
+      // Se nenhum tem data, mantém ordem original (por índice)
+      return 0;
+    });
     
     // Filtro por busca (nome)
     if (filters.search && filters.search.trim()) {
@@ -261,6 +283,7 @@ export const RendererPokemon = {
                       <span>(Nv. ${p.level})</span>
                       <span>HP: ${p.currentHp}/${p.maxHp}</span>
                       ${p.types && p.types.length > 0 ? `<span class="text-[8px]">${p.types.map(t => window.Utils.formatName(t)).join('/')}</span>` : ''}
+                      ${p.captureDate ? `<span class="text-[8px] text-blue-600">📅 ${new Date(p.captureDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>` : ''}
                       <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
                         <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
                         <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
@@ -339,15 +362,14 @@ export const RendererPokemon = {
 
     const content = `
       <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
+      <div class="mb-3 p-2 bg-blue-50 border-2 border-blue-300 rounded-lg text-center gba-font text-[10px] text-blue-700 flex-shrink-0">
+        📋 Ordenado por: <strong>Mais Recentes Primeiro</strong> | Favoritos no topo
+      </div>
       ${actionBanner}
       ${filtersHtml}
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
         ${pokemonHtml || '<p class="text-center text-gray-500 gba-font">Nenhum Pokémon encontrado com os filtros atuais.</p>'}
       </div>
-      <button onclick="window.Renderer.showScreen('battleTeam')" class="gba-button bg-blue-500 hover:bg-blue-600 w-full mb-2 flex-shrink-0">
-        <i class="fa-solid fa-users mr-2"></i>Gerenciar Equipe de Batalha
-      </button>
-      <button onclick="window.Renderer.showScreen('managePokemon')" class="gba-button bg-cyan-500 hover:bg-cyan-600 w-full mb-2 flex-shrink-0">Gerenciar Pokémons</button>
       <button onclick="window.Renderer.showScreen('pokemonMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
     `;
     window.Renderer.renderGbaCard(content);
@@ -865,47 +887,31 @@ export const RendererPokemon = {
     `;
 
       const displayName = window.Utils.getPokemonDisplayName(p);
-      const nicknameSection = p.nickname ? `<p class="text-xs gba-font text-gray-600 mt-1">Apelido: <strong>${p.nickname}</strong> | Nome original: ${p.name}</p>` : '';
       
-      // Montagem do modal
+      // Verifica se está na equipe de batalha
+      const battleTeam = profile.battleTeam || [];
+      const isInBattleTeam = battleTeam.includes(pokemonIndex);
+      const canAddToTeam = !isInBattleTeam && battleTeam.length < 5;
+      
+      // Verifica se pode evoluir
+      const nextEvolutionName = await window.PokeAPI.fetchNextEvolution(p.id);
+      const canEvolve = !!nextEvolutionName;
+      const evolutionReqs = window.GameLogic.getEvolutionRequirements(p.level);
+      const canEvolveNow = canEvolve && evolutionReqs;
+      
+      // Verifica se pode soltar (não pode ser o último)
+      const canRelease = window.gameState.profile.pokemon.length > 1;
+      
+      // Remove seções não essenciais (healSection, evolutionChain, stats, moves já foram calculadas acima mas não serão usadas)
+      
+      // Montagem do modal simplificado
       const modalContent = `
       <div class="text-xl font-bold text-gray-800 gba-font mb-2 text-center flex-shrink-0">
         #${p.id.toString().padStart(3, "0")} - ${displayName} (Nv. ${p.level})
       </div>
-      ${nicknameSection}
-      <button onclick="window.Renderer.showRenamePokemonModal(${pokemonIndex})" class="gba-button bg-purple-500 hover:bg-purple-600 w-full mb-2 mt-2 flex-shrink-0">
-        <i class="fa-solid fa-pen mr-2"></i>Renomear Pokémon
-      </button>
 
       <img src="${p.sprite || `../assets/sprites/pokemon/${p.id}_front.png`}" alt="${displayName}" class="w-32 h-32 mx-auto mb-2 flex-shrink-0">
       <div class="text-center mb-2 flex-shrink-0">${typesHtml}</div>
-
-      <div class="text-left gba-font text-xs flex-shrink-0 border-b border-gray-400 pb-2 mb-2">
-        <p class="text-[8px] sm:text-xs"><strong>Altura:</strong> ${heightMeters} m | <strong>Peso:</strong> ${weightKg} kg</p>
-        <p class="mt-2 text-[8px] sm:text-xs text-justify"><strong>DESCRIÇÃO:</strong> ${speciesData.description}</p>
-      </div>
-
-      ${p.captureDate || p.captureBall ? `
-      <div class="p-2 bg-blue-50 rounded-lg border border-blue-300 mb-2 flex-shrink-0">
-        <h3 class="font-bold gba-font text-xs mb-1 text-center text-blue-700">INFORMAÇÕES DE CAPTURA</h3>
-        ${p.captureDate ? `
-          <p class="text-[8px] sm:text-xs gba-font text-gray-700 mb-1">
-            <strong>📅 Data de Captura:</strong> ${new Date(p.captureDate).toLocaleDateString('pt-BR', { 
-              day: '2-digit', 
-              month: '2-digit', 
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
-        ` : ''}
-        ${p.captureBall ? `
-          <p class="text-[8px] sm:text-xs gba-font text-gray-700">
-            <strong> Pokébola:</strong> ${p.captureBall}
-          </p>
-        ` : ''}
-      </div>
-      ` : ''}
 
       <div class="p-2 bg-gray-100 rounded-lg border border-gray-300 mb-2">
         <div class="flex items-center justify-between">
@@ -925,30 +931,40 @@ export const RendererPokemon = {
         </div>
       </div>
 
-      ${healSection}
+      ${p.captureDate ? `
+      <div class="p-2 bg-blue-50 rounded-lg border border-blue-300 mb-2 flex-shrink-0 text-center">
+        <p class="text-[8px] sm:text-xs gba-font text-gray-700">
+          <strong>📅 Capturado:</strong> ${new Date(p.captureDate).toLocaleDateString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric'
+          })}
+        </p>
+      </div>
+      ` : ''}
 
-      <div class="mt-2 p-2 border-t border-gray-400 flex-shrink-0">
-        <h3 class="font-bold gba-font text-sm mb-2 text-center text-blue-700">CADEIA EVOLUTIVA</h3>
-        <div class="flex ${isShowingFullBranch ? 'flex-col items-center' : ' justify-center items-center'} p-2 bg-gray-100 rounded-lg space-x-1">
-          ${evolutionItemsHtml}
-        </div>
+      <!-- AÇÕES -->
+      <div class="space-y-2 mb-4 flex-shrink-0">
+        <button onclick="window.GameLogic.toggleBattleTeamPokemon(${pokemonIndex}); window.Utils.hideModal('pokemonStatsModal'); setTimeout(() => window.Renderer.showScreen('pokemonList'), 300);" 
+                class="gba-button ${isInBattleTeam ? 'bg-red-500 hover:bg-red-600' : canAddToTeam ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} w-full"
+                ${canAddToTeam || isInBattleTeam ? '' : 'disabled'}>
+          ${isInBattleTeam ? '❌ Remover da Equipe' : '⚔️ Ativar na Equipe de Batalha'}
+        </button>
+        
+        <button onclick="window.Utils.hideModal('pokemonStatsModal'); window.GameLogic.evolvePokemon(${pokemonIndex});" 
+                class="gba-button ${canEvolveNow ? 'bg-purple-500 hover:bg-purple-600' : 'bg-gray-400 cursor-not-allowed'} w-full"
+                ${canEvolveNow ? '' : 'disabled'}>
+          ${canEvolveNow ? '✨ Evoluir' : canEvolve ? '✨ Evoluir (Nível Insuficiente)' : '✨ Sem Evolução'}
+        </button>
+        
+        <button onclick="if(confirm('Tem certeza que deseja soltar ${displayName}? Você receberá 1 doce deste Pokémon.')) { window.Utils.hideModal('pokemonStatsModal'); window.GameLogic.releasePokemon(${pokemonIndex}); setTimeout(() => window.Renderer.showScreen('pokemonList'), 300); }" 
+                class="gba-button ${canRelease ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'} w-full"
+                ${canRelease ? '' : 'disabled'}>
+          🗑️ Soltar
+        </button>
       </div>
 
-      <div class="p-2 flex-grow overflow-y-auto">
-        <h3 class="font-bold gba-font text-sm mb-2">Estatísticas Base:</h3>
-        ${statsHtml}
-        <h3 class="font-bold gba-font text-sm mb-2 mt-4">Ataques:</h3>
-        <div class="space-y-1">
-          ${movesHtml}
-        </div>
-        ${hasEther ? `
-          <p class="text-[10px] gba-font text-gray-600 mt-2 text-center">
-            <i class="fa-solid fa-flask"></i> Você tem ${etherQuantity} Éter(s). Use para restaurar PA de um ataque específico.
-          </p>
-        ` : ''}
-      </div>
-
-      <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 mt-4 w-full flex-shrink-0">Fechar</button>
+      <button onclick="window.Utils.hideModal('pokemonStatsModal')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Fechar</button>
     `;
 
       const modal = document.getElementById("pokemonStatsModal");

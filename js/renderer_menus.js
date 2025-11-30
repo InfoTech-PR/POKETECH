@@ -386,8 +386,29 @@ export const RendererMenus = {
     const genderColor =
       profile.trainerGender === "MALE" ? "text-blue-400" : "text-pink-400";
 
+    // NOVO: Obtém informações do evento semanal
+    const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
+    const eventRegions = weeklyEvent.regions.map(regionId => {
+      const region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionId);
+      return region ? region.name : regionId;
+    }).join(' & ');
+
     const statsHtml = `
   <div class="trainer-profile-card">
+    <!-- NOVO: Banner de Evento Semanal -->
+    <div class="mb-4 p-3 bg-gradient-to-r from-purple-500 to-pink-500 border-4 border-gray-800 rounded-lg shadow-lg flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="text-3xl">🎉</div>
+        <div>
+          <div class="gba-font text-xs text-white font-bold">EVENTO SEMANAL</div>
+          <div class="gba-font text-[10px] text-white opacity-90">${weeklyEvent.theme}: ${eventRegions}</div>
+        </div>
+      </div>
+      <div class="text-xs gba-font text-white bg-black bg-opacity-30 px-2 py-1 rounded">
+        Esta Semana
+      </div>
+    </div>
+    
     <!-- Header com avatar e nome -->
     <div class="trainer-profile-header">
       <div class="trainer-avatar-container">

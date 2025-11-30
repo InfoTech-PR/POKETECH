@@ -1019,62 +1019,60 @@ export const BattleCore = {
 
     // Se não encontrou especial, busca um Pokémon normal (sem lendários/miticos)
     if (!pokemonId) {
-      // CONFIGURAÇÃO: Lista de IDs permitidos para aparecer como selvagens
-      // Para mostrar apenas Pokémon de PARANAGUA, use: [1026, 1027]
-      // Para mostrar todos os Pokémon, comente a linha abaixo ou defina como null
-      const ALLOWED_WILD_POKEMON_IDS = [1026, 1027]; // Apenas PARANAGUA (Caranguejito e Guaraco)
-      // const ALLOWED_WILD_POKEMON_IDS = null; // Descomente para permitir todos
+      // NOVO: Sistema de Eventos Semanais
+      // Obtém as regiões ativas no evento semanal atual
+      const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
+      let allowedIds = [];
       
-      // Cria cache de Pokémon comuns (sem lendários/miticos) se não existir
-      if (!window._commonPokemonCache) {
-        window._commonPokemonCache = [];
-        
-        // Se há uma lista de IDs permitidos, usa apenas ela
-        if (ALLOWED_WILD_POKEMON_IDS && Array.isArray(ALLOWED_WILD_POKEMON_IDS)) {
-          for (const id of ALLOWED_WILD_POKEMON_IDS) {
-            try {
-              const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-              // Inclui apenas se NÃO for lendário e NÃO for mitico
-              if (speciesData && !speciesData.isLegendary && !speciesData.isMythical) {
-                window._commonPokemonCache.push(id);
-              } else {
-                // Se for lendário/mítico mas está na lista permitida, adiciona mesmo assim
-                window._commonPokemonCache.push(id);
-              }
-            } catch (e) {
-              // Se não conseguir buscar species, adiciona ao cache para evitar travamentos
-              window._commonPokemonCache.push(id);
-            }
-          }
-        } else {
-          // Comportamento original: todos os Pokémon de 1 até POKEDEX_LIMIT
-          for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
-            try {
-              const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-              // Inclui apenas se NÃO for lendário e NÃO for mitico
-              if (speciesData && !speciesData.isLegendary && !speciesData.isMythical) {
-                window._commonPokemonCache.push(id);
-              }
-            } catch (e) {
-              // Se não conseguir buscar species, adiciona ao cache para evitar travamentos
-              window._commonPokemonCache.push(id);
+      // Coleta todos os IDs das regiões do evento
+      if (weeklyEvent && weeklyEvent.regions && Array.isArray(weeklyEvent.regions)) {
+        for (const regionId of weeklyEvent.regions) {
+          const region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionId);
+          if (region) {
+            for (let id = region.startId; id <= region.endId; id++) {
+              allowedIds.push(id);
             }
           }
         }
       }
       
-      if (window._commonPokemonCache.length > 0) {
+      // Se não há evento ou nenhuma região encontrada, usa todas as regiões
+      if (allowedIds.length === 0) {
+        for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+          allowedIds.push(id);
+        }
+      }
+      
+      // Cria cache de Pokémon comuns baseado nas regiões do evento
+      const cacheKey = `_weeklyEventCache_${weeklyEvent ? weeklyEvent.regions.join('_') : 'all'}`;
+      if (!window[cacheKey]) {
+        window[cacheKey] = [];
+        
+        for (const id of allowedIds) {
+          try {
+            const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+            // Inclui apenas se NÃO for lendário e NÃO for mitico
+            if (speciesData && !speciesData.isLegendary && !speciesData.isMythical) {
+              window[cacheKey].push(id);
+            }
+          } catch (e) {
+            // Se não conseguir buscar species, adiciona ao cache para evitar travamentos
+            window[cacheKey].push(id);
+          }
+        }
+      }
+      
+      if (window[cacheKey].length > 0) {
         pokemonId =
-          window._commonPokemonCache[
-            Math.floor(Math.random() * window._commonPokemonCache.length)
+          window[cacheKey][
+            Math.floor(Math.random() * window[cacheKey].length)
           ];
       } else {
-        // Fallback: escolhe aleatoriamente (pode incluir lendários/miticos, mas é raro)
-        if (ALLOWED_WILD_POKEMON_IDS && Array.isArray(ALLOWED_WILD_POKEMON_IDS) && ALLOWED_WILD_POKEMON_IDS.length > 0) {
-          pokemonId = ALLOWED_WILD_POKEMON_IDS[Math.floor(Math.random() * ALLOWED_WILD_POKEMON_IDS.length)];
+        // Fallback: escolhe aleatoriamente das regiões permitidas
+        if (allowedIds.length > 0) {
+          pokemonId = allowedIds[Math.floor(Math.random() * allowedIds.length)];
         } else {
-          pokemonId =
-            Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+          pokemonId = Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
         }
       }
     }

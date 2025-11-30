@@ -86,6 +86,36 @@ export async function createConfigAndUtils(v) {
       { name: "PARANAGUA", id: "paranagua", startId: 1026, endId: 1027, starters: [1026, 1027] },
     ],
 
+    // NOVO: Sistema de Eventos Semanais
+    // Calcula qual semana do ano é e retorna as regiões ativas no evento
+    getWeeklyEventRegions: function() {
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const daysSinceStart = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24));
+      const weekNumber = Math.floor(daysSinceStart / 7);
+      
+      // Rotação de regiões baseada na semana (52 semanas no ano)
+      // Cada semana pode ter 1 ou 2 regiões
+      const eventSchedule = [
+        { regions: ["kanto", "johto"], theme: "Clássico" },
+        { regions: ["hoenn"], theme: "Tropical" },
+        { regions: ["sinnoh", "unova"], theme: "Norte" },
+        { regions: ["kalos"], theme: "Elegante" },
+        { regions: ["alola"], theme: "Ilhas" },
+        { regions: ["galar", "paldea"], theme: "Moderno" },
+        { regions: ["paranagua"], theme: "Costeiro" },
+        { regions: ["kanto"], theme: "Nostalgia" },
+        { regions: ["johto", "hoenn"], theme: "Tradicional" },
+        { regions: ["sinnoh"], theme: "Montanhoso" },
+        { regions: ["unova", "kalos"], theme: "Urbano" },
+        { regions: ["alola", "galar"], theme: "Exótico" },
+        { regions: ["paldea", "paranagua"], theme: "Aventura" },
+      ];
+      
+      const eventIndex = weekNumber % eventSchedule.length;
+      return eventSchedule[eventIndex];
+    },
+
     // ====================================================================
     // NOVO: CONFIGURAÇÃO DE CLIMA
     // ====================================================================

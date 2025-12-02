@@ -25,10 +25,12 @@ let battleMusicInstance = null;
 let healMusicInstance = null;
 
 const getUserPreferences = () => {
-  return window.gameState?.profile?.preferences || {
-    volume: 0.5,
-    isMuted: false,
-  };
+  return (
+    window.gameState?.profile?.preferences || {
+      volume: 0.5,
+      isMuted: false,
+    }
+  );
 };
 
 const stopAndResetAudio = (audio) => {
@@ -40,20 +42,31 @@ const stopAndResetAudio = (audio) => {
 
 const ensureDefaultAudio = () => {
   if (!defaultMusicState.audio) {
-    const audio = new Audio(defaultMusicState.tracks[defaultMusicState.currentTrack]);
+    const audio = new Audio(
+      defaultMusicState.tracks[defaultMusicState.currentTrack]
+    );
     audio.loop = false;
     audio.addEventListener("ended", () => {
       if (window.backgroundMusic === audio) {
-        defaultMusicState.currentTrack =
-          (defaultMusicState.currentTrack + 1) % defaultMusicState.tracks.length;
-        audio.src = defaultMusicState.tracks[defaultMusicState.currentTrack];
-        audio.currentTime = 0;
-        audio.load();
-        audio
-          .play()
-          .catch((err) =>
-            console.warn("Falha ao alternar para a próxima música padrão:", err)
-          );
+        const prefs = getUserPreferences();
+        // Só avança para próxima música se não estiver mutada
+        if (!prefs.isMuted) {
+          defaultMusicState.currentTrack =
+            (defaultMusicState.currentTrack + 1) %
+            defaultMusicState.tracks.length;
+          audio.src = defaultMusicState.tracks[defaultMusicState.currentTrack];
+          audio.currentTime = 0;
+          audio.load();
+          audio.volume = prefs.volume;
+          audio
+            .play()
+            .catch((err) =>
+              console.warn(
+                "Falha ao alternar para a próxima música padrão:",
+                err
+              )
+            );
+        }
       }
     });
     defaultMusicState.audio = audio;
@@ -65,13 +78,17 @@ const playDefaultAudio = (volume) => {
   const audio = ensureDefaultAudio();
   audio.volume = volume;
   window.backgroundMusic = audio;
-  if (audio.paused) {
+  // Só toca a música se o volume for maior que 0 (não mutada)
+  if (volume > 0 && audio.paused) {
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch((err) => {
         console.warn("Falha ao tocar música padrão:", err);
       });
     }
+  } else if (volume === 0) {
+    // Se estiver mutada, garante que a música está pausada
+    audio.pause();
   }
   return audio;
 };
@@ -119,11 +136,27 @@ export const AuthSetup = {
 
     const startPlayback = () => {
       defaultMusicState.hasInteraction = true;
-      playDefaultAudio(volume);
+      // Só inicia a música se não estiver mutada
+      if (!prefs.isMuted) {
+        playDefaultAudio(volume);
+      } else {
+        // Se estiver mutada, apenas configura o volume mas não toca
+        const audio = ensureDefaultAudio();
+        audio.volume = 0;
+        window.backgroundMusic = audio;
+        audio.pause();
+      }
     };
 
     if (defaultMusicState.hasInteraction) {
-      playDefaultAudio(volume);
+      // Se já houve interação, aplica as preferências atuais
+      if (!prefs.isMuted) {
+        playDefaultAudio(volume);
+      } else {
+        const audio = ensureDefaultAudio();
+        audio.volume = 0;
+        audio.pause();
+      }
       return;
     }
 
@@ -156,11 +189,16 @@ export const AuthSetup = {
       }
       battleMusicInstance.currentTime = 0;
       battleMusicInstance.volume = volume;
-      battleMusicInstance
-        .play()
-        .catch((err) =>
-          console.warn("Falha ao tocar música de batalha:", err)
-        );
+      // Só toca a música de batalha se não estiver mutada
+      if (!prefs.isMuted) {
+        battleMusicInstance
+          .play()
+          .catch((err) =>
+            console.warn("Falha ao tocar música de batalha:", err)
+          );
+      } else {
+        battleMusicInstance.pause();
+      }
       window.backgroundMusic = battleMusicInstance;
     } else {
       stopAndResetAudio(battleMusicInstance);
@@ -188,11 +226,16 @@ export const AuthSetup = {
 
     healMusicInstance.currentTime = 0;
     healMusicInstance.volume = volume;
-    healMusicInstance
-      .play()
-      .catch((err) =>
-        console.warn("Falha ao tocar música do Centro Pokémon:", err)
-      );
+    // Só toca a música de cura se não estiver mutada
+    if (!prefs.isMuted) {
+      healMusicInstance
+        .play()
+        .catch((err) =>
+          console.warn("Falha ao tocar música do Centro Pokémon:", err)
+        );
+    } else {
+      healMusicInstance.pause();
+    }
     window.backgroundMusic = healMusicInstance;
   },
 
@@ -227,6 +270,9 @@ export const AuthSetup = {
 
             const loaded = await window.GameLogic.loadProfile();
 
+            // Aplica as preferências de música após carregar o perfil
+            AuthSetup.applyMusicPreferences();
+
             if (!loaded) {
               // É a primeira vez do usuário, redireciona para a seleção de inicial.
               console.log(
@@ -254,6 +300,8 @@ export const AuthSetup = {
             console.log("Nenhum usuário logado. Exibindo tela de login.");
             window.userId = "anonimo";
             window.initializeGameState();
+            // Aplica as preferências de música após inicializar o estado
+            AuthSetup.applyMusicPreferences();
             window.Renderer.showScreen("initialMenu");
           }
         });
@@ -263,6 +311,8 @@ export const AuthSetup = {
         window.auth = null;
         window.userId = "anonimo-erro";
         window.initializeGameState();
+        // Aplica as preferências de música após inicializar o estado
+        AuthSetup.applyMusicPreferences();
         window.Utils.showModal(
           "errorModal",
           "Erro na autenticação. PvP desativado."
@@ -275,7 +325,55 @@ export const AuthSetup = {
       window.auth = null;
       window.userId = "anonimo-erro";
       window.initializeGameState();
+      // Aplica as preferências de música após inicializar o estado
+      AuthSetup.applyMusicPreferences();
       window.Renderer.showScreen("initialMenu");
+    }
+  },
+
+  // Nova função para aplicar as preferências de música após carregar o perfil
+  applyMusicPreferences: function () {
+    const prefs = getUserPreferences();
+    const volume = prefs.isMuted ? 0 : prefs.volume;
+
+    // Aplica o volume em todas as instâncias de áudio existentes
+    if (defaultMusicState.audio) {
+      defaultMusicState.audio.volume = volume;
+      if (prefs.isMuted && !defaultMusicState.audio.paused) {
+        defaultMusicState.audio.pause();
+      }
+    }
+
+    if (battleMusicInstance) {
+      battleMusicInstance.volume = volume;
+      if (prefs.isMuted && !battleMusicInstance.paused) {
+        battleMusicInstance.pause();
+      }
+    }
+
+    if (healMusicInstance) {
+      healMusicInstance.volume = volume;
+      if (prefs.isMuted && !healMusicInstance.paused) {
+        healMusicInstance.pause();
+      }
+    }
+
+    // Atualiza o volume do backgroundMusic se existir
+    if (window.backgroundMusic) {
+      window.backgroundMusic.volume = volume;
+      if (prefs.isMuted && !window.backgroundMusic.paused) {
+        window.backgroundMusic.pause();
+      }
+    }
+
+    // Se já houve interação e não está mutada, reinicia a música
+    if (defaultMusicState.hasInteraction && !prefs.isMuted) {
+      playDefaultAudio(volume);
+    } else if (prefs.isMuted) {
+      // Se estiver mutada, garante que tudo está pausado
+      pauseDefaultAudio();
+      if (battleMusicInstance) battleMusicInstance.pause();
+      if (healMusicInstance) healMusicInstance.pause();
     }
   },
 };

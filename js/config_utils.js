@@ -374,6 +374,12 @@ export async function createConfigAndUtils(v) {
             window.gameState.exploreLog = JSON.parse(savedExploreLog);
           }
           window.gameState.pendingSupportItem = null;
+          
+          // Aplica as preferências de música após carregar o jogo
+          if (window.AuthSetup && window.AuthSetup.applyMusicPreferences) {
+            window.AuthSetup.applyMusicPreferences();
+          }
+          
           console.log("Jogo Carregado com Sucesso!");
           return true;
         }
@@ -426,8 +432,17 @@ export async function createConfigAndUtils(v) {
     },
 
     applyVolume: function (volume, isMuted) {
-      if (window.backgroundMusic) {
-        window.backgroundMusic.volume = isMuted ? 0 : volume;
+      // Usa a função do AuthSetup para aplicar preferências em todas as instâncias
+      if (window.AuthSetup && window.AuthSetup.applyMusicPreferences) {
+        window.AuthSetup.applyMusicPreferences();
+      } else {
+        // Fallback: atualiza apenas o backgroundMusic se AuthSetup não estiver disponível
+        if (window.backgroundMusic) {
+          window.backgroundMusic.volume = isMuted ? 0 : volume;
+          if (isMuted && !window.backgroundMusic.paused) {
+            window.backgroundMusic.pause();
+          }
+        }
       }
     },
 
@@ -438,6 +453,7 @@ export async function createConfigAndUtils(v) {
         window.gameState.profile.preferences.volume,
         false
       );
+      Utils.saveGame();
       if (window.Renderer) {
         window.Renderer.renderPreferences(
           document.getElementById("app-container")

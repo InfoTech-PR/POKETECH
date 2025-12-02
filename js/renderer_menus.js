@@ -722,100 +722,70 @@ export const RendererMenus = {
 
     const menuHtml = `
             <div class="p-2">
-                <!-- Grid de botões: 3 colunas x 3 linhas -->
-                <div class="menu-buttons-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto auto; gap: 12px;">
+                <!-- Grid de botões: 3 colunas x 3 linhas - apenas ícones -->
+                <div class="menu-buttons-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto auto; gap: 8px;">
                     <!-- MEUS POKÉMONS - Primeira linha, esquerda -->
                     <button
                         onclick="window.Renderer.showScreen('pokemonList')"
-                        class="gba-button bg-red-500 hover:bg-red-600 flex items-center justify-center gap-2"
-                        style="grid-column: 1 / 2; grid-row: 1; min-height: 100px;"
+                        class="gba-button bg-red-500 hover:bg-red-600 flex items-center justify-center"
+                        style="grid-column: 1 / 2; grid-row: 1; min-height: 60px; aspect-ratio: 1;"
+                        title="Meus Pokémons"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-list"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">MEUS POKÉMONS</span>
-                        </span>
+                        <i class="fa-solid fa-users text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- MOCHILA - Primeira linha, centro -->
                     <button
                         onclick="window.Renderer.showScreen('bag')"
-                        class="gba-button bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center gap-2"
-                        style="grid-column: 2 / 3; grid-row: 1; min-height: 100px;"
+                        class="gba-button bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center"
+                        style="grid-column: 2 / 3; grid-row: 1; min-height: 60px; aspect-ratio: 1;"
+                        title="Mochila"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-bag-shopping"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">MOCHILA</span>
-                        </span>
+                        <i class="fa-solid fa-bag-shopping text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- POKÉDEX - Primeira linha, direita -->
                     <button
                         onclick="window.Renderer.showScreen('pokedex')"
-                        class="gba-button bg-orange-500 hover:bg-orange-600 flex items-center justify-center gap-2"
-                        style="grid-column: 3 / 4; grid-row: 1; min-height: 100px;"
+                        class="gba-button bg-orange-500 hover:bg-orange-600 flex items-center justify-center"
+                        style="grid-column: 3 / 4; grid-row: 1; min-height: 60px; aspect-ratio: 1;"
+                        title="Pokédex"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-book"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">POKÉDEX</span>
-                        </span>
+                        <i class="fa-solid fa-book text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- LOJA - Segunda linha, esquerda -->
                     <button
                         onclick="window.Renderer.showScreen('shop')"
-                        class="gba-button bg-cyan-500 hover:bg-cyan-600 flex items-center justify-center gap-2"
-                        style="grid-column: 1 / 2; grid-row: 2; min-height: 100px;"
+                        class="gba-button bg-cyan-500 hover:bg-cyan-600 flex items-center justify-center"
+                        style="grid-column: 1 / 2; grid-row: 2; min-height: 60px; aspect-ratio: 1;"
+                        title="Loja"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-shop"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">LOJA</span>
-                        </span>
+                        <i class="fa-solid fa-shop text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- CENTRO - Segunda linha, centro -->
                     <button
                         onclick="window.Renderer.showScreen('healCenter')"
-                        class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center gap-2"
-                        style="grid-column: 2 / 3; grid-row: 2; min-height: 100px;"
+                        class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center"
+                        style="grid-column: 2 / 3; grid-row: 2; min-height: 60px; aspect-ratio: 1;"
+                        title="Centro Pokémon"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-hospital"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">CENTRO</span>
-                        </span>
+                        <i class="fa-solid fa-hospital text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- PVP - Segunda linha, direita -->
                     <button
                         onclick="window.Renderer.showScreen('pvpSetup')"
-                        class="gba-button bg-purple-500 hover:bg-purple-600 flex items-center justify-center gap-2"
-                        style="grid-column: 3 / 4; grid-row: 2; min-height: 100px;"
+                        class="gba-button bg-purple-500 hover:bg-purple-600 flex items-center justify-center"
+                        style="grid-column: 3 / 4; grid-row: 2; min-height: 60px; aspect-ratio: 1;"
+                        title="Batalha PvP"
                     >
-                        <span class="text-xl sm:text-2xl">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-xs sm:text-sm font-bold leading-none">PVP</span>
-                        </span>
+                        <i class="fa-solid fa-sword text-2xl sm:text-3xl"></i>
                     </button>
                     <!-- CONFIG - Terceira linha, ocupa toda a largura -->
                     <button
                         onclick="window.Renderer.showScreen('profileMenu')"
-                        class="gba-button bg-gray-500 hover:bg-gray-600 flex items-center justify-center gap-3"
-                        style="grid-column: 1 / 4; grid-row: 3; min-height: 90px;"
-                        title="Perfil e Opções"
+                        class="gba-button bg-gray-500 hover:bg-gray-600 flex items-center justify-center"
+                        style="grid-column: 1 / 4; grid-row: 3; min-height: 50px;"
+                        title="Configurações"
                     >
-                        <span class="text-2xl sm:text-3xl">
-                            <i class="fa-solid fa-user-gear"></i>
-                        </span>
-                        <span class="flex flex-col text-left">
-                            <span class="text-sm font-bold leading-none">CONFIG</span>
-                            <span class="text-xs opacity-80 leading-tight hidden sm:block">Configurações</span>
-                        </span>
+                        <i class="fa-solid fa-gear text-xl sm:text-2xl"></i>
                     </button>
                 </div>
             </div>

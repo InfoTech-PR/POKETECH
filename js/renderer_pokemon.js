@@ -714,18 +714,38 @@ export const RendererPokemon = {
 
     const itemsHtml = items
       .map((item) => {
-        const isUsable = item.healAmount > 0 || item.ppRestore;
-        const actionText =
-          item.healAmount > 0
-            ? "Curar"
-            : item.ppRestore
-            ? "Recarregar PA"
-            : "Detalhes";
+        const isUsable = item.healAmount > 0 || item.ppRestore || item.isEgg || item.isMove;
+        const isEgg = item.isEgg;
+        const isMove = item.isMove;
+        const isCommonMove = item.isCommonMove;
+        const isSpecialMove = item.isSpecialMove;
+        
+        let actionText = "Detalhes";
+        if (item.healAmount > 0) {
+          actionText = "Curar";
+        } else if (item.ppRestore) {
+          actionText = "Recarregar PA";
+        } else if (isEgg) {
+          actionText = "Chocar";
+        } else if (isMove) {
+          if (isCommonMove) {
+            actionText = "Usar (Ataque Comum)";
+          } else if (isSpecialMove) {
+            actionText = "Usar (Ataque Especial)";
+          } else {
+            actionText = "Usar (Ataque Aleatório)";
+          }
+        }
+        
         const isPokeball = item.name.toLowerCase().includes("ball");
         const itemConfig = window.GameConfig.SHOP_ITEMS.find(
           (i) => i.name === item.name
         );
-        const spriteUrl = itemConfig ? itemConfig.spriteUrl : "";
+        const specialItemConfig = window.GameConfig.SPECIAL_ITEMS?.find(
+          (i) => i.name === item.name
+        );
+        const spriteUrl = itemConfig?.spriteUrl || specialItemConfig?.spriteUrl || "";
+        
         // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
         // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
         const useButton = isUsable
@@ -735,6 +755,10 @@ export const RendererPokemon = {
                         class="gba-button ${
                           item.ppRestore
                             ? "bg-purple-500 hover:bg-purple-600"
+                            : isEgg
+                            ? "bg-yellow-500 hover:bg-yellow-600"
+                            : isMove
+                            ? "bg-orange-500 hover:bg-orange-600"
                             : "bg-green-500 hover:bg-green-600"
                         } w-full">
                         ${actionText}
@@ -764,6 +788,7 @@ export const RendererPokemon = {
                             <span class="gba-font text-[10px] sm:text-xs block">x${
                               item.quantity
                             } ${actionText}</span>
+                            ${item.description ? `<span class="gba-font text-[9px] text-gray-500 block">${item.description}</span>` : ""}
                         </div>
                     </div>
                     

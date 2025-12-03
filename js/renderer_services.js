@@ -210,7 +210,7 @@ export const RendererServices = {
                     <p>${quantityText}</p>
                     <span class="gba-font text-[10px] sm:text-xs text-gray-600 block sm:inline"> (P$${item.cost
         } cada)</span>
-                    ${item.healAmount > 0 ? `<span class="gba-font text-[10px] text-green-600 block">Cura ${item.healAmount} HP</span>` : item.ppRestore ? `<span class="gba-font text-[10px] text-purple-600 block">Recupera PAs dos golpes</span>` : ""}
+                    ${item.healAmount > 0 ? `<span class="gba-font text-[10px] text-green-600 block">Cura ${item.healAmount} HP</span>` : item.ppRestore ? `<span class="gba-font text-[10px] text-purple-600 block">Recupera PAs dos golpes</span>` : item.isMove ? `<span class="gba-font text-[10px] text-orange-600 block">${item.description || "Ensina um movimento aleatório"}</span>` : ""}
                     <!-- Subtotal dinâmico -->
                     <div id="subtotal-${inputId}" class="gba-font text-xs text-yellow-700 font-bold mt-1">
                         Subtotal: P$${initialSubtotal}
@@ -227,9 +227,10 @@ export const RendererServices = {
                         class="w-8 h-8 gba-button bg-red-400 hover:bg-red-500 p-0 text-xl leading-none">-</button>
                 
                 <!-- Input de Quantidade -->
-                <input id="${inputId}" type="number" value="1" min="1" max="99"
+                <input id="${inputId}" type="number" value="1" min="1" max="${item.isMove ? '1' : '99'}"
                     oninput="window.updateSubtotal('${inputId}', ${item.cost})"
-                    class="w-16 p-1 border-2 border-gray-400 rounded gba-font text-sm text-center bg-white shadow-inner">
+                    ${item.isMove ? 'readonly' : ''}
+                    class="w-16 p-1 border-2 border-gray-400 rounded gba-font text-sm text-center bg-white shadow-inner ${item.isMove ? 'bg-gray-200' : ''}">
                 
                 <!-- Botão Incrementar -->
                 <button onclick="document.getElementById('${inputId}').value = Math.min(99, parseInt(document.getElementById('${inputId}').value) + 1); window.updateSubtotal('${inputId}', ${item.cost

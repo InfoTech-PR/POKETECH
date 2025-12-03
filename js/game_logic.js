@@ -379,24 +379,42 @@ export const GameLogic = {
     let resultMessage = "";
     let startedBattle = false;
 
-    if (roll < 0.3) {
+    if (roll < 0.25) {
+      // 25% de chance: Dinheiro
       const money = Math.floor(Math.random() * 200) + 100;
       window.gameState.profile.money += money;
       resultMessage = `Você encontrou P$${money} no chão!`;
-    } else if (roll < 0.5) {
+    } else if (roll < 0.4) {
+      // 15% de chance: Item comum da mochila
       const possibleItems = window.gameState.profile.items.filter(
         (i) => i.name !== "Great Ball" && i.name !== "Ultra Ball"
       );
-      const item =
-        possibleItems[Math.floor(Math.random() * possibleItems.length)];
-      item.quantity++;
-      resultMessage = `Você encontrou 1x ${item.name}!`;
+      if (possibleItems.length > 0) {
+        const item =
+          possibleItems[Math.floor(Math.random() * possibleItems.length)];
+        item.quantity++;
+        resultMessage = `Você encontrou 1x ${item.name}!`;
+      } else {
+        resultMessage = "Você explorou, mas não encontrou nada de interessante.";
+      }
+    } else if (roll < 0.5) {
+      // 10% de chance: Item especial (Ovo, Ataque Comum ou Ataque Especial)
+      const specialItems = window.GameConfig.SPECIAL_ITEMS || [];
+      if (specialItems.length > 0) {
+        const randomSpecialItem = specialItems[Math.floor(Math.random() * specialItems.length)];
+        window.GameLogic.addSpecialItem(randomSpecialItem.name, 1);
+        resultMessage = `Você encontrou 1x ${randomSpecialItem.name}!`;
+      } else {
+        resultMessage = "Você explorou, mas não encontrou nada de interessante.";
+      }
     } else if (roll < 0.75) {
+      // 25% de chance: Batalha
       GameLogic.addExploreLog("Um Pokémon selvagem apareceu!");
       window.AuthSetup?.handleBattleMusic(true);
       await window.BattleCore.startWildBattle();
       startedBattle = true;
     } else {
+      // 25% de chance: Nada
       resultMessage = "Você explorou, mas não encontrou nada de interessante.";
     }
 
@@ -447,6 +465,35 @@ export const GameLogic = {
     );
     if (!itemToBuy) {
       window.Utils.showModal("errorModal", "Item não encontrado.");
+      return;
+    }
+
+    // NOVO: Verifica se é um ovo (não pode ser comprado)
+    if (itemName.toLowerCase().includes("ovo") || itemName.toLowerCase().includes("egg")) {
+      window.Utils.showModal("errorModal", "Ovos não podem ser comprados!");
+      return;
+    }
+
+    // NOVO: Se for um ataque/movimento, trata de forma especial
+    if (itemToBuy.isMove) {
+      if (qty > 1) {
+        window.Utils.showModal("errorModal", "Você só pode comprar um ataque por vez!");
+        return;
+      }
+
+      const totalCost = itemToBuy.cost;
+      if (window.gameState.profile.money >= totalCost) {
+        window.gameState.profile.money -= totalCost;
+        window.GameLogic.saveGameData();
+        
+        // Abre tela para escolher qual Pokémon aprenderá o movimento
+        window.GameLogic.showMoveSelection();
+      } else {
+        window.Utils.showModal(
+          "errorModal",
+          `Você não tem P$${totalCost} suficiente para comprar ${itemName}!`
+        );
+      }
       return;
     }
 
@@ -525,6 +572,26 @@ export const GameLogic = {
         );
         window.GameLogic.saveGameData();
         window.Renderer.showScreen("pokemonList");
+        return true;
+      }
+
+      // NOVO: Lida com ovos
+      if (item.isEgg) {
+        item.quantity--;
+        window.GameLogic.hatchEgg();
+        window.GameLogic.saveGameData();
+        window.Renderer.showScreen("pokemonList");
+        return true;
+      }
+
+      // NOVO: Lida com ataques comuns e especiais
+      if (item.isMove && (item.isCommonMove || item.isSpecialMove)) {
+        item.quantity--;
+        const moveName = item.isCommonMove 
+          ? window.GameLogic.generateCommonMove()
+          : window.GameLogic.generateSpecialMove();
+        window.GameLogic.teachMoveToPokemon(targetPokemonIndex, moveName);
+        window.GameLogic.saveGameData();
         return true;
       }
 
@@ -1662,6 +1729,321 @@ export const GameLogic = {
     } catch (error) {
       console.error("Erro ao executar troca:", error);
       window.Utils.showModal("errorModal", `Erro ao executar troca: ${error.message}`);
+    }
+  },
+
+  // NOVO: Gera um movimento aleatório
+  generateRandomMove: function () {
+    // Obtém todos os movimentos disponíveis do MOVES_TO_TYPE_MAPPING
+    let movesList = [];
+    
+    if (window.MOVES_TO_TYPE_MAPPING) {
+      movesList = Object.keys(window.MOVES_TO_TYPE_MAPPING);
+    } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
+      movesList = Object.keys(window.BattleCore.MOVES_TO_TYPE_MAPPING);
+    } else {
+      // Lista de movimentos padrão caso não encontre o mapeamento
+      movesList = [
+        "razor-wind", "swords-dance", "cut", "bind", "vine-whip", "scratch",
+        "mega-punch", "fire-punch", "thunder-punch", "ice-punch", "mega-kick",
+        "headbutt", "tackle", "string-shot", "snore", "bug-bite", "harden",
+        "iron-defense", "gust", "whirlwind", "poison-sting", "fury-attack",
+        "fly", "slam", "body-slam", "pay-day", "sand-attack", "mud-slap",
+        "double-kick", "horn-attack", "pound", "double-slap", "take-down",
+        "double-edge", "karate-chop", "stomp", "hydro-pump", "splash", "flail",
+        "absorb", "acid", "supersonic", "mist", "growl", "peck", "drill-peck",
+        "ember", "flamethrower", "thunder-shock", "thunderbolt", "thunder-wave",
+        "thunder", "surf", "bite", "thrash", "disable", "toxic", "psychic",
+        "night-shade", "confusion", "light-screen", "solar-beam", "fire-spin",
+        "pin-missile", "leech-seed", "growth", "twineedle", "teleport", "quick-attack"
+      ];
+    }
+    
+    if (movesList.length === 0) {
+      return "tackle"; // Fallback
+    }
+    
+    // Seleciona um movimento aleatório
+    const randomIndex = Math.floor(Math.random() * movesList.length);
+    return movesList[randomIndex];
+  },
+
+  // NOVO: Gera um movimento comum (não especial)
+  generateCommonMove: function () {
+    let allMoves = [];
+    
+    if (window.MOVES_TO_TYPE_MAPPING) {
+      allMoves = Object.keys(window.MOVES_TO_TYPE_MAPPING);
+    } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
+      allMoves = Object.keys(window.BattleCore.MOVES_TO_TYPE_MAPPING);
+    } else {
+      allMoves = [
+        "razor-wind", "swords-dance", "cut", "bind", "scratch",
+        "mega-punch", "mega-kick", "headbutt", "tackle", "string-shot", "snore",
+        "harden", "iron-defense", "fury-attack", "fly", "slam", "body-slam",
+        "pay-day", "sand-attack", "mud-slap", "double-kick", "horn-attack",
+        "pound", "double-slap", "take-down", "double-edge", "karate-chop",
+        "stomp", "splash", "flail", "supersonic", "growl", "quick-attack"
+      ];
+    }
+    
+    // Filtra apenas movimentos comuns (não especiais)
+    // Movimentos especiais são geralmente baseados em tipos (fire, water, etc.)
+    const commonMoves = allMoves.filter(move => {
+      const moveType = window.MOVES_TO_TYPE_MAPPING?.[move] || 
+                      window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] || "normal";
+      // Considera comum se for tipo normal ou se não for um movimento especial típico
+      return moveType === "normal" || 
+             !["fire", "water", "grass", "electric", "psychic", "ice", "dragon", 
+               "dark", "ghost", "fairy", "steel", "rock", "ground", "flying", 
+               "bug", "poison", "fighting"].includes(moveType);
+    });
+    
+    if (commonMoves.length === 0) {
+      return "tackle"; // Fallback
+    }
+    
+    const randomIndex = Math.floor(Math.random() * commonMoves.length);
+    return commonMoves[randomIndex];
+  },
+
+  // NOVO: Gera um movimento especial (baseado em tipos)
+  generateSpecialMove: function () {
+    let allMoves = [];
+    
+    if (window.MOVES_TO_TYPE_MAPPING) {
+      allMoves = Object.keys(window.MOVES_TO_TYPE_MAPPING);
+    } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
+      allMoves = Object.keys(window.BattleCore.MOVES_TO_TYPE_MAPPING);
+    } else {
+      allMoves = [
+        "vine-whip", "fire-punch", "thunder-punch", "ice-punch",
+        "ember", "flamethrower", "thunder-shock", "thunderbolt", "thunder-wave",
+        "thunder", "surf", "hydro-pump", "bite", "toxic", "psychic",
+        "night-shade", "confusion", "light-screen", "solar-beam", "fire-spin",
+        "pin-missile", "leech-seed", "growth", "twineedle", "teleport",
+        "absorb", "acid", "mist", "peck", "drill-peck", "gust", "whirlwind",
+        "poison-sting", "mud-slap", "sand-attack"
+      ];
+    }
+    
+    // Filtra apenas movimentos especiais (não tipo normal)
+    const specialMoves = allMoves.filter(move => {
+      const moveType = window.MOVES_TO_TYPE_MAPPING?.[move] || 
+                      window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] || "normal";
+      return moveType !== "normal";
+    });
+    
+    if (specialMoves.length === 0) {
+      return "ember"; // Fallback
+    }
+    
+    const randomIndex = Math.floor(Math.random() * specialMoves.length);
+    return specialMoves[randomIndex];
+  },
+
+  // NOVO: Mostra tela para escolher qual Pokémon aprenderá o movimento
+  showMoveSelection: function (moveName = null) {
+    const pokemonList = window.gameState.profile.pokemon || [];
+    
+    if (pokemonList.length === 0) {
+      window.Utils.showModal("errorModal", "Você não tem Pokémon para ensinar o movimento!");
+      if (window.gameState.currentScreen === "shop") {
+        window.Renderer.showScreen("shop");
+      } else {
+        window.Renderer.showScreen("pokemonList");
+      }
+      return;
+    }
+
+    // Se moveName não foi fornecido, gera um aleatório
+    if (!moveName) {
+      moveName = window.GameLogic.generateRandomMove();
+    }
+    const moveDisplayName = window.Utils.formatName(moveName);
+
+    // Cria HTML da lista de Pokémon
+    const pokemonOptions = pokemonList.map((poke, index) => {
+      const displayName = window.Utils.getPokemonDisplayName(poke);
+      const currentMoves = poke.moves || [];
+      const hasMove = currentMoves.includes(moveName);
+      
+      return `
+        <div class="p-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100 ${hasMove ? 'opacity-50' : ''}" 
+             onclick="${hasMove ? '' : `window.GameLogic.teachMoveToPokemon(${index}, '${moveName}')`}">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="gba-font text-sm font-bold">${displayName}</span>
+              <span class="gba-font text-xs text-gray-600"> (Nv. ${poke.level || 1})</span>
+            </div>
+            ${hasMove ? '<span class="text-red-500 text-xs">Já conhece este movimento!</span>' : '<span class="text-green-500 text-xs">✓ Selecionar</span>'}
+          </div>
+          <div class="text-xs text-gray-500 mt-1">
+            Movimentos: ${currentMoves.map(m => window.Utils.formatName(m)).join(", ")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Usa innerHTML diretamente no modal para permitir HTML complexo
+    const modal = document.getElementById("infoModal");
+    if (modal) {
+      const messageElement = modal.querySelector(".modal-message");
+      if (messageElement) {
+        messageElement.innerHTML = `
+          <div class="p-4">
+            <h3 class="gba-font text-lg font-bold mb-3">Escolha um Pokémon para aprender:</h3>
+            <div class="mb-3 p-2 bg-blue-100 border border-blue-300 rounded">
+              <span class="gba-font text-sm font-bold text-blue-800">Movimento: ${moveDisplayName}</span>
+            </div>
+            <div class="max-h-96 overflow-y-auto border border-gray-300 rounded">
+              ${pokemonOptions}
+            </div>
+            <button onclick="window.Utils.hideModal('infoModal'); window.Renderer.showScreen('shop');" 
+                    class="mt-4 gba-button bg-gray-500 hover:bg-gray-600 w-full">
+              Cancelar
+            </button>
+          </div>
+        `;
+        modal.classList.remove("hidden");
+      }
+    }
+  },
+
+  // NOVO: Ensina um movimento a um Pokémon
+  teachMoveToPokemon: function (pokemonIndex, moveName) {
+    const pokemon = window.gameState.profile.pokemon[pokemonIndex];
+    
+    if (!pokemon) {
+      window.Utils.showModal("errorModal", "Pokémon não encontrado!");
+      return;
+    }
+
+    // Garante que o array de movimentos existe
+    if (!pokemon.moves || !Array.isArray(pokemon.moves)) {
+      pokemon.moves = [];
+    }
+
+    // Verifica se já conhece o movimento
+    if (pokemon.moves.includes(moveName)) {
+      window.Utils.showModal("errorModal", `${window.Utils.getPokemonDisplayName(pokemon)} já conhece este movimento!`);
+      window.GameLogic.showMoveSelection();
+      return;
+    }
+
+    // Limita a 4 movimentos (substitui o último se já tiver 4)
+    if (pokemon.moves.length >= 4) {
+      pokemon.moves.pop(); // Remove o último movimento
+    }
+
+    // Adiciona o novo movimento
+    pokemon.moves.push(moveName);
+
+    // Atualiza os contadores de PA para o novo movimento
+    window.Utils.ensureMoveCounters(pokemon);
+
+    window.GameLogic.saveGameData();
+    
+    const moveDisplayName = window.Utils.formatName(moveName);
+    const pokemonDisplayName = window.Utils.getPokemonDisplayName(pokemon);
+    
+    window.Utils.showModal(
+      "infoModal",
+      `🎉 ${pokemonDisplayName} aprendeu ${moveDisplayName}!`
+    );
+    
+    // Fecha o modal de seleção e volta para a loja
+    setTimeout(() => {
+      window.Utils.hideModal("infoModal");
+      window.Renderer.showScreen("shop");
+    }, 2000);
+  },
+
+  // NOVO: Adiciona um item especial à mochila
+  addSpecialItem: function (itemName, quantity = 1) {
+    const specialItems = window.GameConfig.SPECIAL_ITEMS || [];
+    const specialItem = specialItems.find(i => i.name === itemName);
+    
+    if (!specialItem) {
+      console.warn(`Item especial ${itemName} não encontrado em SPECIAL_ITEMS`);
+      return;
+    }
+    
+    let existingItem = window.gameState.profile.items.find(
+      (i) => i.name === itemName
+    );
+    
+    if (existingItem) {
+      existingItem.quantity += quantity;
+    } else {
+      const newItem = { ...specialItem, quantity: quantity };
+      window.gameState.profile.items.push(newItem);
+    }
+    
+    window.GameLogic.saveGameData();
+  },
+
+  // NOVO: Choca um ovo e adiciona um Pokémon aleatório ao time
+  hatchEgg: function () {
+    // Gera um ID aleatório de Pokémon (1 até o limite da Pokédex)
+    const maxId = window.GameConfig.POKEDEX_LIMIT || 151;
+    const randomId = Math.floor(Math.random() * maxId) + 1;
+    
+    // Busca dados do Pokémon
+    const pokemonData = window.POKE_DATA?.[randomId];
+    if (!pokemonData) {
+      window.Utils.showModal("errorModal", "Erro ao chocar ovo. Tente novamente.");
+      return;
+    }
+    
+    // Cria o Pokémon (nível 1)
+    const newPokemon = {
+      id: randomId,
+      name: pokemonData.name,
+      level: 1,
+      exp: 0,
+      currentHp: 0,
+      maxHp: 0,
+      stats: {
+        attack: 0,
+        defense: 0,
+        special_attack: 0,
+        special_defense: 0,
+        speed: 0,
+      },
+      types: pokemonData.types || [],
+      moves: pokemonData.moves || [],
+      candy: 0,
+      friendship: 0,
+    };
+    
+    // Aplica template de movimentos e calcula stats
+    window.Utils.applyMoveTemplate(newPokemon, { forceResetUses: true });
+    
+    // Calcula HP e stats baseado no nível
+    const baseStats = window.Utils.getBaseStats(randomId) || pokemonData.stats || {};
+    newPokemon.maxHp = window.Utils.calculateMaxHp(baseStats.hp || 50, 1);
+    newPokemon.currentHp = newPokemon.maxHp;
+    newPokemon.stats.attack = window.Utils.calculateStat(baseStats.attack || 50, 1);
+    newPokemon.stats.defense = window.Utils.calculateStat(baseStats.defense || 50, 1);
+    newPokemon.stats.special_attack = window.Utils.calculateStat(baseStats.special_attack || 50, 1);
+    newPokemon.stats.special_defense = window.Utils.calculateStat(baseStats.special_defense || 50, 1);
+    newPokemon.stats.speed = window.Utils.calculateStat(baseStats.speed || 50, 1);
+    
+    // Adiciona ao time
+    window.gameState.profile.pokemon.push(newPokemon);
+    
+    const pokemonDisplayName = window.Utils.getPokemonDisplayName(newPokemon);
+    window.Utils.showModal(
+      "infoModal",
+      `🎉 O ovo chocou! ${pokemonDisplayName} (Nv. 1) nasceu!`
+    );
+    
+    window.GameLogic.saveGameData();
+    
+    // Atualiza a tela se estiver na lista de Pokémon
+    if (window.gameState.currentScreen === "pokemonList") {
+      window.Renderer.showScreen("pokemonList");
     }
   },
 

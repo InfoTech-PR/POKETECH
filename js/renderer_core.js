@@ -101,6 +101,9 @@ export const RendererCore = {
       case "mapView": // NOVO: Tela do Mapa
         window.Renderer.renderMapView(app);
         break;
+      case "hatchEgg": // NOVO: Tela de chocar ovo
+        window.Renderer.renderHatchEgg(app, safeExtraData);
+        break;
       // NOVOS SUBMENUS
       case "pokemonMenu":
         window.Renderer.renderPokemonMenu(app);

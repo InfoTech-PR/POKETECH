@@ -80,6 +80,7 @@ export async function createRenderer(v) {
         renderBattleScreen: RendererServices.renderBattleScreen,
         renderSwitchPokemon: RendererServices.renderSwitchPokemon,
         renderMapView: RendererServices.renderMapView, // NOVO: Mapeamento de tela de mapa
+        renderHatchEgg: RendererServices.renderHatchEgg, // NOVO: Tela de chocar ovo
     };
 
     return Renderer;

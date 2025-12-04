@@ -13,20 +13,20 @@ function sanitizeForFirestore(input, depth = 0) {
   if (depth >= 20) return null; // evita ultrapassar o limite de profundidade
   const t = typeof input;
 
-  if (t === 'number') return Number.isFinite(input) ? input : null;
-  if (t === 'bigint') return input.toString();
-  if (t === 'string' || t === 'boolean') return input;
+  if (t === "number") return Number.isFinite(input) ? input : null;
+  if (t === "bigint") return input.toString();
+  if (t === "string" || t === "boolean") return input;
   if (input instanceof Date) return input; // Firestore converte Date para Timestamp
 
   if (Array.isArray(input)) {
     const arr = input
-      .map(v => sanitizeForFirestore(v, depth + 1))
-      .filter(v => v !== undefined); // arrays não podem conter undefined
+      .map((v) => sanitizeForFirestore(v, depth + 1))
+      .filter((v) => v !== undefined); // arrays não podem conter undefined
     return arr;
   }
 
   if (input instanceof Set) {
-    return Array.from(input).map(v => sanitizeForFirestore(v, depth + 1));
+    return Array.from(input).map((v) => sanitizeForFirestore(v, depth + 1));
   }
 
   if (input instanceof Map) {
@@ -38,7 +38,7 @@ function sanitizeForFirestore(input, depth = 0) {
     return obj;
   }
 
-  if (t === 'object') {
+  if (t === "object") {
     const out = {};
     for (const [k, v] of Object.entries(input)) {
       const sv = sanitizeForFirestore(v, depth + 1);
@@ -57,36 +57,36 @@ export const GameLogic = {
   _pendingEvolutionItem: null,
 
   // ==== Sistema de Doces de Pokémon ====
-  
+
   // NOVO: Obtém o ID base da linha evolutiva (primeiro Pokémon da cadeia)
   // Exemplo: Bulbasaur(1), Ivysaur(2) e Venusaur(3) todos retornam 1
-  getEvolutionChainBaseId: function(pokemonId) {
+  getEvolutionChainBaseId: function (pokemonId) {
     if (!window.EVOLUTION_CHAINS) {
       return pokemonId; // Fallback se não houver dados
     }
-    
+
     const pokemonIdStr = String(pokemonId);
-    
+
     // Procura em todas as cadeias de evolução
     for (const chainKey in window.EVOLUTION_CHAINS) {
       const chain = window.EVOLUTION_CHAINS[chainKey];
       if (Array.isArray(chain)) {
         // Verifica se o pokemonId está nesta cadeia
-        const found = chain.find(p => String(p.id) === pokemonIdStr);
+        const found = chain.find((p) => String(p.id) === pokemonIdStr);
         if (found) {
           // Retorna o ID do primeiro Pokémon da cadeia (o base)
           return chain[0].id;
         }
       }
     }
-    
+
     // Se não encontrou em nenhuma cadeia, retorna o próprio ID (Pokémon sem evolução)
     return pokemonId;
   },
-  
+
   // Adiciona doce quando Pokémon é capturado, solto ou vence batalha
   // NOVO: Usa o ID base da linha evolutiva para compartilhar doces
-  addPokemonCandy: function(pokemonId, amount = 1) {
+  addPokemonCandy: function (pokemonId, amount = 1) {
     if (!window.gameState.profile.pokemonCandy) {
       window.gameState.profile.pokemonCandy = {};
     }
@@ -98,7 +98,7 @@ export const GameLogic = {
 
   // Obtém a quantidade de doces de um Pokémon
   // NOVO: Usa o ID base da linha evolutiva para compartilhar doces
-  getPokemonCandy: function(pokemonId) {
+  getPokemonCandy: function (pokemonId) {
     if (!window.gameState.profile.pokemonCandy) {
       window.gameState.profile.pokemonCandy = {};
     }
@@ -108,7 +108,7 @@ export const GameLogic = {
   },
 
   // Verifica se tem doces suficientes para evoluir (baseado no nível)
-  canEvolveWithCandy: function(level) {
+  canEvolveWithCandy: function (level) {
     if (level >= 35) {
       return 500;
     } else if (level >= 22) {
@@ -120,7 +120,7 @@ export const GameLogic = {
   },
 
   // Obtém os requisitos de evolução (nível e doces)
-  getEvolutionRequirements: function(level) {
+  getEvolutionRequirements: function (level) {
     if (level >= 35) {
       return { level: 35, candy: 500 };
     } else if (level >= 22) {
@@ -135,7 +135,9 @@ export const GameLogic = {
   consumeItem: function (itemName) {
     if (!itemName) return false;
     const inv = window.gameState?.profile?.items || [];
-    const it = inv.find(i => i.name?.toLowerCase() === itemName.toLowerCase());
+    const it = inv.find(
+      (i) => i.name?.toLowerCase() === itemName.toLowerCase()
+    );
     if (it && it.quantity > 0) {
       it.quantity -= 1;
       return true;
@@ -159,7 +161,7 @@ export const GameLogic = {
 
     if (!hasBranch) return null;
 
-    if (typeof window.GameLogic.resolveBranchedEvolution === 'function') {
+    if (typeof window.GameLogic.resolveBranchedEvolution === "function") {
       // Chama a função auxiliar que está em evolution_rules.js
       return window.GameLogic.resolveBranchedEvolution(current, ctx);
     }
@@ -192,7 +194,7 @@ export const GameLogic = {
       const button = document.getElementById("explore-action-btn");
       if (button) {
         button.disabled = false;
-        button.style.cursor = 'pointer';
+        button.style.cursor = "pointer";
         button.classList.remove("spinning");
       }
     }
@@ -210,7 +212,6 @@ export const GameLogic = {
       !window.auth.currentUser.isAnonymous
     ) {
       try {
-
         const profileToSave = { ...window.gameState.profile };
         profileToSave.pokedex = Array.from(profileToSave.pokedex);
         const docRef = doc(window.db, "users", window.userId);
@@ -229,7 +230,9 @@ export const GameLogic = {
 
     // Inputs de EDIÇÃO (quando estiver na tela de editar perfil)
     const editNameEl = document.getElementById("newTrainerName");
-    const editGenderEl = document.querySelector('input[name="newTrainerGender"]:checked');
+    const editGenderEl = document.querySelector(
+      'input[name="newTrainerGender"]:checked'
+    );
 
     // Input INICIAL (tela de criação) — apenas para nome
     const initNameEl = document.getElementById("trainerNameInput");
@@ -238,18 +241,23 @@ export const GameLogic = {
     const nameRaw =
       (editNameEl ? editNameEl.value : undefined) ??
       (initNameEl ? initNameEl.value : undefined) ??
-      (window.gameState?.profile?.trainerName ?? "");
+      window.gameState?.profile?.trainerName ??
+      "";
 
     // Gênero: prioriza edição se houver radio na tela de edição, senão usa o state já definido pelos cliques nas imagens
     const genderRaw =
       (editGenderEl ? editGenderEl.value : undefined) ??
-      (window.gameState?.profile?.trainerGender ?? "");
+      window.gameState?.profile?.trainerGender ??
+      "";
 
     const finalName = String(nameRaw).trim();
     const finalGender = String(genderRaw).trim();
 
     if (finalName.length < 3) {
-      window.Utils.showModal("errorModal", "O nome deve ter no mínimo 3 caracteres.");
+      window.Utils.showModal(
+        "errorModal",
+        "O nome deve ter no mínimo 3 caracteres."
+      );
       return;
     }
 
@@ -295,20 +303,28 @@ export const GameLogic = {
           window.gameState.profile.lastLocation = { lat: 0, lng: 0 };
         }
         // Garante que o isBetaMode exista
-        if (typeof window.gameState.profile.preferences.isBetaMode === 'undefined') {
+        if (
+          typeof window.gameState.profile.preferences.isBetaMode === "undefined"
+        ) {
           window.gameState.profile.preferences.isBetaMode = false;
         }
         // NOVO: Garante que os campos do sistema de nível do treinador existam
-        if (typeof window.gameState.profile.trainerLevel !== 'number') {
-          const maxLevel = window.gameState.profile.pokemon.length > 0
-            ? Math.max(...window.gameState.profile.pokemon.map(p => p.level || 1))
-            : 1;
-          window.gameState.profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
+        if (typeof window.gameState.profile.trainerLevel !== "number") {
+          const maxLevel =
+            window.gameState.profile.pokemon.length > 0
+              ? Math.max(
+                  ...window.gameState.profile.pokemon.map((p) => p.level || 1)
+                )
+              : 1;
+          window.gameState.profile.trainerLevel = Math.min(
+            100,
+            Math.max(1, maxLevel)
+          );
         }
-        if (typeof window.gameState.profile.trainerExp !== 'number') {
+        if (typeof window.gameState.profile.trainerExp !== "number") {
           window.gameState.profile.trainerExp = 0;
         }
-        if (typeof window.gameState.profile.normalBattleCount !== 'number') {
+        if (typeof window.gameState.profile.normalBattleCount !== "number") {
           window.gameState.profile.normalBattleCount = 0;
         }
         // NOVO: Garante que o sistema de insígnias exista
@@ -316,7 +332,10 @@ export const GameLogic = {
           window.gameState.profile.badges = [];
         }
         // NOVO: Garante que o sistema de doces exista
-        if (!window.gameState.profile.pokemonCandy || typeof window.gameState.profile.pokemonCandy !== 'object') {
+        if (
+          !window.gameState.profile.pokemonCandy ||
+          typeof window.gameState.profile.pokemonCandy !== "object"
+        ) {
           window.gameState.profile.pokemonCandy = {};
         }
 
@@ -341,11 +360,11 @@ export const GameLogic = {
       if (button) {
         if (isLoading) {
           button.disabled = true;
-          button.style.cursor = 'wait';
+          button.style.cursor = "wait";
           button.classList.add("spinning");
         } else {
           button.disabled = false;
-          button.style.cursor = 'pointer';
+          button.style.cursor = "pointer";
           button.classList.remove("spinning");
         }
       }
@@ -395,17 +414,20 @@ export const GameLogic = {
         item.quantity++;
         resultMessage = `Você encontrou 1x ${item.name}!`;
       } else {
-        resultMessage = "Você explorou, mas não encontrou nada de interessante.";
+        resultMessage =
+          "Você explorou, mas não encontrou nada de interessante.";
       }
     } else if (roll < 0.5) {
       // 10% de chance: Item especial (Ovo, Ataque Comum ou Ataque Especial)
       const specialItems = window.GameConfig.SPECIAL_ITEMS || [];
       if (specialItems.length > 0) {
-        const randomSpecialItem = specialItems[Math.floor(Math.random() * specialItems.length)];
+        const randomSpecialItem =
+          specialItems[Math.floor(Math.random() * specialItems.length)];
         window.GameLogic.addSpecialItem(randomSpecialItem.name, 1);
         resultMessage = `Você encontrou 1x ${randomSpecialItem.name}!`;
       } else {
-        resultMessage = "Você explorou, mas não encontrou nada de interessante.";
+        resultMessage =
+          "Você explorou, mas não encontrou nada de interessante.";
       }
     } else if (roll < 0.75) {
       // 25% de chance: Batalha
@@ -441,14 +463,20 @@ export const GameLogic = {
     window.GameLogic.saveGameData();
 
     if (prefs.isBetaMode) {
-      window.Utils.showModal("infoModal", "Modo Beta (Mapa) ativado! Voltando ao Menu Principal para recarregar.");
+      window.Utils.showModal(
+        "infoModal",
+        "Modo Beta (Mapa) ativado! Voltando ao Menu Principal para recarregar."
+      );
     } else {
-      window.Utils.showModal("infoModal", "Modo Clássico (Texto) ativado! Voltando ao Menu Principal.");
+      window.Utils.showModal(
+        "infoModal",
+        "Modo Clássico (Texto) ativado! Voltando ao Menu Principal."
+      );
       window.MapCore?.destroyMap();
     }
 
     // Força um retorno ao Menu para recarregar a tela correta na próxima vez.
-    setTimeout(() => window.Renderer.showScreen('mainMenu'), 1000);
+    setTimeout(() => window.Renderer.showScreen("mainMenu"), 1000);
   },
 
   buyItem: function (itemName, quantity) {
@@ -468,16 +496,13 @@ export const GameLogic = {
       return;
     }
 
-    // NOVO: Verifica se é um ovo (não pode ser comprado)
-    if (itemName.toLowerCase().includes("ovo") || itemName.toLowerCase().includes("egg")) {
-      window.Utils.showModal("errorModal", "Ovos não podem ser comprados!");
-      return;
-    }
-
     // NOVO: Se for um ataque/movimento, trata de forma especial
     if (itemToBuy.isMove) {
       if (qty > 1) {
-        window.Utils.showModal("errorModal", "Você só pode comprar um ataque por vez!");
+        window.Utils.showModal(
+          "errorModal",
+          "Você só pode comprar um ataque por vez!"
+        );
         return;
       }
 
@@ -485,7 +510,7 @@ export const GameLogic = {
       if (window.gameState.profile.money >= totalCost) {
         window.gameState.profile.money -= totalCost;
         window.GameLogic.saveGameData();
-        
+
         // Abre tela para escolher qual Pokémon aprenderá o movimento
         window.GameLogic.showMoveSelection();
       } else {
@@ -538,6 +563,19 @@ export const GameLogic = {
     }
 
     if (window.gameState.currentScreen !== "battle") {
+      // NOVO: Lida com ovos primeiro (não precisa de pokemon alvo)
+      if (item.isEgg) {
+        if (item.quantity <= 0) {
+          window.Utils.showModal("errorModal", "Você não tem mais ovos!");
+          return false;
+        }
+        item.quantity--;
+        window.GameLogic.saveGameData();
+        // Inicia a animação de chocar ovo
+        window.GameLogic.startHatchEgg();
+        return true;
+      }
+
       const targetPokemon =
         window.gameState.profile.pokemon[targetPokemonIndex];
       if (!targetPokemon) return false;
@@ -575,19 +613,10 @@ export const GameLogic = {
         return true;
       }
 
-      // NOVO: Lida com ovos
-      if (item.isEgg) {
-        item.quantity--;
-        window.GameLogic.hatchEgg();
-        window.GameLogic.saveGameData();
-        window.Renderer.showScreen("pokemonList");
-        return true;
-      }
-
       // NOVO: Lida com ataques comuns e especiais
       if (item.isMove && (item.isCommonMove || item.isSpecialMove)) {
         item.quantity--;
-        const moveName = item.isCommonMove 
+        const moveName = item.isCommonMove
           ? window.GameLogic.generateCommonMove()
           : window.GameLogic.generateSpecialMove();
         window.GameLogic.teachMoveToPokemon(targetPokemonIndex, moveName);
@@ -601,7 +630,8 @@ export const GameLogic = {
         let allMovesFull = true;
         if (targetPokemon.moves && targetPokemon.moves.length > 0) {
           for (const move of targetPokemon.moves) {
-            const moveName = typeof move === "string" ? move : move.name || move;
+            const moveName =
+              typeof move === "string" ? move : move.name || move;
             const movePA = window.Utils.getMovePA(targetPokemon, moveName);
             if (movePA.remaining < movePA.max) {
               allMovesFull = false;
@@ -691,8 +721,7 @@ export const GameLogic = {
       } else {
         // Fallback para sistema antigo
         const normalFull =
-          playerPokemon.normalMoveRemaining >=
-          playerPokemon.normalMoveMaxUses;
+          playerPokemon.normalMoveRemaining >= playerPokemon.normalMoveMaxUses;
         const specialFull =
           playerPokemon.specialMoveRemaining >=
           playerPokemon.specialMoveMaxUses;
@@ -711,11 +740,7 @@ export const GameLogic = {
       BattleCore.addBattleLog(
         `Você usou ${itemName}. ${playerPokemon.name} recuperou todos os PAs dos golpes.`
       );
-      BattleCore._animateBattleAction(
-        ".player-sprite",
-        "animate-heal",
-        500
-      );
+      BattleCore._animateBattleAction(".player-sprite", "animate-heal", 500);
       window.GameLogic.saveGameData();
       return true;
     }
@@ -741,7 +766,7 @@ export const GameLogic = {
 
     window.Utils.ensureMoveCounters(pokemon);
     const movePA = window.Utils.getMovePA(pokemon, moveName);
-    
+
     if (movePA.remaining >= movePA.max) {
       window.Utils.showModal(
         "infoModal",
@@ -770,7 +795,9 @@ export const GameLogic = {
     const moveDisplayName = window.Utils.formatName(moveName);
     window.Utils.showModal(
       "infoModal",
-      `${pokemon.name} recuperou todo o PA de ${moveDisplayName}! Restam x${item.quantity} Éter${item.quantity !== 1 ? 's' : ''}.`
+      `${pokemon.name} recuperou todo o PA de ${moveDisplayName}! Restam x${
+        item.quantity
+      } Éter${item.quantity !== 1 ? "s" : ""}.`
     );
     return true;
   },
@@ -800,7 +827,7 @@ export const GameLogic = {
           p.specialMoveRemaining < p.specialMoveMaxUses ||
           p.normalMoveRemaining < p.normalMoveMaxUses;
       }
-      
+
       const hpNeeds = p.currentHp < p.maxHp;
 
       if (hpNeeds) {
@@ -867,7 +894,10 @@ export const GameLogic = {
       gender: pokemon.gender,
       timeOfDay: window.World?.getTimeOfDay?.(), // "day","evening","night" se aplicável
       ability: pokemon.ability,
-      seed: window.Utils.hash?.(`${pokemon.uid}:${window.gameState.profile.trainerId}`) ?? Date.now(),
+      seed:
+        window.Utils.hash?.(
+          `${pokemon.uid}:${window.gameState.profile.trainerId}`
+        ) ?? Date.now(),
     };
 
     // 1) Tenta resolver alvo por ramificação
@@ -891,7 +921,9 @@ export const GameLogic = {
     const GameConfig = window.GameConfig;
 
     // NOVO: Sistema de evolução baseado em nível e doces
-    const evolutionReqs = window.GameLogic.getEvolutionRequirements(pokemon.level);
+    const evolutionReqs = window.GameLogic.getEvolutionRequirements(
+      pokemon.level
+    );
     if (!evolutionReqs) {
       window.Utils.showModal(
         "errorModal",
@@ -921,20 +953,26 @@ export const GameLogic = {
 
     // Consome os doces (usando ID base da linha evolutiva)
     const baseId = window.GameLogic.getEvolutionChainBaseId(pokemon.id);
-    window.gameState.profile.pokemonCandy[baseId] = pokemonCandy - evolutionReqs.candy;
+    window.gameState.profile.pokemonCandy[baseId] =
+      pokemonCandy - evolutionReqs.candy;
 
     let consumedItemName = null;
 
     // Se a evolução foi disparada por item, tenta consumir o item
     if (ctx.item) {
-      const itemToConsume = window.GameConfig.SHOP_ITEMS.find(i => i.name.toLowerCase().includes(ctx.item));
+      const itemToConsume = window.GameConfig.SHOP_ITEMS.find((i) =>
+        i.name.toLowerCase().includes(ctx.item)
+      );
       if (itemToConsume) {
         const ok = window.GameLogic.consumeItem(itemToConsume.name);
         if (!ok) {
           // Rollback (Embora a UI deva bloquear isso, mantemos a segurança)
           window.gameState.profile.money += GameConfig.EVOLUTION_COST;
           pokemon.exp += requiredExp;
-          window.Utils.showModal("errorModal", `Erro: O item ${itemToConsume.name} não foi encontrado na mochila.`);
+          window.Utils.showModal(
+            "errorModal",
+            `Erro: O item ${itemToConsume.name} não foi encontrado na mochila.`
+          );
           window.Renderer.showScreen("managePokemon");
           return;
         }
@@ -947,7 +985,8 @@ export const GameLogic = {
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Buscar dados da nova forma por nome
-    const targetName = nextEvolutionName || window.GameLogic._getNameById(nextId);
+    const targetName =
+      nextEvolutionName || window.GameLogic._getNameById(nextId);
     const newPokemonDataRaw = await window.PokeAPI.fetchPokemonData(targetName);
 
     if (newPokemonDataRaw) {
@@ -959,10 +998,13 @@ export const GameLogic = {
         exp: pokemon.exp,
         // Preservar gênero (necessário para evoluções de ramificação)
         gender: pokemon.gender,
-      }
+      };
 
       // 3. Recalcular o HP Máximo com os novos base stats + nível atual
-      newPokemonData.maxHp = window.Utils.calculateMaxHp(newPokemonData.stats.hp, newPokemonData.level);
+      newPokemonData.maxHp = window.Utils.calculateMaxHp(
+        newPokemonData.stats.hp,
+        newPokemonData.level
+      );
       newPokemonData.currentHp = newPokemonData.maxHp;
       // 4. Registrar na Pokédex
       window.Utils.registerPokemon(newPokemonData.id);
@@ -975,10 +1017,7 @@ export const GameLogic = {
         successMessage += ` (Item **${consumedItemName}** utilizado)`;
       }
 
-      window.Utils.showModal(
-        "infoModal",
-        successMessage
-      );
+      window.Utils.showModal("infoModal", successMessage);
       window.Renderer.showScreen("pokemonList");
     } else {
       // Reembolsa os doces se a evolução falhar (dados locais ausentes)
@@ -986,7 +1025,9 @@ export const GameLogic = {
       window.gameState.profile.pokemonCandy[baseId] = pokemonCandy;
       window.Utils.showModal(
         "errorModal",
-        `Falha ao buscar dados de ${window.Utils.formatName(targetName)}. Evolução cancelada.`
+        `Falha ao buscar dados de ${window.Utils.formatName(
+          targetName
+        )}. Evolução cancelada.`
       );
       window.Renderer.showScreen("managePokemon");
     }
@@ -1005,24 +1046,29 @@ export const GameLogic = {
       index,
       1
     )[0];
-    
+
     // NOVO: Adiciona doce quando Pokémon é solto
     window.GameLogic.addPokemonCandy(releasedPokemon.id, 1);
-    
+
     // NOVO: Remove o pokémon da equipe de batalha e ajusta os índices
     const profile = window.gameState.profile;
     if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
       // Remove o índice do pokémon solto da equipe
-      profile.battleTeam = profile.battleTeam.filter(teamIndex => teamIndex !== index);
+      profile.battleTeam = profile.battleTeam.filter(
+        (teamIndex) => teamIndex !== index
+      );
       // Ajusta os índices dos pokémons que vinham depois do solto (diminui 1)
-      profile.battleTeam = profile.battleTeam.map(teamIndex => 
+      profile.battleTeam = profile.battleTeam.map((teamIndex) =>
         teamIndex > index ? teamIndex - 1 : teamIndex
       );
     }
-    
+
     window.GameLogic.saveGameData();
     const pokemonCandy = window.GameLogic.getPokemonCandy(releasedPokemon.id);
-    window.Utils.showModal("infoModal", `Você soltou ${releasedPokemon.name} e ganhou 1 doce! (Total: ${pokemonCandy} doces de ${releasedPokemon.name})`);
+    window.Utils.showModal(
+      "infoModal",
+      `Você soltou ${releasedPokemon.name} e ganhou 1 doce! (Total: ${pokemonCandy} doces de ${releasedPokemon.name})`
+    );
     window.Renderer.showScreen("managePokemon");
   },
 
@@ -1030,7 +1076,7 @@ export const GameLogic = {
   toggleFavoritePokemon: function (pokemonIndex) {
     const profile = window.gameState.profile;
     const pokemon = profile.pokemon[pokemonIndex];
-    
+
     if (!pokemon) {
       window.Utils.showModal("errorModal", "Pokémon inválido.");
       return false;
@@ -1039,12 +1085,12 @@ export const GameLogic = {
     // Alterna o status de favorito
     pokemon.isFavorite = !pokemon.isFavorite;
     window.GameLogic.saveGameData();
-    
+
     const displayName = window.Utils.getPokemonDisplayName(pokemon);
-    const message = pokemon.isFavorite 
+    const message = pokemon.isFavorite
       ? `${displayName} foi adicionado aos favoritos! ⭐`
       : `${displayName} foi removido dos favoritos.`;
-    
+
     window.Utils.showModal("infoModal", message);
     return true;
   },
@@ -1053,15 +1099,17 @@ export const GameLogic = {
   renamePokemon: function (pokemonIndex, newNickname) {
     const profile = window.gameState.profile;
     const pokemon = profile.pokemon[pokemonIndex];
-    
+
     if (!pokemon) {
       window.Utils.showModal("errorModal", "Pokémon inválido.");
       return false;
     }
 
     // Remove espaços no início e fim, e limita o tamanho
-    const trimmedNickname = newNickname ? newNickname.trim().substring(0, 20) : "";
-    
+    const trimmedNickname = newNickname
+      ? newNickname.trim().substring(0, 20)
+      : "";
+
     // Se o nickname estiver vazio, remove o nickname (volta ao nome original)
     if (trimmedNickname === "") {
       delete pokemon.nickname;
@@ -1075,7 +1123,7 @@ export const GameLogic = {
 
     pokemon.nickname = trimmedNickname;
     window.GameLogic.saveGameData();
-    
+
     const displayName = window.Utils.getPokemonDisplayName(pokemon);
     window.Utils.showModal(
       "infoModal",
@@ -1090,7 +1138,7 @@ export const GameLogic = {
     if (!profile.battleTeam) {
       profile.battleTeam = [];
     }
-    
+
     const battleTeam = profile.battleTeam;
     const MAX_BATTLE_TEAM = 5;
     const pokemonIndex = battleTeam.indexOf(index);
@@ -1099,20 +1147,48 @@ export const GameLogic = {
       // Remove da equipe
       battleTeam.splice(pokemonIndex, 1);
       window.GameLogic.saveGameData();
-      window.Renderer.showScreen('battleTeam');
+      window.Renderer.showScreen("battleTeam");
     } else {
       // Adiciona à equipe se não estiver cheia
       if (battleTeam.length < MAX_BATTLE_TEAM) {
         battleTeam.push(index);
         window.GameLogic.saveGameData();
-        window.Renderer.showScreen('battleTeam');
+        window.Renderer.showScreen("battleTeam");
       } else {
         window.Utils.showModal(
-          'infoModal',
+          "infoModal",
           `A equipe de batalha está completa (${MAX_BATTLE_TEAM} pokémons). Remova um pokémon antes de adicionar outro.`
         );
       }
     }
+  },
+
+  // NOVO: Move um pokemon na equipe de batalha para cima ou para baixo
+  moveBattleTeamPokemon: function (teamIndex, direction) {
+    const profile = window.gameState.profile;
+    if (!profile.battleTeam || !Array.isArray(profile.battleTeam)) {
+      return;
+    }
+
+    const battleTeam = profile.battleTeam;
+    if (teamIndex < 0 || teamIndex >= battleTeam.length) {
+      return;
+    }
+
+    const newIndex = direction === "up" ? teamIndex - 1 : teamIndex + 1;
+
+    // Verifica limites
+    if (newIndex < 0 || newIndex >= battleTeam.length) {
+      return;
+    }
+
+    // Troca as posições
+    const temp = battleTeam[teamIndex];
+    battleTeam[teamIndex] = battleTeam[newIndex];
+    battleTeam[newIndex] = temp;
+
+    window.GameLogic.saveGameData();
+    window.Renderer.showScreen("pokemonList", { tab: "team" });
   },
 
   setPokemonAsActive: function (index) {
@@ -1136,7 +1212,7 @@ export const GameLogic = {
     // NOVO: Ajusta os índices da equipe de batalha após mover para o primeiro lugar
     const profile = window.gameState.profile;
     if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
-      const newBattleTeam = profile.battleTeam.map(oldIndex => {
+      const newBattleTeam = profile.battleTeam.map((oldIndex) => {
         if (oldIndex === index) {
           // O pokémon movido vai para o índice 0
           return 0;
@@ -1147,8 +1223,8 @@ export const GameLogic = {
         // Pokémons que estavam depois do movido: mantêm o índice
         return oldIndex;
       });
-      profile.battleTeam = newBattleTeam.filter(i => 
-        i >= 0 && i < pokemonArray.length
+      profile.battleTeam = newBattleTeam.filter(
+        (i) => i >= 0 && i < pokemonArray.length
       );
     }
 
@@ -1211,7 +1287,7 @@ export const GameLogic = {
     const profile = window.gameState.profile;
     if (profile.battleTeam && Array.isArray(profile.battleTeam)) {
       // Cria um mapeamento dos índices antigos para os novos após a reordenação
-      const newBattleTeam = profile.battleTeam.map(oldIndex => {
+      const newBattleTeam = profile.battleTeam.map((oldIndex) => {
         if (oldIndex === draggedIndex) {
           // O pokémon arrastado vai para o novo índice
           return droppedOnIndex;
@@ -1225,8 +1301,8 @@ export const GameLogic = {
         // Pokémons não afetados mantêm o mesmo índice
         return oldIndex;
       });
-      profile.battleTeam = newBattleTeam.filter(index => 
-        index >= 0 && index < pokemonArray.length
+      profile.battleTeam = newBattleTeam.filter(
+        (index) => index >= 0 && index < pokemonArray.length
       );
     }
 
@@ -1360,7 +1436,10 @@ export const GameLogic = {
   // NOVO: Sistema de Troca de Pokémon
   startTrade: async function (friendId, friendName) {
     if (!window.db || !window.userId) {
-      window.Utils.showModal("errorModal", "Você precisa estar logado para trocar Pokémon.");
+      window.Utils.showModal(
+        "errorModal",
+        "Você precisa estar logado para trocar Pokémon."
+      );
       return;
     }
 
@@ -1371,7 +1450,9 @@ export const GameLogic = {
 
     // Verifica se são amigos
     try {
-      const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const { collection, query, where, getDocs } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
       const q = query(
         collection(window.db, "friendships"),
         where("participants", "array-contains", window.userId)
@@ -1380,13 +1461,19 @@ export const GameLogic = {
       let isFriend = false;
       snapshot.docs.forEach((d) => {
         const data = d.data();
-        if (data.participants.includes(friendId) && data.status === "accepted") {
+        if (
+          data.participants.includes(friendId) &&
+          data.status === "accepted"
+        ) {
           isFriend = true;
         }
       });
 
       if (!isFriend) {
-        window.Utils.showModal("errorModal", "Você só pode trocar Pokémon com amigos!");
+        window.Utils.showModal(
+          "errorModal",
+          "Você só pode trocar Pokémon com amigos!"
+        );
         return;
       }
     } catch (error) {
@@ -1396,10 +1483,12 @@ export const GameLogic = {
     }
 
     // Cria ou busca sala de troca
-    const tradeRoomId = [window.userId, friendId].sort().join('_trade');
-    
+    const tradeRoomId = [window.userId, friendId].sort().join("_trade");
+
     try {
-      const { doc, setDoc, getDoc, onSnapshot, Timestamp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const { doc, setDoc, getDoc, onSnapshot, Timestamp } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
       const tradeRef = doc(window.db, "trades", tradeRoomId);
       const tradeSnap = await getDoc(tradeRef);
 
@@ -1428,15 +1517,17 @@ export const GameLogic = {
   },
 
   renderTradeScreen: async function (tradeRoomId, friendId, friendName) {
-    const { doc, onSnapshot, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-    
+    const { doc, onSnapshot, getDoc } = await import(
+      "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+    );
+
     // Limpa listener anterior se existir
     if (window.unsubscribeTrade) {
       window.unsubscribeTrade();
     }
 
     const tradeRef = doc(window.db, "trades", tradeRoomId);
-    
+
     // Listener em tempo real
     window.unsubscribeTrade = onSnapshot(tradeRef, async (snap) => {
       if (!snap.exists()) {
@@ -1450,19 +1541,37 @@ export const GameLogic = {
 
       const tradeData = snap.data();
       const isPlayer1 = tradeData.player1 === window.userId;
-      const myPokemon = isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon;
-      const theirPokemon = isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon;
-      const myConfirmed = isPlayer1 ? tradeData.player1Confirmed : tradeData.player2Confirmed;
-      const theirConfirmed = isPlayer1 ? tradeData.player2Confirmed : tradeData.player1Confirmed;
+      const myPokemon = isPlayer1
+        ? tradeData.player1Pokemon
+        : tradeData.player2Pokemon;
+      const theirPokemon = isPlayer1
+        ? tradeData.player2Pokemon
+        : tradeData.player1Pokemon;
+      const myConfirmed = isPlayer1
+        ? tradeData.player1Confirmed
+        : tradeData.player2Confirmed;
+      const theirConfirmed = isPlayer1
+        ? tradeData.player2Confirmed
+        : tradeData.player1Confirmed;
 
       // Renderiza a interface
-      const myPokemonHtml = myPokemon 
+      const myPokemonHtml = myPokemon
         ? `
           <div class="bg-green-100 border-2 border-green-500 rounded-lg p-3">
-            <img src="../assets/sprites/pokemon/${myPokemon.id}_front.png" alt="${myPokemon.name}" class="w-24 h-24 mx-auto mb-2">
-            <div class="text-center gba-font text-sm font-bold">${myPokemon.name}</div>
-            <div class="text-center gba-font text-xs">Nv. ${myPokemon.level}</div>
-            ${myConfirmed ? '<div class="text-center text-green-600 font-bold mt-1">✓ Confirmado</div>' : ''}
+            <img src="../assets/sprites/pokemon/${
+              myPokemon.id
+            }_front.png" alt="${myPokemon.name}" class="w-24 h-24 mx-auto mb-2">
+            <div class="text-center gba-font text-sm font-bold">${
+              myPokemon.name
+            }</div>
+            <div class="text-center gba-font text-xs">Nv. ${
+              myPokemon.level
+            }</div>
+            ${
+              myConfirmed
+                ? '<div class="text-center text-green-600 font-bold mt-1">✓ Confirmado</div>'
+                : ""
+            }
           </div>
         `
         : '<div class="bg-gray-200 border-2 border-gray-400 rounded-lg p-3 text-center gba-font text-sm">Selecione um Pokémon</div>';
@@ -1470,25 +1579,46 @@ export const GameLogic = {
       const theirPokemonHtml = theirPokemon
         ? `
           <div class="bg-blue-100 border-2 border-blue-500 rounded-lg p-3">
-            <img src="../assets/sprites/pokemon/${theirPokemon.id}_front.png" alt="${theirPokemon.name}" class="w-24 h-24 mx-auto mb-2">
-            <div class="text-center gba-font text-sm font-bold">${theirPokemon.name}</div>
-            <div class="text-center gba-font text-xs">Nv. ${theirPokemon.level}</div>
-            ${theirConfirmed ? '<div class="text-center text-blue-600 font-bold mt-1">✓ Confirmado</div>' : ''}
+            <img src="../assets/sprites/pokemon/${
+              theirPokemon.id
+            }_front.png" alt="${
+            theirPokemon.name
+          }" class="w-24 h-24 mx-auto mb-2">
+            <div class="text-center gba-font text-sm font-bold">${
+              theirPokemon.name
+            }</div>
+            <div class="text-center gba-font text-xs">Nv. ${
+              theirPokemon.level
+            }</div>
+            ${
+              theirConfirmed
+                ? '<div class="text-center text-blue-600 font-bold mt-1">✓ Confirmado</div>'
+                : ""
+            }
           </div>
         `
         : '<div class="bg-gray-200 border-2 border-gray-400 rounded-lg p-3 text-center gba-font text-sm">Aguardando seleção...</div>';
 
       // Lista de Pokémon para seleção
-      const pokemonListHtml = window.gameState.profile.pokemon.map((p, index) => {
-        // Usa índice para identificar se não tiver uid
-        const pokemonId = p.uid || `index_${index}`;
-        const selectedId = myPokemon ? (myPokemon.uid || `index_${myPokemon._tradeIndex}`) : null;
-        const isSelected = selectedId === pokemonId;
-        return `
+      const pokemonListHtml = window.gameState.profile.pokemon
+        .map((p, index) => {
+          // Usa índice para identificar se não tiver uid
+          const pokemonId = p.uid || `index_${index}`;
+          const selectedId = myPokemon
+            ? myPokemon.uid || `index_${myPokemon._tradeIndex}`
+            : null;
+          const isSelected = selectedId === pokemonId;
+          return `
           <button onclick="window.GameLogic.selectPokemonForTrade(${index}, '${tradeRoomId}')" 
-                  class="w-full p-2 border-2 rounded-lg gba-font text-xs text-left ${isSelected ? 'bg-green-300 border-green-600' : 'bg-white border-gray-400 hover:bg-gray-100'}">
+                  class="w-full p-2 border-2 rounded-lg gba-font text-xs text-left ${
+                    isSelected
+                      ? "bg-green-300 border-green-600"
+                      : "bg-white border-gray-400 hover:bg-gray-100"
+                  }">
             <div class="flex items-center gap-2">
-              <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${p.name}" class="w-12 h-12">
+              <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
+            p.name
+          }" class="w-12 h-12">
               <div>
                 <div class="font-bold">${p.name}</div>
                 <div>Nv. ${p.level} | HP: ${p.currentHp}/${p.maxHp}</div>
@@ -1496,15 +1626,17 @@ export const GameLogic = {
             </div>
           </button>
         `;
-      }).join('');
+        })
+        .join("");
 
-      const statusMessage = tradeData.status === "completed" 
-        ? '<div class="text-center text-green-600 font-bold gba-font">Troca concluída!</div>'
-        : tradeData.status === "cancelled"
-        ? '<div class="text-center text-red-600 font-bold gba-font">Troca cancelada</div>'
-        : myConfirmed && theirConfirmed
-        ? '<div class="text-center text-yellow-600 font-bold gba-font">Ambos confirmaram! Finalizando troca...</div>'
-        : '<div class="text-center text-gray-600 gba-font">Aguardando confirmações...</div>';
+      const statusMessage =
+        tradeData.status === "completed"
+          ? '<div class="text-center text-green-600 font-bold gba-font">Troca concluída!</div>'
+          : tradeData.status === "cancelled"
+          ? '<div class="text-center text-red-600 font-bold gba-font">Troca cancelada</div>'
+          : myConfirmed && theirConfirmed
+          ? '<div class="text-center text-yellow-600 font-bold gba-font">Ambos confirmaram! Finalizando troca...</div>'
+          : '<div class="text-center text-gray-600 gba-font">Aguardando confirmações...</div>';
 
       const content = `
         <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font">TROCA DE POKÉMON</div>
@@ -1523,7 +1655,9 @@ export const GameLogic = {
 
         ${statusMessage}
 
-        ${tradeData.status === "waiting" || tradeData.status === "ready" ? `
+        ${
+          tradeData.status === "waiting" || tradeData.status === "ready"
+            ? `
           <div class="mb-4">
             <div class="text-xs font-bold mb-2 gba-font">SELECIONE SEU POKÉMON:</div>
             <div class="max-h-48 overflow-y-auto space-y-2">
@@ -1532,23 +1666,29 @@ export const GameLogic = {
           </div>
 
           <div class="flex gap-2">
-            ${myPokemon && !myConfirmed ? `
+            ${
+              myPokemon && !myConfirmed
+                ? `
               <button onclick="window.GameLogic.confirmTrade('${tradeRoomId}')" 
                       class="gba-button bg-green-500 hover:bg-green-600 flex-1">
                 Confirmar Troca
               </button>
-            ` : ''}
+            `
+                : ""
+            }
             <button onclick="window.GameLogic.cancelTrade('${tradeRoomId}')" 
                     class="gba-button bg-red-500 hover:bg-red-600 flex-1">
               Cancelar
             </button>
           </div>
-        ` : `
+        `
+            : `
           <button onclick="window.GameLogic.closeTrade()" 
                   class="gba-button bg-gray-500 hover:bg-gray-600 w-full">
             Fechar
           </button>
-        `}
+        `
+        }
       `;
 
       const app = document.getElementById("app-container");
@@ -1563,10 +1703,12 @@ export const GameLogic = {
     if (!pokemon) return;
 
     try {
-      const { doc, updateDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const { doc, updateDoc, getDoc } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
       const tradeRef = doc(window.db, "trades", tradeRoomId);
       const tradeSnap = await getDoc(tradeRef);
-      
+
       if (!tradeSnap.exists()) return;
 
       const tradeData = tradeSnap.data();
@@ -1578,10 +1720,10 @@ export const GameLogic = {
       if (!pokemonCopy.uid) {
         pokemonCopy._tradeIndex = pokemonIndex;
       }
-      
+
       await updateDoc(tradeRef, {
-        [isPlayer1 ? 'player1Pokemon' : 'player2Pokemon']: pokemonCopy,
-        [isPlayer1 ? 'player1Confirmed' : 'player2Confirmed']: false,
+        [isPlayer1 ? "player1Pokemon" : "player2Pokemon"]: pokemonCopy,
+        [isPlayer1 ? "player1Confirmed" : "player2Confirmed"]: false,
         status: "ready",
       });
     } catch (error) {
@@ -1592,10 +1734,12 @@ export const GameLogic = {
 
   confirmTrade: async function (tradeRoomId) {
     try {
-      const { doc, getDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const { doc, getDoc, updateDoc } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
       const tradeRef = doc(window.db, "trades", tradeRoomId);
       const tradeSnap = await getDoc(tradeRef);
-      
+
       if (!tradeSnap.exists()) return;
 
       const tradeData = tradeSnap.data();
@@ -1603,7 +1747,7 @@ export const GameLogic = {
 
       // Marca como confirmado
       await updateDoc(tradeRef, {
-        [isPlayer1 ? 'player1Confirmed' : 'player2Confirmed']: true,
+        [isPlayer1 ? "player1Confirmed" : "player2Confirmed"]: true,
       });
 
       // Verifica se ambos confirmaram
@@ -1622,12 +1766,14 @@ export const GameLogic = {
 
   executeTrade: async function (tradeRoomId, tradeData) {
     try {
-      const { doc, updateDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-      
+      const { doc, updateDoc, getDoc } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
+
       // Remove os Pokémon originais dos times
       const myProfileRef = doc(window.db, "users", window.userId);
       const friendProfileRef = doc(window.db, "users", tradeData.player2);
-      
+
       const myProfileSnap = await getDoc(myProfileRef);
       const friendProfileSnap = await getDoc(friendProfileRef);
 
@@ -1641,37 +1787,47 @@ export const GameLogic = {
       // Remove o Pokémon que está sendo trocado
       // Usa uid se existir, senão usa _tradeIndex ou compara por id+level+name
       const isPlayer1 = tradeData.player1 === window.userId;
-      const myTradePokemon = isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon;
-      const friendTradePokemon = isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon;
+      const myTradePokemon = isPlayer1
+        ? tradeData.player1Pokemon
+        : tradeData.player2Pokemon;
+      const friendTradePokemon = isPlayer1
+        ? tradeData.player2Pokemon
+        : tradeData.player1Pokemon;
 
       let myPokemonIndex = -1;
       let friendPokemonIndex = -1;
 
       // Busca o Pokémon do jogador atual
       if (myTradePokemon.uid) {
-        myPokemonIndex = myProfile.pokemon.findIndex(p => p.uid === myTradePokemon.uid);
+        myPokemonIndex = myProfile.pokemon.findIndex(
+          (p) => p.uid === myTradePokemon.uid
+        );
       } else if (myTradePokemon._tradeIndex !== undefined) {
         myPokemonIndex = myTradePokemon._tradeIndex;
       } else {
         // Fallback: busca por id, name e level
-        myPokemonIndex = myProfile.pokemon.findIndex(p => 
-          p.id === myTradePokemon.id && 
-          p.name === myTradePokemon.name && 
-          p.level === myTradePokemon.level
+        myPokemonIndex = myProfile.pokemon.findIndex(
+          (p) =>
+            p.id === myTradePokemon.id &&
+            p.name === myTradePokemon.name &&
+            p.level === myTradePokemon.level
         );
       }
 
       // Busca o Pokémon do amigo
       if (friendTradePokemon.uid) {
-        friendPokemonIndex = friendProfile.pokemon.findIndex(p => p.uid === friendTradePokemon.uid);
+        friendPokemonIndex = friendProfile.pokemon.findIndex(
+          (p) => p.uid === friendTradePokemon.uid
+        );
       } else if (friendTradePokemon._tradeIndex !== undefined) {
         friendPokemonIndex = friendTradePokemon._tradeIndex;
       } else {
         // Fallback: busca por id, name e level
-        friendPokemonIndex = friendProfile.pokemon.findIndex(p => 
-          p.id === friendTradePokemon.id && 
-          p.name === friendTradePokemon.name && 
-          p.level === friendTradePokemon.level
+        friendPokemonIndex = friendProfile.pokemon.findIndex(
+          (p) =>
+            p.id === friendTradePokemon.id &&
+            p.name === friendTradePokemon.name &&
+            p.level === friendTradePokemon.level
         );
       }
 
@@ -1684,9 +1840,17 @@ export const GameLogic = {
       friendProfile.pokemon.splice(friendPokemonIndex, 1);
 
       // Remove campos temporários antes de adicionar
-      const receivedPokemon = JSON.parse(JSON.stringify(isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon));
-      const sentPokemon = JSON.parse(JSON.stringify(isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon));
-      
+      const receivedPokemon = JSON.parse(
+        JSON.stringify(
+          isPlayer1 ? tradeData.player2Pokemon : tradeData.player1Pokemon
+        )
+      );
+      const sentPokemon = JSON.parse(
+        JSON.stringify(
+          isPlayer1 ? tradeData.player1Pokemon : tradeData.player2Pokemon
+        )
+      );
+
       if (receivedPokemon._tradeIndex !== undefined) {
         delete receivedPokemon._tradeIndex;
       }
@@ -1717,7 +1881,7 @@ export const GameLogic = {
 
       window.Utils.showModal("infoModal", "Troca realizada com sucesso!");
       window.GameLogic.saveGameData();
-      
+
       // Recarrega a tela após 2 segundos
       setTimeout(() => {
         if (window.unsubscribeTrade) {
@@ -1728,7 +1892,10 @@ export const GameLogic = {
       }, 2000);
     } catch (error) {
       console.error("Erro ao executar troca:", error);
-      window.Utils.showModal("errorModal", `Erro ao executar troca: ${error.message}`);
+      window.Utils.showModal(
+        "errorModal",
+        `Erro ao executar troca: ${error.message}`
+      );
     }
   },
 
@@ -1736,7 +1903,7 @@ export const GameLogic = {
   generateRandomMove: function () {
     // Obtém todos os movimentos disponíveis do MOVES_TO_TYPE_MAPPING
     let movesList = [];
-    
+
     if (window.MOVES_TO_TYPE_MAPPING) {
       movesList = Object.keys(window.MOVES_TO_TYPE_MAPPING);
     } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
@@ -1744,25 +1911,82 @@ export const GameLogic = {
     } else {
       // Lista de movimentos padrão caso não encontre o mapeamento
       movesList = [
-        "razor-wind", "swords-dance", "cut", "bind", "vine-whip", "scratch",
-        "mega-punch", "fire-punch", "thunder-punch", "ice-punch", "mega-kick",
-        "headbutt", "tackle", "string-shot", "snore", "bug-bite", "harden",
-        "iron-defense", "gust", "whirlwind", "poison-sting", "fury-attack",
-        "fly", "slam", "body-slam", "pay-day", "sand-attack", "mud-slap",
-        "double-kick", "horn-attack", "pound", "double-slap", "take-down",
-        "double-edge", "karate-chop", "stomp", "hydro-pump", "splash", "flail",
-        "absorb", "acid", "supersonic", "mist", "growl", "peck", "drill-peck",
-        "ember", "flamethrower", "thunder-shock", "thunderbolt", "thunder-wave",
-        "thunder", "surf", "bite", "thrash", "disable", "toxic", "psychic",
-        "night-shade", "confusion", "light-screen", "solar-beam", "fire-spin",
-        "pin-missile", "leech-seed", "growth", "twineedle", "teleport", "quick-attack"
+        "razor-wind",
+        "swords-dance",
+        "cut",
+        "bind",
+        "vine-whip",
+        "scratch",
+        "mega-punch",
+        "fire-punch",
+        "thunder-punch",
+        "ice-punch",
+        "mega-kick",
+        "headbutt",
+        "tackle",
+        "string-shot",
+        "snore",
+        "bug-bite",
+        "harden",
+        "iron-defense",
+        "gust",
+        "whirlwind",
+        "poison-sting",
+        "fury-attack",
+        "fly",
+        "slam",
+        "body-slam",
+        "pay-day",
+        "sand-attack",
+        "mud-slap",
+        "double-kick",
+        "horn-attack",
+        "pound",
+        "double-slap",
+        "take-down",
+        "double-edge",
+        "karate-chop",
+        "stomp",
+        "hydro-pump",
+        "splash",
+        "flail",
+        "absorb",
+        "acid",
+        "supersonic",
+        "mist",
+        "growl",
+        "peck",
+        "drill-peck",
+        "ember",
+        "flamethrower",
+        "thunder-shock",
+        "thunderbolt",
+        "thunder-wave",
+        "thunder",
+        "surf",
+        "bite",
+        "thrash",
+        "disable",
+        "toxic",
+        "psychic",
+        "night-shade",
+        "confusion",
+        "light-screen",
+        "solar-beam",
+        "fire-spin",
+        "pin-missile",
+        "leech-seed",
+        "growth",
+        "twineedle",
+        "teleport",
+        "quick-attack",
       ];
     }
-    
+
     if (movesList.length === 0) {
       return "tackle"; // Fallback
     }
-    
+
     // Seleciona um movimento aleatório
     const randomIndex = Math.floor(Math.random() * movesList.length);
     return movesList[randomIndex];
@@ -1771,38 +1995,85 @@ export const GameLogic = {
   // NOVO: Gera um movimento comum (não especial)
   generateCommonMove: function () {
     let allMoves = [];
-    
+
     if (window.MOVES_TO_TYPE_MAPPING) {
       allMoves = Object.keys(window.MOVES_TO_TYPE_MAPPING);
     } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
       allMoves = Object.keys(window.BattleCore.MOVES_TO_TYPE_MAPPING);
     } else {
       allMoves = [
-        "razor-wind", "swords-dance", "cut", "bind", "scratch",
-        "mega-punch", "mega-kick", "headbutt", "tackle", "string-shot", "snore",
-        "harden", "iron-defense", "fury-attack", "fly", "slam", "body-slam",
-        "pay-day", "sand-attack", "mud-slap", "double-kick", "horn-attack",
-        "pound", "double-slap", "take-down", "double-edge", "karate-chop",
-        "stomp", "splash", "flail", "supersonic", "growl", "quick-attack"
+        "razor-wind",
+        "swords-dance",
+        "cut",
+        "bind",
+        "scratch",
+        "mega-punch",
+        "mega-kick",
+        "headbutt",
+        "tackle",
+        "string-shot",
+        "snore",
+        "harden",
+        "iron-defense",
+        "fury-attack",
+        "fly",
+        "slam",
+        "body-slam",
+        "pay-day",
+        "sand-attack",
+        "mud-slap",
+        "double-kick",
+        "horn-attack",
+        "pound",
+        "double-slap",
+        "take-down",
+        "double-edge",
+        "karate-chop",
+        "stomp",
+        "splash",
+        "flail",
+        "supersonic",
+        "growl",
+        "quick-attack",
       ];
     }
-    
+
     // Filtra apenas movimentos comuns (não especiais)
     // Movimentos especiais são geralmente baseados em tipos (fire, water, etc.)
-    const commonMoves = allMoves.filter(move => {
-      const moveType = window.MOVES_TO_TYPE_MAPPING?.[move] || 
-                      window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] || "normal";
+    const commonMoves = allMoves.filter((move) => {
+      const moveType =
+        window.MOVES_TO_TYPE_MAPPING?.[move] ||
+        window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] ||
+        "normal";
       // Considera comum se for tipo normal ou se não for um movimento especial típico
-      return moveType === "normal" || 
-             !["fire", "water", "grass", "electric", "psychic", "ice", "dragon", 
-               "dark", "ghost", "fairy", "steel", "rock", "ground", "flying", 
-               "bug", "poison", "fighting"].includes(moveType);
+      return (
+        moveType === "normal" ||
+        ![
+          "fire",
+          "water",
+          "grass",
+          "electric",
+          "psychic",
+          "ice",
+          "dragon",
+          "dark",
+          "ghost",
+          "fairy",
+          "steel",
+          "rock",
+          "ground",
+          "flying",
+          "bug",
+          "poison",
+          "fighting",
+        ].includes(moveType)
+      );
     });
-    
+
     if (commonMoves.length === 0) {
       return "tackle"; // Fallback
     }
-    
+
     const randomIndex = Math.floor(Math.random() * commonMoves.length);
     return commonMoves[randomIndex];
   },
@@ -1810,34 +2081,64 @@ export const GameLogic = {
   // NOVO: Gera um movimento especial (baseado em tipos)
   generateSpecialMove: function () {
     let allMoves = [];
-    
+
     if (window.MOVES_TO_TYPE_MAPPING) {
       allMoves = Object.keys(window.MOVES_TO_TYPE_MAPPING);
     } else if (window.BattleCore && window.BattleCore.MOVES_TO_TYPE_MAPPING) {
       allMoves = Object.keys(window.BattleCore.MOVES_TO_TYPE_MAPPING);
     } else {
       allMoves = [
-        "vine-whip", "fire-punch", "thunder-punch", "ice-punch",
-        "ember", "flamethrower", "thunder-shock", "thunderbolt", "thunder-wave",
-        "thunder", "surf", "hydro-pump", "bite", "toxic", "psychic",
-        "night-shade", "confusion", "light-screen", "solar-beam", "fire-spin",
-        "pin-missile", "leech-seed", "growth", "twineedle", "teleport",
-        "absorb", "acid", "mist", "peck", "drill-peck", "gust", "whirlwind",
-        "poison-sting", "mud-slap", "sand-attack"
+        "vine-whip",
+        "fire-punch",
+        "thunder-punch",
+        "ice-punch",
+        "ember",
+        "flamethrower",
+        "thunder-shock",
+        "thunderbolt",
+        "thunder-wave",
+        "thunder",
+        "surf",
+        "hydro-pump",
+        "bite",
+        "toxic",
+        "psychic",
+        "night-shade",
+        "confusion",
+        "light-screen",
+        "solar-beam",
+        "fire-spin",
+        "pin-missile",
+        "leech-seed",
+        "growth",
+        "twineedle",
+        "teleport",
+        "absorb",
+        "acid",
+        "mist",
+        "peck",
+        "drill-peck",
+        "gust",
+        "whirlwind",
+        "poison-sting",
+        "mud-slap",
+        "sand-attack",
       ];
     }
-    
+
     // Filtra apenas movimentos especiais (não tipo normal)
-    const specialMoves = allMoves.filter(move => {
-      const moveType = window.MOVES_TO_TYPE_MAPPING?.[move] || 
-                      window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] || "normal";
+    const specialMoves = allMoves.filter((move) => {
+      const moveType =
+        window.MOVES_TO_TYPE_MAPPING?.[move] ||
+        window.BattleCore?.MOVES_TO_TYPE_MAPPING?.[move] ||
+        "normal";
       return moveType !== "normal";
     });
-    
+
     if (specialMoves.length === 0) {
       return "ember"; // Fallback
     }
-    
+
     const randomIndex = Math.floor(Math.random() * specialMoves.length);
     return specialMoves[randomIndex];
   },
@@ -1845,9 +2146,12 @@ export const GameLogic = {
   // NOVO: Mostra tela para escolher qual Pokémon aprenderá o movimento
   showMoveSelection: function (moveName = null) {
     const pokemonList = window.gameState.profile.pokemon || [];
-    
+
     if (pokemonList.length === 0) {
-      window.Utils.showModal("errorModal", "Você não tem Pokémon para ensinar o movimento!");
+      window.Utils.showModal(
+        "errorModal",
+        "Você não tem Pokémon para ensinar o movimento!"
+      );
       if (window.gameState.currentScreen === "shop") {
         window.Renderer.showScreen("shop");
       } else {
@@ -1863,27 +2167,43 @@ export const GameLogic = {
     const moveDisplayName = window.Utils.formatName(moveName);
 
     // Cria HTML da lista de Pokémon
-    const pokemonOptions = pokemonList.map((poke, index) => {
-      const displayName = window.Utils.getPokemonDisplayName(poke);
-      const currentMoves = poke.moves || [];
-      const hasMove = currentMoves.includes(moveName);
-      
-      return `
-        <div class="p-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100 ${hasMove ? 'opacity-50' : ''}" 
-             onclick="${hasMove ? '' : `window.GameLogic.teachMoveToPokemon(${index}, '${moveName}')`}">
+    const pokemonOptions = pokemonList
+      .map((poke, index) => {
+        const displayName = window.Utils.getPokemonDisplayName(poke);
+        const currentMoves = poke.moves || [];
+        const hasMove = currentMoves.includes(moveName);
+
+        return `
+        <div class="p-2 border-b border-gray-300 cursor-pointer hover:bg-gray-100 ${
+          hasMove ? "opacity-50" : ""
+        }" 
+             onclick="${
+               hasMove
+                 ? ""
+                 : `window.GameLogic.teachMoveToPokemon(${index}, '${moveName}')`
+             }">
           <div class="flex items-center justify-between">
             <div>
               <span class="gba-font text-sm font-bold">${displayName}</span>
-              <span class="gba-font text-xs text-gray-600"> (Nv. ${poke.level || 1})</span>
+              <span class="gba-font text-xs text-gray-600"> (Nv. ${
+                poke.level || 1
+              })</span>
             </div>
-            ${hasMove ? '<span class="text-red-500 text-xs">Já conhece este movimento!</span>' : '<span class="text-green-500 text-xs">✓ Selecionar</span>'}
+            ${
+              hasMove
+                ? '<span class="text-red-500 text-xs">Já conhece este movimento!</span>'
+                : '<span class="text-green-500 text-xs">✓ Selecionar</span>'
+            }
           </div>
           <div class="text-xs text-gray-500 mt-1">
-            Movimentos: ${currentMoves.map(m => window.Utils.formatName(m)).join(", ")}
+            Movimentos: ${currentMoves
+              .map((m) => window.Utils.formatName(m))
+              .join(", ")}
           </div>
         </div>
       `;
-    }).join("");
+      })
+      .join("");
 
     // Usa innerHTML diretamente no modal para permitir HTML complexo
     const modal = document.getElementById("infoModal");
@@ -1913,7 +2233,7 @@ export const GameLogic = {
   // NOVO: Ensina um movimento a um Pokémon
   teachMoveToPokemon: function (pokemonIndex, moveName) {
     const pokemon = window.gameState.profile.pokemon[pokemonIndex];
-    
+
     if (!pokemon) {
       window.Utils.showModal("errorModal", "Pokémon não encontrado!");
       return;
@@ -1926,7 +2246,12 @@ export const GameLogic = {
 
     // Verifica se já conhece o movimento
     if (pokemon.moves.includes(moveName)) {
-      window.Utils.showModal("errorModal", `${window.Utils.getPokemonDisplayName(pokemon)} já conhece este movimento!`);
+      window.Utils.showModal(
+        "errorModal",
+        `${window.Utils.getPokemonDisplayName(
+          pokemon
+        )} já conhece este movimento!`
+      );
       window.GameLogic.showMoveSelection();
       return;
     }
@@ -1943,15 +2268,15 @@ export const GameLogic = {
     window.Utils.ensureMoveCounters(pokemon);
 
     window.GameLogic.saveGameData();
-    
+
     const moveDisplayName = window.Utils.formatName(moveName);
     const pokemonDisplayName = window.Utils.getPokemonDisplayName(pokemon);
-    
+
     window.Utils.showModal(
       "infoModal",
       `🎉 ${pokemonDisplayName} aprendeu ${moveDisplayName}!`
     );
-    
+
     // Fecha o modal de seleção e volta para a loja
     setTimeout(() => {
       window.Utils.hideModal("infoModal");
@@ -1962,101 +2287,222 @@ export const GameLogic = {
   // NOVO: Adiciona um item especial à mochila
   addSpecialItem: function (itemName, quantity = 1) {
     const specialItems = window.GameConfig.SPECIAL_ITEMS || [];
-    const specialItem = specialItems.find(i => i.name === itemName);
-    
+    const specialItem = specialItems.find((i) => i.name === itemName);
+
     if (!specialItem) {
       console.warn(`Item especial ${itemName} não encontrado em SPECIAL_ITEMS`);
       return;
     }
-    
+
     let existingItem = window.gameState.profile.items.find(
       (i) => i.name === itemName
     );
-    
+
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
       const newItem = { ...specialItem, quantity: quantity };
       window.gameState.profile.items.push(newItem);
     }
-    
+
     window.GameLogic.saveGameData();
   },
 
-  // NOVO: Choca um ovo e adiciona um Pokémon aleatório ao time
-  hatchEgg: function () {
+  // NOVO: Inicia o processo de chocar ovo (gera o Pokémon e mostra animação)
+  startHatchEgg: function () {
+    // Garante que gameState existe
+    if (!window.gameState) {
+      window.gameState = {};
+    }
+
     // Gera um ID aleatório de Pokémon (1 até o limite da Pokédex)
     const maxId = window.GameConfig.POKEDEX_LIMIT || 151;
-    const randomId = Math.floor(Math.random() * maxId) + 1;
-    
-    // Busca dados do Pokémon
-    const pokemonData = window.POKE_DATA?.[randomId];
+    let randomId = Math.floor(Math.random() * maxId) + 1;
+
+    // Tenta encontrar um Pokémon válido (máximo 10 tentativas)
+    let attempts = 0;
+    let pokemonData = null;
+
+    while (!pokemonData && attempts < 10) {
+      // Tenta como número e como string
+      pokemonData =
+        window.POKE_DATA?.[randomId] || window.POKE_DATA?.[String(randomId)];
+
+      if (!pokemonData) {
+        randomId = Math.floor(Math.random() * maxId) + 1;
+        attempts++;
+      }
+    }
+
     if (!pokemonData) {
-      window.Utils.showModal("errorModal", "Erro ao chocar ovo. Tente novamente.");
+      window.Utils.showModal(
+        "errorModal",
+        "Erro ao chocar ovo. Tente novamente."
+      );
       return;
     }
-    
-    // Cria o Pokémon (nível 1)
-    const newPokemon = {
-      id: randomId,
-      name: pokemonData.name,
-      level: 1,
-      exp: 0,
-      currentHp: 0,
-      maxHp: 0,
-      stats: {
-        attack: 0,
-        defense: 0,
-        special_attack: 0,
-        special_defense: 0,
-        speed: 0,
-      },
-      types: pokemonData.types || [],
-      moves: pokemonData.moves || [],
-      candy: 0,
-      friendship: 0,
-    };
-    
-    // Aplica template de movimentos e calcula stats
-    window.Utils.applyMoveTemplate(newPokemon, { forceResetUses: true });
-    
-    // Calcula HP e stats baseado no nível
-    const baseStats = window.Utils.getBaseStats(randomId) || pokemonData.stats || {};
-    newPokemon.maxHp = window.Utils.calculateMaxHp(baseStats.hp || 50, 1);
-    newPokemon.currentHp = newPokemon.maxHp;
-    newPokemon.stats.attack = window.Utils.calculateStat(baseStats.attack || 50, 1);
-    newPokemon.stats.defense = window.Utils.calculateStat(baseStats.defense || 50, 1);
-    newPokemon.stats.special_attack = window.Utils.calculateStat(baseStats.special_attack || 50, 1);
-    newPokemon.stats.special_defense = window.Utils.calculateStat(baseStats.special_defense || 50, 1);
-    newPokemon.stats.speed = window.Utils.calculateStat(baseStats.speed || 50, 1);
-    
-    // Adiciona ao time
-    window.gameState.profile.pokemon.push(newPokemon);
-    
-    const pokemonDisplayName = window.Utils.getPokemonDisplayName(newPokemon);
-    window.Utils.showModal(
-      "infoModal",
-      `🎉 O ovo chocou! ${pokemonDisplayName} (Nv. 1) nasceu!`
+
+    // Armazena o ID do Pokémon para usar após a animação
+    // Usa múltiplas formas de armazenamento para garantir persistência
+    window.gameState.pendingHatchedPokemon = randomId;
+    window.pendingHatchedPokemonId = randomId; // Backup global
+
+    console.log(
+      "startHatchEgg: Pokemon ID armazenado:",
+      randomId,
+      "Nome:",
+      pokemonData.name
     );
-    
-    window.GameLogic.saveGameData();
-    
-    // Atualiza a tela se estiver na lista de Pokémon
-    if (window.gameState.currentScreen === "pokemonList") {
-      window.Renderer.showScreen("pokemonList");
+    console.log(
+      "startHatchEgg: gameState.pendingHatchedPokemon:",
+      window.gameState.pendingHatchedPokemon
+    );
+
+    // Mostra a tela de animação
+    window.Renderer.showScreen("hatchEgg");
+  },
+
+  // NOVO: Finaliza o processo de chocar ovo (adiciona o Pokémon ao time)
+  hatchEgg: function () {
+    try {
+      // Tenta obter o ID de múltiplas fontes
+      const randomId =
+        window.gameState?.pendingHatchedPokemon ||
+        window.pendingHatchedPokemonId;
+
+      if (!randomId) {
+        console.error("Erro: pendingHatchedPokemon não definido.");
+        console.error("gameState:", window.gameState);
+        console.error(
+          "pendingHatchedPokemonId:",
+          window.pendingHatchedPokemonId
+        );
+        window.Utils.showModal(
+          "errorModal",
+          "Erro ao chocar ovo. Tente novamente."
+        );
+        window.Renderer.showScreen("bag");
+        return;
+      }
+
+      console.log("hatchEgg: Processando Pokemon ID:", randomId);
+
+      // Limpa os backups
+      if (window.pendingHatchedPokemonId) {
+        delete window.pendingHatchedPokemonId;
+      }
+
+      // Limpa o Pokémon pendente
+      window.gameState.pendingHatchedPokemon = null;
+
+      // Verifica se POKE_DATA está disponível
+      if (!window.POKE_DATA) {
+        console.error("Erro: POKE_DATA não está disponível");
+        window.Utils.showModal(
+          "errorModal",
+          "Erro ao chocar ovo. Tente novamente."
+        );
+        return;
+      }
+
+      // Busca dados do Pokémon (tenta como número e como string)
+      const pokemonData =
+        window.POKE_DATA[randomId] || window.POKE_DATA[String(randomId)];
+      if (!pokemonData) {
+        console.error(
+          "Erro ao buscar dados do Pokémon ID:",
+          randomId,
+          "POKE_DATA keys:",
+          Object.keys(window.POKE_DATA).slice(0, 10)
+        );
+        window.Utils.showModal(
+          "errorModal",
+          "Erro ao chocar ovo. Tente novamente."
+        );
+        return;
+      }
+
+      // Cria o Pokémon (nível 1)
+      const newPokemon = {
+        id: randomId,
+        name: pokemonData.name,
+        sprite:
+          pokemonData.front_sprite ||
+          `../assets/sprites/pokemon/${randomId}_front.png`,
+        level: 1,
+        exp: 0,
+        currentHp: 0,
+        maxHp: 0,
+        stats: {
+          attack: 0,
+          defense: 0,
+          special_attack: 0,
+          special_defense: 0,
+          speed: 0,
+        },
+        types: pokemonData.types || [],
+        moves: pokemonData.moves || [],
+        candy: 0,
+        friendship: 0,
+      };
+
+      // Aplica template de movimentos e calcula stats
+      window.Utils.applyMoveTemplate(newPokemon, { forceResetUses: true });
+
+      // Calcula HP e stats baseado no nível
+      const baseStats =
+        window.Utils.getBaseStats(randomId) || pokemonData.stats || {};
+      newPokemon.maxHp = window.Utils.calculateMaxHp(baseStats.hp || 50, 1);
+      newPokemon.currentHp = newPokemon.maxHp;
+      newPokemon.stats.attack = window.Utils.calculateStat(
+        baseStats.attack || 50,
+        1
+      );
+      newPokemon.stats.defense = window.Utils.calculateStat(
+        baseStats.defense || 50,
+        1
+      );
+      newPokemon.stats.special_attack = window.Utils.calculateStat(
+        baseStats.special_attack || 50,
+        1
+      );
+      newPokemon.stats.special_defense = window.Utils.calculateStat(
+        baseStats.special_defense || 50,
+        1
+      );
+      newPokemon.stats.speed = window.Utils.calculateStat(
+        baseStats.speed || 50,
+        1
+      );
+
+      // Adiciona ao time
+      window.gameState.profile.pokemon.push(newPokemon);
+
+      window.GameLogic.saveGameData();
+
+      // Mostra o resultado na tela de hatchEgg
+      window.Renderer.showScreen("hatchEgg", { result: newPokemon });
+    } catch (error) {
+      console.error("Erro ao chocar ovo:", error);
+      window.Utils.showModal(
+        "errorModal",
+        "Erro ao chocar ovo. Tente novamente."
+      );
     }
   },
 
   cancelTrade: async function (tradeRoomId) {
     try {
-      const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+      const { doc, deleteDoc } = await import(
+        "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      );
       await deleteDoc(doc(window.db, "trades", tradeRoomId));
-      
+
       if (window.unsubscribeTrade) {
         window.unsubscribeTrade();
         window.unsubscribeTrade = null;
       }
-      
+
       window.Utils.showModal("infoModal", "Troca cancelada.");
       window.Renderer.showScreen("mainMenu");
     } catch (error) {

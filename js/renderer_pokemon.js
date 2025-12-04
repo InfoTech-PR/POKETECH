@@ -183,6 +183,11 @@ export const RendererPokemon = {
         : null;
     window.gameState.pendingSupportItem = pendingSupportItem || null;
 
+    // NOVO: Determina qual aba está ativa (default: 'general')
+    // Usa extraData.tab se disponível, senão usa a aba salva, senão 'general'
+    const activeTab = extraData?.tab || window.currentPokemonListTab || 'general';
+    window.currentPokemonListTab = activeTab;
+
     // NOVO: Inicializa filtros se não existirem
     const filters = window.currentPokemonListFilters || {
       search: "",
@@ -295,109 +300,211 @@ export const RendererPokemon = {
     });
     const uniqueTypes = Array.from(allTypes).sort();
 
-    const pokemonHtml = pokemonArray
-      .map((p, originalIndex) => {
-        // NOVO: Encontra o índice original no array completo
-        const fullArray = window.gameState.profile.pokemon;
-        const actualIndex = fullArray.findIndex((pok) => pok === p);
-        const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
-        const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
-        const isCurrentActive = actualIndex === 0;
-        const isFavorite = p.isFavorite === true;
-
-        return `
-        <!-- ITEM PRINCIPAL - SEM DRAG/DROP. USADO APENAS PARA ROLAGEM E RECEBER DROP -->
-        <div id="pokemon-list-item-${actualIndex}" 
-             data-pokemon-index="${actualIndex}"
-             ondragover="window.GameLogic.allowDrop(event)"
-             ondrop="window.GameLogic.drop(event)"
-             ondragenter="window.GameLogic.dragEnter(event)"
-             ondragleave="window.GameLogic.dragLeave(event)"
-             class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
-               p.currentHp <= 0 ? "opacity-50" : ""
-             } ${isFavorite ? "bg-yellow-50 border-yellow-300" : ""}">
+    // NOVO: Renderiza HTML baseado na aba ativa
+    let pokemonHtml = "";
+    
+    if (activeTab === 'team') {
+      // ABA: EQUIPE ATIVA
+      const profile = window.gameState.profile;
+      const battleTeam = profile.battleTeam || [];
+      const fullArray = window.gameState.profile.pokemon;
+      
+      if (battleTeam.length === 0) {
+        pokemonHtml = '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon na equipe de batalha. Adicione pokémons na aba "Pokemons Gerais".</p>';
+      } else {
+        pokemonHtml = battleTeam
+          .map((pokemonIndex, teamIndex) => {
+            const p = fullArray[pokemonIndex];
+            if (!p) return "";
             
-            <!-- ÁREA 1: DRAG HANDLE (PONTINHOS) - ÚNICO ELEMENTO ARRASTÁVEL -->
-            <div data-drag-handle="true"
-                 data-pokemon-index="${actualIndex}"
-                 draggable="true"
-                 ondragstart="window.GameLogic.dragStart(event)"
-                 class="p-2 cursor-grab text-gray-500 hover:text-gray-800 active:text-blue-600 flex-shrink-0"
-                 title="Arrastar para reordenar">
-                <!-- Ícone de handle (Três barras verticais) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grip-vertical" viewBox="0 0 16 16">
-                  <path d="M7 2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
-                </svg>
-            </div>
+            const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+            const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+            const isCurrentActive = pokemonIndex === 0;
+            const isFavorite = p.isFavorite === true;
+            const isFirst = teamIndex === 0;
+            const isLast = teamIndex === battleTeam.length - 1;
 
-            <!-- ÁREA 2: INFORMAÇÕES DO POKÉMON (CLICÁVEL) - OCUPA O ESPAÇO RESTANTE -->
-            <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
-              p.name
-            }', ${actualIndex})">
-                <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
-          p.name
-        }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
-                <div class="flex flex-col min-w-0">
-                    <div class="font-bold gba-font text-xs sm:text-sm truncate">
-                      ${
-                        isFavorite
-                          ? '<span class="text-yellow-500">⭐</span> '
-                          : ""
-                      }${window.Utils.getPokemonDisplayName(p)} ${
-          isCurrentActive
-            ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
-            : ""
-        }
-                    </div>
-                    <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
-                      <span>(Nv. ${p.level})</span>
-                      <span>HP: ${p.currentHp}/${p.maxHp}</span>
-                      ${
-                        p.types && p.types.length > 0
-                          ? `<span class="text-[8px]">${p.types
-                              .map((t) => window.Utils.formatName(t))
-                              .join("/")}</span>`
-                          : ""
-                      }
-                      ${
-                        p.captureDate
-                          ? `<span class="text-[8px] text-blue-600">📅 ${new Date(
-                              p.captureDate
-                            ).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                            })}</span>`
-                          : ""
-                      }
-                      <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
-                        <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
-                        <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
-                            <div class="h-1.5 rounded-full bg-blue-500 transition-all duration-500" style="width: ${expPercent}%;"></div>
-                        </div>
-                        <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(
-                          expPercent
-                        )}%</span>
+            return `
+              <div id="pokemon-team-item-${teamIndex}" 
+                   data-pokemon-index="${pokemonIndex}"
+                   data-team-index="${teamIndex}"
+                   class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
+                     p.currentHp <= 0 ? "opacity-50" : ""
+                   } ${isFavorite ? "bg-yellow-50 border-yellow-300" : ""} ${isFirst ? "bg-green-50 border-green-300" : ""}">
+                  
+                  <!-- ÁREA 1: SETAS DE REORDENAÇÃO -->
+                  <div class="flex flex-col gap-1 flex-shrink-0">
+                    <button onclick="event.stopPropagation(); window.GameLogic.moveBattleTeamPokemon(${teamIndex}, 'up');" 
+                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${isFirst ? 'opacity-30 cursor-not-allowed' : ''}"
+                            ${isFirst ? 'disabled' : ''}
+                            title="Mover para cima">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708z"/>
+                      </svg>
+                    </button>
+                    <button onclick="event.stopPropagation(); window.GameLogic.moveBattleTeamPokemon(${teamIndex}, 'down');" 
+                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${isLast ? 'opacity-30 cursor-not-allowed' : ''}"
+                            ${isLast ? 'disabled' : ''}
+                            title="Mover para baixo">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- ÁREA 2: INFORMAÇÕES DO POKÉMON (CLICÁVEL) -->
+                  <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
+                    p.name
+                  }', ${pokemonIndex})">
+                      <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
+                p.name
+              }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
+                      <div class="flex flex-col min-w-0">
+                          <div class="font-bold gba-font text-xs sm:text-sm truncate">
+                            ${
+                              isFavorite
+                                ? '<span class="text-yellow-500">⭐</span> '
+                                : ""
+                            }${window.Utils.getPokemonDisplayName(p)} ${
+                isCurrentActive
+                  ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
+                  : ""
+              } ${
+                isFirst
+                  ? '<span class="text-[8px] text-blue-600">(PRIMÁRIO)</span>'
+                  : ""
+              }
+                          </div>
+                          <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
+                            <span>(Nv. ${p.level})</span>
+                            <span>HP: ${p.currentHp}/${p.maxHp}</span>
+                            ${
+                              p.types && p.types.length > 0
+                                ? `<span class="text-[8px]">${p.types
+                                    .map((t) => window.Utils.formatName(t))
+                                    .join("/")}</span>`
+                                : ""
+                            }
+                            <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
+                              <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
+                              <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
+                                  <div class="h-1.5 rounded-full bg-blue-500 transition-all duration-500" style="width: ${expPercent}%;"></div>
+                              </div>
+                              <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(
+                                expPercent
+                              )}%</span>
+                            </div>
+                          </div>
                       </div>
+                  </div>
+                  
+                  <!-- ÁREA 3: BOTÃO DE FAVORITAR -->
+                  <div class="flex-shrink-0 ml-2" onclick="event.stopPropagation(); window.GameLogic.toggleFavoritePokemon(${pokemonIndex}); setTimeout(() => window.Renderer.showScreen('pokemonList', { tab: 'team' }), 100);">
+                    <button class="p-2 text-yellow-500 hover:text-yellow-600 transition-colors ${
+                      isFavorite ? "opacity-100" : "opacity-30 hover:opacity-60"
+                    }" title="${
+              isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+            }">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                      </svg>
+                    </button>
+                  </div>
+              </div>
+          `;
+          })
+          .filter(html => html !== "")
+          .join("");
+      }
+    } else {
+      // ABA: POKEMONS GERAIS (sem drag and drop)
+      pokemonHtml = pokemonArray
+        .map((p, originalIndex) => {
+          // NOVO: Encontra o índice original no array completo
+          const fullArray = window.gameState.profile.pokemon;
+          const actualIndex = fullArray.findIndex((pok) => pok === p);
+          const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+          const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
+          const isCurrentActive = actualIndex === 0;
+          const isFavorite = p.isFavorite === true;
+
+          return `
+            <!-- ITEM PRINCIPAL - SEM DRAG/DROP -->
+            <div id="pokemon-list-item-${actualIndex}" 
+                 data-pokemon-index="${actualIndex}"
+                 class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
+                   p.currentHp <= 0 ? "opacity-50" : ""
+                 } ${isFavorite ? "bg-yellow-50 border-yellow-300" : ""}">
+                
+                <!-- ÁREA 1: INFORMAÇÕES DO POKÉMON (CLICÁVEL) - OCUPA TODO O ESPAÇO -->
+                <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
+                  p.name
+                }', ${actualIndex})">
+                    <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
+              p.name
+            }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
+                    <div class="flex flex-col min-w-0">
+                        <div class="font-bold gba-font text-xs sm:text-sm truncate">
+                          ${
+                            isFavorite
+                              ? '<span class="text-yellow-500">⭐</span> '
+                              : ""
+                          }${window.Utils.getPokemonDisplayName(p)} ${
+              isCurrentActive
+                ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
+                : ""
+            }
+                        </div>
+                        <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
+                          <span>(Nv. ${p.level})</span>
+                          <span>HP: ${p.currentHp}/${p.maxHp}</span>
+                          ${
+                            p.types && p.types.length > 0
+                              ? `<span class="text-[8px]">${p.types
+                                  .map((t) => window.Utils.formatName(t))
+                                  .join("/")}</span>`
+                              : ""
+                          }
+                          ${
+                            p.captureDate
+                              ? `<span class="text-[8px] text-blue-600">📅 ${new Date(
+                                  p.captureDate
+                                ).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                })}</span>`
+                              : ""
+                          }
+                          <div class="p-2 flex items-center w-full mt-1 ml-4 sm:ml-20">
+                            <span class="gba-font text-[8px] mr-1 text-gray-700">EXP</span>
+                            <div class="w-full bg-gray-300 h-1.5 rounded-full border border-gray-500">
+                                <div class="h-1.5 rounded-full bg-blue-500 transition-all duration-500" style="width: ${expPercent}%;"></div>
+                            </div>
+                            <span class="gba-font text-[8px] ml-2 text-gray-700">${Math.floor(
+                              expPercent
+                            )}%</span>
+                          </div>
+                        </div>
                     </div>
                 </div>
+                
+                <!-- ÁREA 2: BOTÃO DE FAVORITAR -->
+                <div class="flex-shrink-0 ml-2" onclick="event.stopPropagation(); window.GameLogic.toggleFavoritePokemon(${actualIndex}); setTimeout(() => window.Renderer.showScreen('pokemonList'), 100);">
+                  <button class="p-2 text-yellow-500 hover:text-yellow-600 transition-colors ${
+                    isFavorite ? "opacity-100" : "opacity-30 hover:opacity-60"
+                  }" title="${
+              isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+            }">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                    </svg>
+                  </button>
+                </div>
             </div>
-            
-            <!-- NOVO: ÁREA 3: BOTÃO DE FAVORITAR -->
-            <div class="flex-shrink-0 ml-2" onclick="event.stopPropagation(); window.GameLogic.toggleFavoritePokemon(${actualIndex}); setTimeout(() => window.Renderer.showScreen('pokemonList'), 100);">
-              <button class="p-2 text-yellow-500 hover:text-yellow-600 transition-colors ${
-                isFavorite ? "opacity-100" : "opacity-30 hover:opacity-60"
-              }" title="${
-          isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
-        }">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-                </svg>
-              </button>
-            </div>
-        </div>
-    `;
-      })
-      .join("");
+        `;
+        })
+        .join("");
+    }
 
     // NOVO: Função global para filtrar
     window.filterPokemonList = function (
@@ -413,7 +520,9 @@ export const RendererPokemon = {
       if (newFavorite !== undefined) filters.favorite = newFavorite;
       if (newHpStatus !== undefined) filters.hpStatus = newHpStatus;
       if (newSortBy !== undefined) filters.sortBy = newSortBy;
-      window.Renderer.showScreen("pokemonList");
+      // NOVO: Preserva a aba atual ao filtrar
+      const currentTab = window.currentPokemonListTab || 'general';
+      window.Renderer.showScreen("pokemonList", { tab: currentTab });
     };
 
     const actionBanner = pendingSupportItem
@@ -515,7 +624,7 @@ export const RendererPokemon = {
           hasActiveFilters
             ? `
           <div class="mt-1.5">
-            <button onclick="window.currentPokemonListFilters = { search: '', type: 'all', favorite: 'all', hpStatus: 'all', sortBy: 'default' }; window.Renderer.showScreen('pokemonList');" 
+            <button onclick="window.currentPokemonListFilters = { search: '', type: 'all', favorite: 'all', hpStatus: 'all', sortBy: 'default' }; const currentTab = window.currentPokemonListTab || 'general'; window.Renderer.showScreen('pokemonList', { tab: currentTab });" 
                     class="w-full p-1.5 border-2 border-gray-600 rounded gba-font text-xs bg-gray-200 hover:bg-gray-300">
               Limpar Filtros
             </button>
@@ -543,10 +652,33 @@ export const RendererPokemon = {
         ? "Nome (Z-A)"
         : "Padrão";
 
+    // NOVO: HTML das abas
+    const tabsHtml = `
+      <div class="flex gap-2 mb-3 flex-shrink-0 border-b-2 border-gray-300">
+        <button onclick="window.currentPokemonListTab = 'general'; window.Renderer.showScreen('pokemonList', { tab: 'general' });" 
+                class="flex-1 py-2 px-4 gba-font text-sm font-bold transition-colors ${
+                  activeTab === 'general' 
+                    ? 'bg-blue-500 text-white border-b-2 border-blue-700' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }">
+          Pokemons Gerais
+        </button>
+        <button onclick="window.currentPokemonListTab = 'team'; window.Renderer.showScreen('pokemonList', { tab: 'team' });" 
+                class="flex-1 py-2 px-4 gba-font text-sm font-bold transition-colors ${
+                  activeTab === 'team' 
+                    ? 'bg-blue-500 text-white border-b-2 border-blue-700' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }">
+          Equipe Ativa
+        </button>
+      </div>
+    `;
+
     const content = `
       <div class="text-xl font-bold text-center mb-2 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
       ${actionBanner}
-      ${filtersHtml}
+      ${tabsHtml}
+      ${activeTab === 'general' ? filtersHtml : ''}
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
         ${
           pokemonHtml ||
@@ -748,10 +880,13 @@ export const RendererPokemon = {
         
         // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
         // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
+        // NOVO: Ovos são usados diretamente sem precisar selecionar pokemon
         const useButton = isUsable
-          ? `<button onclick="window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${
-              item.name
-            }' })" 
+          ? `<button onclick="${
+              isEgg
+                ? `window.GameLogic.useItem('${item.name}', -1)`
+                : `window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name}' })`
+            }" 
                         class="gba-button ${
                           item.ppRestore
                             ? "bg-purple-500 hover:bg-purple-600"

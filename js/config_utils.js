@@ -68,17 +68,18 @@ export async function createConfigAndUtils(v) {
         spriteUrl: "../assets/sprites/items/potion.png", // Pode ser trocado por sprite de TM
         description: "Ensina um movimento aleatório a um Pokémon",
       },
-    ],
-
-    // NOVO: Itens especiais que podem ser ganhos (não vendidos na loja)
-    SPECIAL_ITEMS: [
       {
         name: "Ovo",
         quantity: 0,
         isEgg: true, // Flag para identificar que é um ovo
+        cost: 1000,
         spriteUrl: "../assets/sprites/items/potion.png", // Pode ser trocado por sprite de ovo
         description: "Choca um Pokémon aleatório",
       },
+    ],
+
+    // NOVO: Itens especiais que podem ser ganhos (não vendidos na loja)
+    SPECIAL_ITEMS: [
       {
         name: "Ataque Comum",
         quantity: 0,

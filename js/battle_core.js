@@ -817,14 +817,8 @@ function getBattleTeamIndices() {
   return defaultIndices;
 }
 
-// Expõe MOVES_TO_TYPE_MAPPING globalmente para uso em outras partes do código
-if (typeof window !== "undefined") {
-  window.MOVES_TO_TYPE_MAPPING = MOVES_TO_TYPE_MAPPING;
-}
-
 export const BattleCore = {
   opponentPokemon: null,
-  MOVES_TO_TYPE_MAPPING: MOVES_TO_TYPE_MAPPING, // Expõe o mapeamento
 
   _getBallSpriteUrl: function (ballName) {
     switch (ballName.toLowerCase()) {
@@ -1554,7 +1548,6 @@ export const BattleCore = {
         participant.exp -= expToNextLevel;
         participant.level++;
 
-        // Atualiza HP máximo
         const newMaxHp = window.Utils.calculateMaxHp(
           participant.stats.hp,
           participant.level
@@ -1562,38 +1555,6 @@ export const BattleCore = {
         // Cura proporcional ao ganho de HP base (mantendo o % de HP atual)
         participant.currentHp += newMaxHp - participant.maxHp;
         participant.maxHp = newMaxHp;
-
-        // NOVO: Atualiza todos os stats baseado no novo nível
-        // Obtém os stats base (stats originais da espécie)
-        let baseStats = window.Utils.getBaseStats(participant.id);
-        
-        // Se não conseguir os stats base, usa os stats atuais como fallback
-        // (isso pode acontecer se o Pokémon já tiver subido de nível antes)
-        if (!baseStats) {
-          baseStats = { ...participant.stats };
-        }
-
-        // Atualiza cada stat baseado no nível
-        participant.stats.attack = window.Utils.calculateStat(
-          baseStats.attack || participant.stats.attack,
-          participant.level
-        );
-        participant.stats.defense = window.Utils.calculateStat(
-          baseStats.defense || participant.stats.defense,
-          participant.level
-        );
-        participant.stats.special_attack = window.Utils.calculateStat(
-          baseStats.special_attack || participant.stats.special_attack,
-          participant.level
-        );
-        participant.stats.special_defense = window.Utils.calculateStat(
-          baseStats.special_defense || participant.stats.special_defense,
-          participant.level
-        );
-        participant.stats.speed = window.Utils.calculateStat(
-          baseStats.speed || participant.stats.speed,
-          participant.level
-        );
 
         // Log de Level Up
         BattleCore.addBattleLog(
@@ -2047,6 +2008,12 @@ export const BattleCore = {
                 window.Utils.registerPokemon(wildPokemon.id);
                 window.GameLogic.saveGameData();
               }
+              
+              // NOVO: Salva automaticamente o save em arquivo após captura
+              if (window.GameLogic.autoSaveToFile) {
+                window.GameLogic.autoSaveToFile();
+              }
+              
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
 

@@ -1578,158 +1578,56 @@ export const RendererMenus = {
 
   renderProfile: function (app) {
     const profile = window.gameState.profile;
-    const prefs = (profile.preferences = profile.preferences || {});
-
-    const avatarKey = prefs.avatarTrainerKey || TRAINER_AVATAR_CHOICES[0].key;
+    const prefs = profile.preferences || {};
     const trainerImage = getTrainerAvatarUrl(profile);
-
-    const avatarGrid = TRAINER_AVATAR_CHOICES.map((option) => {
-      const isSelected = option.key === avatarKey;
-      return `
-          <button
-            class="relative flex flex-col items-center gap-2 p-3 rounded-xl bg-slate-900/70 border ${
-              isSelected
-                ? "border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.6)]"
-                : "border-slate-700 hover:border-emerald-400 hover:shadow-[0_0_12px_rgba(52,211,153,0.35)]"
-            } transition-all duration-200 group"
-            onclick="window.Renderer.updateTrainerAvatar('${option.key}')"
-            type="button"
-          >
-            <div class="w-20 h-20 flex items-center justify-center rounded-full bg-slate-800/80 ring-4 ${
-              isSelected
-                ? "ring-yellow-200"
-                : "ring-slate-700 group-hover:ring-emerald-300"
-            } overflow-hidden">
-              <img
-                src="${option.url}"
-                alt="${option.label}"
-                class="w-full h-full object-cover rounded-full"
-              >
-            </div>
-            <span class="gba-font text-[10px] uppercase tracking-widest ${
-              isSelected
-                ? "text-yellow-200"
-                : "text-gray-300 group-hover:text-emerald-200"
-            }">
-              ${option.label}
-            </span>
-            ${
-              isSelected
-                ? `<span class="absolute -top-2 -right-2 text-yellow-300"><i class="fa-solid fa-star"></i></span>`
-                : ""
-            }
-          </button>
-        `;
-    }).join("");
-
     const isAnonymous = window.userId.startsWith("anonimo");
 
     const content = `
-      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">PERFIL DO TREINADOR</div>
-  
       <div class="space-y-4 text-sm gba-font flex-grow p-2 overflow-y-auto">
-        <div class="bg-gradient-to-br from-rose-500 via-purple-600 to-sky-500 border-4 border-white/40 rounded-3xl p-5 shadow-2xl text-white">
-          <div class="flex flex-col lg:flex-row items-center lg:items-start gap-6">
-            <div class="relative flex flex-col items-center">
-              <div class="w-28 h-28 rounded-full bg-black/40 border-4 border-white/60 flex items-center justify-center shadow-2xl overflow-hidden">
-                <img
-                  src="${trainerImage}"
-                  alt="Avatar selecionado"
-                  class="w-full h-full object-cover rounded-full"
-                >
-              </div>
-              <span class="mt-3 text-[10px] uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full">
-                Avatar ${avatarKey.toUpperCase()}
-              </span>
-            </div>
-  
-            <div class="flex-1">
-              <h2 class="text-lg uppercase tracking-widest">Galeria de Treinadores</h2>
-              <p class="text-xs text-white/80 mb-3 uppercase tracking-widest">
-                Escolha um avatar oficial da PokéAPI ou use sua própria foto.
-              </p>
-              <div class="mb-3">
-                <div class="relative">
-                  <input
-                    type="file"
-                    id="customAvatarInput"
-                    accept="image/*"
-                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onchange="window.Renderer.handleCustomAvatarUpload(event)"
-                  >
-                  <button class="gba-button bg-purple-500 hover:bg-purple-600 w-full text-xs">
-                    <i class="fa-solid fa-image mr-2"></i>Escolher Foto do Celular
-                  </button>
-                </div>
-                ${prefs.customAvatarImage ? `
-                  <button onclick="window.Renderer.removeCustomAvatar()" class="gba-button bg-red-500 hover:bg-red-600 w-full mt-2 text-xs">
-                    <i class="fa-solid fa-trash mr-2"></i>Remover Foto Customizada
-                  </button>
-                ` : ''}
-              </div>
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                ${avatarGrid}
-              </div>
+        <!-- Foto do Perfil -->
+        <div class="flex flex-col items-center gap-3">
+          <div class="relative">
+            <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-800 shadow-lg">
+              <img
+                src="${trainerImage}"
+                alt="Foto do Perfil"
+                class="w-full h-full object-cover"
+              >
             </div>
           </div>
-        </div>
-            
-        <div class="bg-white border-4 border-gray-800 rounded-2xl p-4 shadow-xl space-y-4 text-gray-800">
-                <div>
-            <label for="newTrainerName" class="block text-xs font-bold mb-1 uppercase">Nome:</label>
+          <div class="relative w-full">
             <input
-              id="newTrainerName"
-              type="text"
-              value="${profile.trainerName}"
-              class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner uppercase"
+              type="file"
+              id="customAvatarInput"
+              accept="image/*"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              onchange="window.Renderer.handleCustomAvatarUpload(event)"
             >
-                </div>
-
-                <div>
-            <p class="text-xs font-bold mb-1 uppercase">Gênero:</p>
-                    <div class="flex justify-center space-x-4 text-xs">
-              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${
-                profile.trainerGender === "MALE"
-                  ? "border-blue-500 bg-blue-100"
-                  : "border-gray-300"
-              } cursor-pointer transition">
-                <input
-                  type="radio"
-                  name="newTrainerGender"
-                  value="MALE"
-                  ${profile.trainerGender === "MALE" ? "checked" : ""}
-                  onclick="window.Renderer.updateGenderOnly('MALE')"
-                >
-                            <span>Homem</span>
-                        </label>
-              <label class="flex items-center space-x-2 px-3 py-2 rounded-lg border ${
-                profile.trainerGender === "FEMALE"
-                  ? "border-pink-500 bg-pink-100"
-                  : "border-gray-300"
-              } cursor-pointer transition">
-                <input
-                  type="radio"
-                  name="newTrainerGender"
-                  value="FEMALE"
-                  ${profile.trainerGender === "FEMALE" ? "checked" : ""}
-                  onclick="window.Renderer.updateGenderOnly('FEMALE')"
-                >
-                            <span>Mulher</span>
-                        </label>
-                    </div>
-                </div>
-
-          <div class="grid grid-cols-2 gap-3 text-xs uppercase tracking-widest">
-            <div class="bg-gray-900 text-white border-2 border-gray-800 rounded-xl px-3 py-2 text-center shadow-inner">
-              <span class="block text-[10px] text-gray-300">Dinheiro</span>
-              <span class="text-sm">P$${profile.money}</span>
-            </div>
-            <div class="bg-gray-900 text-white border-2 border-gray-800 rounded-xl px-3 py-2 text-center shadow-inner">
-              <span class="block text-[10px] text-gray-300">Pokémons</span>
-              <span class="text-sm">${profile.pokemon.length}</span>
-            </div>
+            <button class="gba-button bg-purple-500 hover:bg-purple-600 w-full text-xs flex items-center justify-center gap-2">
+              <i class="fa-solid fa-image"></i>
+              <span>Editar Foto</span>
+            </button>
           </div>
+          ${prefs.customAvatarImage ? `
+            <button onclick="window.Renderer.removeCustomAvatar()" class="gba-button bg-red-500 hover:bg-red-600 w-full text-xs flex items-center justify-center gap-2">
+              <i class="fa-solid fa-trash"></i>
+              <span>Remover Foto</span>
+            </button>
+          ` : ''}
+        </div>
 
+        <!-- Nome do Usuário -->
+        <div>
+          <label for="newTrainerName" class="block text-xs font-bold mb-1 uppercase text-gray-800">Nome:</label>
+          <input
+            id="newTrainerName"
+            type="text"
+            value="${profile.trainerName}"
+            class="w-full p-2 border-2 border-gray-800 rounded gba-font text-sm text-center bg-white shadow-inner uppercase"
+          >
+        </div>
+
+        <!-- Card de Nível -->
           ${(() => {
             const trainerLevel =
               typeof profile.trainerLevel === "number"
@@ -1746,7 +1644,7 @@ export const RendererMenus = {
                 : Math.min(100, Math.floor((trainerExp / expToNext) * 100));
 
             return `
-            <div class="mt-4 bg-gradient-to-r from-blue-900 to-purple-900 text-white border-2 border-gray-800 rounded-xl p-3 shadow-inner">
+            <div class="bg-gradient-to-r from-blue-900 to-purple-900 text-white border-2 border-gray-800 rounded-xl p-3 shadow-inner">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-[10px] text-gray-300 uppercase">Nível do Treinador</span>
                 <span class="text-sm font-bold">Nv. ${trainerLevel}</span>
@@ -1768,76 +1666,34 @@ export const RendererMenus = {
             </div>
             `;
           })()}
-
-          <div class="mb-1">
-            <p class="text-xs font-bold mb-1 uppercase">ID de Jogador (Para Amigos):</p>
-            <div class="flex items-center space-x-1 border-2 border-gray-800 rounded bg-white shadow-inner px-2 py-1">
-              <p
-                style="font-size:7px;"
-                class="gba-font truncate flex-grow text-gray-500 text-center select-all"
+            
+        <!-- 3 Botões lado a lado -->
+        <div class="grid grid-cols-3 gap-2">
+          <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 flex items-center justify-center" title="Salvar Perfil">
+            <i class="fa-solid fa-floppy-disk text-lg"></i>
+          </button>
+          ${
+            isAnonymous
+              ? `
+              <button
+                  onclick="window.signInWithGoogle()"
+                  class="gba-button bg-blue-500 hover:bg-blue-600 flex items-center justify-center"
+                  title="Login com Google"
               >
-                ${window.userId}
-              </p>
-                      <span 
-                          id="copyIdIcon"
-                          onclick="window.Renderer.copyPlayerId()" 
-                          data-original-html='<i class="fa-solid fa-copy"></i>'
-                          class="cursor-pointer text-lg text-blue-600 hover:text-blue-800 transition-colors duration-150 flex-shrink-0"
-                          title="Copiar ID do Jogador"
-                      >
-                          <i class="fa-solid fa-copy"></i>
-                      </span>
-                  </div>
-                </div>
-            </div>
-            
-        <div class="space-y-2">
-          <button onclick="window.GameLogic.saveProfile()" class="gba-button bg-green-500 hover:bg-green-600 w-full">
-            Salvar Perfil
+                  <i class="fa-brands fa-google text-lg"></i>
+              </button>
+        `
+              : `
+          <button onclick="window.signOutUser()" class="gba-button bg-red-500 hover:bg-red-600 flex items-center justify-center" title="Logout">
+              <i class="fa-solid fa-sign-out-alt text-lg"></i>
           </button>
-            ${
-              isAnonymous
-                ? `
-            <div class="text-center text-xs gba-font text-gray-200">
-                    Faça login para salvar na nuvem!
-                </div>
-                    <button
-                        onclick="window.signInWithGoogle()"
-                        class="gba-button bg-blue-500 hover:bg-blue-600 w-full flex items-center justify-center space-x-2"
-                    >
-                        <i class="fa-brands fa-google"></i>
-                        <span>LOGIN COM GOOGLE</span>
-                    </button>
-          `
-                : `
-        <button onclick="window.signOutUser()" class="gba-button bg-red-500 hover:bg-red-600 w-full">
-            LOGOUT
-        </button>
-          `
-            }
-    </div>
-
-        <div class="border-t-2 border-gray-800 pt-4 space-y-3">
-          <button onclick="window.GameLogic.exportSave()" class="gba-button bg-blue-500 hover:bg-blue-600 w-full">
-            Exportar Save
+        `
+          }
+          <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 flex items-center justify-center" title="Voltar">
+            <i class="fa-solid fa-arrow-left text-lg"></i>
           </button>
-                <div class="relative">
-            <input
-              type="file"
-              id="importFile"
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              onchange="window.GameLogic.importSave(event)"
-            >
-            <button class="gba-button bg-orange-500 hover:bg-orange-600 w-full">
-              Importar Save
-            </button>
-          </div>
-                </div>
-            </div>
-            
-      <button onclick="window.Renderer.showScreen('profileMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4 flex-shrink-0">
-        Voltar
-      </button>
+        </div>
+      </div>
         `;
     window.Renderer.renderGbaCard(content);
   },

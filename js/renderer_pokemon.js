@@ -876,7 +876,11 @@ export const RendererPokemon = {
         const specialItemConfig = window.GameConfig.SPECIAL_ITEMS?.find(
           (i) => i.name === item.name
         );
-        const spriteUrl = itemConfig?.spriteUrl || specialItemConfig?.spriteUrl || "";
+        let spriteUrl = itemConfig?.spriteUrl || specialItemConfig?.spriteUrl || "";
+        // Se for item de ataque e não tiver sprite, usa atack.png
+        if (isMove && !spriteUrl) {
+          spriteUrl = "../assets/sprites/items/atack.png";
+        }
         
         // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
         // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
@@ -884,8 +888,8 @@ export const RendererPokemon = {
         const useButton = isUsable
           ? `<button onclick="${
               isEgg
-                ? `window.GameLogic.useItem('${item.name}', -1)`
-                : `window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name}' })`
+                ? `window.GameLogic.hatchEggItem()`
+                : `window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name.replace(/'/g, "\\'")}' })`
             }" 
                         class="gba-button ${
                           item.ppRestore

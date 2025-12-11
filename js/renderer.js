@@ -52,6 +52,9 @@ export async function createRenderer(v) {
         // Funções de Gênero
         selectGender: RendererMenus.selectGender,
         updateGenderOnly: RendererMenus.updateGenderOnly,
+        
+        // Função de Eventos Semanais
+        showWeeklyEventModal: RendererMenus.showWeeklyEventModal,
 
         // Pokémon Functions (from renderer_pokemon.js)
         renderPokemonList: RendererPokemon.renderPokemonList,

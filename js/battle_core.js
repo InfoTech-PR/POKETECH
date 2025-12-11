@@ -987,7 +987,10 @@ export const BattleCore = {
           try {
             // Verifica se é lendário ou mitico
             const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-            if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+            if (
+              speciesData &&
+              (speciesData.isLegendary || speciesData.isMythical)
+            ) {
               continue; // Pula lendários e miticos
             }
 
@@ -1023,11 +1026,17 @@ export const BattleCore = {
       // Obtém as regiões ativas no evento semanal atual
       const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
       let allowedIds = [];
-      
+
       // Coleta todos os IDs das regiões do evento
-      if (weeklyEvent && weeklyEvent.regions && Array.isArray(weeklyEvent.regions)) {
+      if (
+        weeklyEvent &&
+        weeklyEvent.regions &&
+        Array.isArray(weeklyEvent.regions)
+      ) {
         for (const regionId of weeklyEvent.regions) {
-          const region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionId);
+          const region = window.GameConfig.POKEDEX_REGIONS.find(
+            (r) => r.id === regionId
+          );
           if (region) {
             for (let id = region.startId; id <= region.endId; id++) {
               allowedIds.push(id);
@@ -1035,24 +1044,30 @@ export const BattleCore = {
           }
         }
       }
-      
+
       // Se não há evento ou nenhuma região encontrada, usa todas as regiões
       if (allowedIds.length === 0) {
         for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
           allowedIds.push(id);
         }
       }
-      
+
       // Cria cache de Pokémon comuns baseado nas regiões do evento
-      const cacheKey = `_weeklyEventCache_${weeklyEvent ? weeklyEvent.regions.join('_') : 'all'}`;
+      const cacheKey = `_weeklyEventCache_${
+        weeklyEvent ? weeklyEvent.regions.join("_") : "all"
+      }`;
       if (!window[cacheKey]) {
         window[cacheKey] = [];
-        
+
         for (const id of allowedIds) {
           try {
             const speciesData = await window.PokeAPI.fetchSpeciesData(id);
             // Inclui apenas se NÃO for lendário e NÃO for mitico
-            if (speciesData && !speciesData.isLegendary && !speciesData.isMythical) {
+            if (
+              speciesData &&
+              !speciesData.isLegendary &&
+              !speciesData.isMythical
+            ) {
               window[cacheKey].push(id);
             }
           } catch (e) {
@@ -1061,18 +1076,17 @@ export const BattleCore = {
           }
         }
       }
-      
+
       if (window[cacheKey].length > 0) {
         pokemonId =
-          window[cacheKey][
-            Math.floor(Math.random() * window[cacheKey].length)
-          ];
+          window[cacheKey][Math.floor(Math.random() * window[cacheKey].length)];
       } else {
         // Fallback: escolhe aleatoriamente das regiões permitidas
         if (allowedIds.length > 0) {
           pokemonId = allowedIds[Math.floor(Math.random() * allowedIds.length)];
         } else {
-          pokemonId = Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
+          pokemonId =
+            Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
         }
       }
     }
@@ -1169,7 +1183,10 @@ export const BattleCore = {
 
     // NOVO: Inimigo toma a primeira ação após um pequeno delay
     setTimeout(async () => {
-      if (window.gameState.battle && !window.gameState.battle.forceSwitchSelection) {
+      if (
+        window.gameState.battle &&
+        !window.gameState.battle.forceSwitchSelection
+      ) {
         await BattleCore.playerTurn("opponent_attack");
       }
     }, 1500);
@@ -1327,7 +1344,10 @@ export const BattleCore = {
 
     // NOVO: Inimigo toma a primeira ação após um pequeno delay
     setTimeout(async () => {
-      if (window.gameState.battle && !window.gameState.battle.forceSwitchSelection) {
+      if (
+        window.gameState.battle &&
+        !window.gameState.battle.forceSwitchSelection
+      ) {
         await BattleCore.playerTurn("opponent_attack");
       }
     }, 1500);
@@ -1595,13 +1615,16 @@ export const BattleCore = {
         .filter((index) => window.gameState.profile.pokemon[index])
         .sort((a, b) => a - b);
 
-      indicesArray.forEach(index => {
+      indicesArray.forEach((index) => {
         const pokemon = window.gameState.profile.pokemon[index];
         if (pokemon) {
           // Adiciona 2 doces baseado na linha evolutiva do Pokémon próprio
           window.GameLogic.addPokemonCandy(pokemon.id, 2);
-          const pokemonBaseId = window.GameLogic.getEvolutionChainBaseId(pokemon.id);
-          const pokemonTotalCandy = window.GameLogic.getPokemonCandy(pokemonBaseId);
+          const pokemonBaseId = window.GameLogic.getEvolutionChainBaseId(
+            pokemon.id
+          );
+          const pokemonTotalCandy =
+            window.GameLogic.getPokemonCandy(pokemonBaseId);
           const pokemonName = window.Utils.formatName(pokemon.name);
           BattleCore.addBattleLog(
             `${pokemonName} ganhou 2 doces! (Total: ${pokemonTotalCandy} doces)`
@@ -1893,7 +1916,11 @@ export const BattleCore = {
             feedbackElement.style.color = "#ef4444";
 
             setTimeout(() => {
-              resolve({ success: false, chance: baseChance * 0.3, missed: false });
+              resolve({
+                success: false,
+                chance: baseChance * 0.3,
+                missed: false,
+              });
             }, 1000);
           }
         }, 8000);
@@ -2008,12 +2035,12 @@ export const BattleCore = {
                 window.Utils.registerPokemon(wildPokemon.id);
                 window.GameLogic.saveGameData();
               }
-              
+
               // NOVO: Salva automaticamente o save em arquivo após captura
               if (window.GameLogic.autoSaveToFile) {
                 window.GameLogic.autoSaveToFile();
               }
-              
+
               // Usa a função de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
 
@@ -2072,10 +2099,10 @@ export const BattleCore = {
       ballItem.quantity--;
       window.GameLogic.saveGameData();
       BattleCore.updateBattleScreen();
-      
+
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await BattleCore.playerTurn("opponent_attack");
-      
+
       if (window.gameState.battle && !captureResult.battleEnded) {
         BattleCore.setBattleMenu("main");
       }
@@ -2099,15 +2126,15 @@ export const BattleCore = {
 
   playerTurn: async function (action, moveName = null) {
     const battle = window.gameState.battle;
-    
+
     // Previne múltiplos cliques rápidos
     if (battle.isProcessingAction) {
       return;
     }
-    
+
     // Marca que uma ação está sendo processada
     battle.isProcessingAction = true;
-    
+
     try {
       const playerPokemon = window.Utils.getActivePokemon();
       const opponent = battle.opponent;
@@ -2145,118 +2172,36 @@ export const BattleCore = {
         ended = true;
         BattleCore.updateBattleScreen();
       } else if (action === "move") {
-      if (playerPokemon.currentHp <= 0) {
-        BattleCore.addBattleLog(
-          `${window.Utils.getPokemonDisplayName(
-            playerPokemon
-          )} desmaiou e não pode atacar!`
-        );
-        BattleCore.setBattleMenu("main", true);
-        return;
-      }
-
-      const isSpecialMove = window.Utils.isSpecialMove(playerPokemon, moveName);
-      const isNormalMove = !isSpecialMove;
-
-      // NOVO: Verifica PA individual do movimento
-      const movePA = window.Utils.getMovePA(playerPokemon, moveName);
-      if (movePA.remaining <= 0) {
-        const moveType = isSpecialMove ? "energia" : "PA";
-        BattleCore.addBattleLog(
-          `${window.Utils.getPokemonDisplayName(
-            playerPokemon
-          )} está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
-        );
-        BattleCore.setBattleMenu("fight", true);
-        BattleCore.updateBattleScreen();
-        return;
-      }
-
-      const activeIndex = window.gameState.profile.pokemon.findIndex(
-        (p) => p.name === playerPokemon.name
-      );
-      if (activeIndex !== -1) {
-        battle.participatingIndices.add(activeIndex);
-      }
-
-      BattleCore._animateBattleAction(".player-sprite", "animate-attack", 300);
-      BattleCore._playMoveSound(moveName);
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const damageResult = BattleCore.calculateDamage(
-        playerPokemon,
-        moveName,
-        opponent
-      );
-
-      const opponentHpBefore = opponent.currentHp;
-      opponent.currentHp = Math.max(
-        0,
-        opponent.currentHp - damageResult.damage
-      );
-      const opponentTookDamage = opponentHpBefore > opponent.currentHp;
-
-      let effectivenessMessage = "";
-      if (damageResult.effectiveness === 0)
-        effectivenessMessage = " Não teve efeito!";
-      else if (damageResult.effectiveness <= 0.5)
-        effectivenessMessage = " Não é muito eficaz.";
-      else if (damageResult.effectiveness >= 2)
-        effectivenessMessage = " É super eficaz!";
-
-      // NOVO: Usa PA individual do movimento
-      const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
-      if (!paUsed) {
-        BattleCore.addBattleLog(
-          `${window.Utils.getPokemonDisplayName(
-            playerPokemon
-          )} não conseguiu usar ${window.Utils.formatName(moveName)}!`
-        );
-        BattleCore.setBattleMenu("fight", true);
-        BattleCore.updateBattleScreen();
-        return;
-      }
-
-      // Obtém PA atualizado após o uso
-      const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
-
-      let logMessage = `${window.Utils.getPokemonDisplayName(
-        playerPokemon
-      )} usou ${window.Utils.formatName(moveName)}!${effectivenessMessage}`;
-      if (damageResult.damage > 0) {
-        logMessage += ` Causou ${damageResult.damage} de dano.`;
-      }
-
-      if (damageResult.isCritical) {
-        logMessage += ` É UM ACERTO CRÍTICO!`;
-      }
-      BattleCore.addBattleLog(logMessage);
-
-      BattleCore.updateBattleScreen();
-
-      if (opponentTookDamage) {
-        BattleCore._animateBattleAction(
-          ".opponent-sprite",
-          "animate-damage",
-          500
-        );
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    } else if (action === "item" && item) {
-      if (item.catchRate) {
-        await BattleCore.tryCapture(moveName, item.catchRate);
-        return;
-      }
-
-      const isHealing = item.healAmount;
-      const isPpRestore = item.ppRestore;
-      const itemUsed = window.GameLogic.useItem(moveName);
-
-      if (isHealing || isPpRestore) {
-        if (!itemUsed) {
+        if (playerPokemon.currentHp <= 0) {
+          BattleCore.addBattleLog(
+            `${window.Utils.getPokemonDisplayName(
+              playerPokemon
+            )} desmaiou e não pode atacar!`
+          );
           BattleCore.setBattleMenu("main", true);
           return;
         }
+
+        const isSpecialMove = window.Utils.isSpecialMove(
+          playerPokemon,
+          moveName
+        );
+        const isNormalMove = !isSpecialMove;
+
+        // NOVO: Verifica PA individual do movimento
+        const movePA = window.Utils.getMovePA(playerPokemon, moveName);
+        if (movePA.remaining <= 0) {
+          const moveType = isSpecialMove ? "energia" : "PA";
+          BattleCore.addBattleLog(
+            `${window.Utils.getPokemonDisplayName(
+              playerPokemon
+            )} está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
+          );
+          BattleCore.setBattleMenu("fight", true);
+          BattleCore.updateBattleScreen();
+          return;
+        }
+
         const activeIndex = window.gameState.profile.pokemon.findIndex(
           (p) => p.name === playerPokemon.name
         );
@@ -2264,17 +2209,106 @@ export const BattleCore = {
           battle.participatingIndices.add(activeIndex);
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        BattleCore._animateBattleAction(
+          ".player-sprite",
+          "animate-attack",
+          300
+        );
+        BattleCore._playMoveSound(moveName);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const damageResult = BattleCore.calculateDamage(
+          playerPokemon,
+          moveName,
+          opponent
+        );
+
+        const opponentHpBefore = opponent.currentHp;
+        opponent.currentHp = Math.max(
+          0,
+          opponent.currentHp - damageResult.damage
+        );
+        const opponentTookDamage = opponentHpBefore > opponent.currentHp;
+
+        let effectivenessMessage = "";
+        if (damageResult.effectiveness === 0)
+          effectivenessMessage = " Não teve efeito!";
+        else if (damageResult.effectiveness <= 0.5)
+          effectivenessMessage = " Não é muito eficaz.";
+        else if (damageResult.effectiveness >= 2)
+          effectivenessMessage = " É super eficaz!";
+
+        // NOVO: Usa PA individual do movimento
+        const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
+        if (!paUsed) {
+          BattleCore.addBattleLog(
+            `${window.Utils.getPokemonDisplayName(
+              playerPokemon
+            )} não conseguiu usar ${window.Utils.formatName(moveName)}!`
+          );
+          BattleCore.setBattleMenu("fight", true);
+          BattleCore.updateBattleScreen();
+          return;
+        }
+
+        // Obtém PA atualizado após o uso
+        const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
+
+        let logMessage = `${window.Utils.getPokemonDisplayName(
+          playerPokemon
+        )} usou ${window.Utils.formatName(moveName)}!${effectivenessMessage}`;
+        if (damageResult.damage > 0) {
+          logMessage += ` Causou ${damageResult.damage} de dano.`;
+        }
+
+        if (damageResult.isCritical) {
+          logMessage += ` É UM ACERTO CRÍTICO!`;
+        }
+        BattleCore.addBattleLog(logMessage);
+
         BattleCore.updateBattleScreen();
-        BattleCore.setBattleMenu("disabled", true);
-        action = "opponent_attack";
+
+        if (opponentTookDamage) {
+          BattleCore._animateBattleAction(
+            ".opponent-sprite",
+            "animate-damage",
+            500
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } else if (action === "item" && item) {
+        if (item.catchRate) {
+          await BattleCore.tryCapture(moveName, item.catchRate);
+          return;
+        }
+
+        const isHealing = item.healAmount;
+        const isPpRestore = item.ppRestore;
+        const itemUsed = window.GameLogic.useItem(moveName);
+
+        if (isHealing || isPpRestore) {
+          if (!itemUsed) {
+            BattleCore.setBattleMenu("main", true);
+            return;
+          }
+          const activeIndex = window.gameState.profile.pokemon.findIndex(
+            (p) => p.name === playerPokemon.name
+          );
+          if (activeIndex !== -1) {
+            battle.participatingIndices.add(activeIndex);
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          BattleCore.updateBattleScreen();
+          BattleCore.setBattleMenu("disabled", true);
+          action = "opponent_attack";
+        }
+      } else if (action === "opponent_attack") {
+        // segue para o turno do oponente
+      } else {
+        BattleCore.setBattleMenu("main", true);
+        return;
       }
-    } else if (action === "opponent_attack") {
-      // segue para o turno do oponente
-    } else {
-      BattleCore.setBattleMenu("main", true);
-      return;
-    }
 
       if (opponent.currentHp === 0) {
         const battle = window.gameState.battle;
@@ -2378,7 +2412,10 @@ export const BattleCore = {
             : randomOpponentMove.name || randomOpponentMove;
 
         // NOVO: Usa PA individual do movimento do oponente
-        const opponentPAUsed = window.Utils.useMovePA(opponent, opponentMoveName);
+        const opponentPAUsed = window.Utils.useMovePA(
+          opponent,
+          opponentMoveName
+        );
         if (!opponentPAUsed) {
           BattleCore.addBattleLog(
             `${opponent.name} não conseguiu usar ${window.Utils.formatName(
@@ -2469,21 +2506,21 @@ export const BattleCore = {
 
       if (ended) {
         setTimeout(() => {
-        if (finalMessage) {
-          BattleCore._endBattleAndSyncLog(finalMessage);
-        } else {
-          window.gameState.battle = null;
-          window.AuthSetup?.handleBattleMusic(false);
-
-          if (window.gameState.profile.preferences?.isBetaMode) {
-            window.MapCore.handleBattleReturn("Fim de Batalha (Inesperado).");
+          if (finalMessage) {
+            BattleCore._endBattleAndSyncLog(finalMessage);
           } else {
-            window.Renderer.showScreen("mainMenu");
+            window.gameState.battle = null;
+            window.AuthSetup?.handleBattleMusic(false);
+
+            if (window.gameState.profile.preferences?.isBetaMode) {
+              window.MapCore.handleBattleReturn("Fim de Batalha (Inesperado).");
+            } else {
+              window.Renderer.showScreen("mainMenu");
+            }
+            window.GameLogic.saveGameData();
           }
-          window.GameLogic.saveGameData();
-        }
-      }, 2000);
-    }
+        }, 2000);
+      }
 
       if (!ended && playerPokemon.currentHp > 0) {
         BattleCore.setBattleMenu("main");
@@ -2708,7 +2745,12 @@ export const BattleCore = {
     // NOVO: Desabilita o botão de fugir se estiver em cooldown (3 segundos no início da batalha)
     const runButtonInCooldown = battle.runButtonCooldown === true;
     const runDisabled =
-      battle.type === "pvp" || disableInteractions || battle.isProcessingAction || runButtonInCooldown ? "disabled" : "";
+      battle.type === "pvp" ||
+      disableInteractions ||
+      battle.isProcessingAction ||
+      runButtonInCooldown
+        ? "disabled"
+        : "";
     const runButtonHtml = `
       <button onclick="const btn=this; btn.disabled=true; BattleCore.playerTurn('run')" class="gba-button battle-action-btn bg-green-500 hover:bg-green-600" ${runDisabled}>
         <i class="fa-solid fa-running"></i> Fugir

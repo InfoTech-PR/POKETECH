@@ -10,7 +10,8 @@ export async function createConfigAndUtils(v) {
     import(`./branched_evos.js${v}`),
   ]);
 
-  const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS, REVERSE_BRANCHED_EVOS } = localDataModule;
+  const { POKE_DATA, SPECIES_DATA, EVOLUTION_CHAINS, REVERSE_BRANCHED_EVOS } =
+    localDataModule;
   const { BRANCHED_EVOS } = branchedEvosModule; // Importa as regras de ramificação
 
   // 1. Definição do GameConfig
@@ -28,41 +29,44 @@ export async function createConfigAndUtils(v) {
         quantity: 0,
         catchRate: 0.5,
         cost: 200,
-        spriteUrl:
-          "../assets/sprites/items/poke-ball.png",
+        spriteUrl: "../assets/sprites/items/poke-ball.png",
       },
       {
         name: "Great Ball",
         quantity: 0,
         catchRate: 1.0,
         cost: 600,
-        spriteUrl:
-          "../assets/sprites/items/great-ball.png",
+        spriteUrl: "../assets/sprites/items/great-ball.png",
       },
       {
         name: "Ultra Ball",
         quantity: 0,
         catchRate: 1.5,
         cost: 1200,
-        spriteUrl:
-          "../assets/sprites/items/ultra-ball.png",
+        spriteUrl: "../assets/sprites/items/ultra-ball.png",
       },
       {
         name: "Poção",
         quantity: 0,
         healAmount: 20,
         cost: 300,
-        spriteUrl:
-          "../assets/sprites/items/potion.png",
+        spriteUrl: "../assets/sprites/items/potion.png",
       },
       {
         name: "Éter",
         quantity: 0,
         ppRestore: true,
         cost: 500,
-        spriteUrl:
-          "../assets/sprites/items/potion.png",
+        spriteUrl: "../assets/sprites/items/potion.png",
         defaultQuantity: 2,
+      },
+      {
+        name: "Ovo Pokémon",
+        quantity: 0,
+        isEgg: true,
+        cost: 1000,
+        spriteUrl: "../assets/sprites/items/egg.png",
+        description: "Choca um Pokémon aleatório nível 1",
       },
     ],
     // Limite da Pokédex baseado nos dados locais
@@ -74,26 +78,88 @@ export async function createConfigAndUtils(v) {
 
     // NOVO: Mapeamento de Regiões
     POKEDEX_REGIONS: [
-      { name: "KANTO", id: "kanto", startId: 1, endId: 151, starters: [1, 4, 7] },
-      { name: "JOHTO", id: "johto", startId: 152, endId: 251, starters: [152, 155, 158] },
-      { name: "HOENN", id: "hoenn", startId: 252, endId: 386, starters: [252, 255, 258] },
-      { name: "SINNOH", id: "sinnoh", startId: 387, endId: 493, starters: [387, 390, 393] },
-      { name: "UNOVA", id: "unova", startId: 494, endId: 649, starters: [495, 498, 501] },
-      { name: "KALOS", id: "kalos", startId: 650, endId: 721, starters: [650, 653, 656] },
-      { name: "ALOLA", id: "alola", startId: 722, endId: 809, starters: [722, 725, 728] },
-      { name: "GALAR", id: "galar", startId: 810, endId: 898, starters: [810, 813, 816] },
-      { name: "PALDEA", id: "paldea", startId: 906, endId: 1025, starters: [906, 909, 912] },
-      { name: "PARANAGUA", id: "paranagua", startId: 1026, endId: 1027, starters: [1026, 1027] },
+      {
+        name: "KANTO",
+        id: "kanto",
+        startId: 1,
+        endId: 151,
+        starters: [1, 4, 7],
+      },
+      {
+        name: "JOHTO",
+        id: "johto",
+        startId: 152,
+        endId: 251,
+        starters: [152, 155, 158],
+      },
+      {
+        name: "HOENN",
+        id: "hoenn",
+        startId: 252,
+        endId: 386,
+        starters: [252, 255, 258],
+      },
+      {
+        name: "SINNOH",
+        id: "sinnoh",
+        startId: 387,
+        endId: 493,
+        starters: [387, 390, 393],
+      },
+      {
+        name: "UNOVA",
+        id: "unova",
+        startId: 494,
+        endId: 649,
+        starters: [495, 498, 501],
+      },
+      {
+        name: "KALOS",
+        id: "kalos",
+        startId: 650,
+        endId: 721,
+        starters: [650, 653, 656],
+      },
+      {
+        name: "ALOLA",
+        id: "alola",
+        startId: 722,
+        endId: 809,
+        starters: [722, 725, 728],
+      },
+      {
+        name: "GALAR",
+        id: "galar",
+        startId: 810,
+        endId: 898,
+        starters: [810, 813, 816],
+      },
+      {
+        name: "PALDEA",
+        id: "paldea",
+        startId: 906,
+        endId: 1025,
+        starters: [906, 909, 912],
+      },
+      {
+        name: "PARANAGUA",
+        id: "paranagua",
+        startId: 1026,
+        endId: 1027,
+        starters: [1026, 1027],
+      },
     ],
 
     // NOVO: Sistema de Eventos Semanais
     // Calcula qual semana do ano é e retorna as regiões ativas no evento
-    getWeeklyEventRegions: function() {
+    getWeeklyEventRegions: function () {
       const now = new Date();
       const startOfYear = new Date(now.getFullYear(), 0, 1);
-      const daysSinceStart = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24));
+      const daysSinceStart = Math.floor(
+        (now - startOfYear) / (1000 * 60 * 60 * 24)
+      );
       const weekNumber = Math.floor(daysSinceStart / 7);
-      
+
       // Rotação de regiões baseada na semana (52 semanas no ano)
       // Cada semana pode ter 1 ou 2 regiões
       const eventSchedule = [
@@ -111,7 +177,7 @@ export async function createConfigAndUtils(v) {
         { regions: ["alola", "galar"], theme: "Exótico" },
         { regions: ["paldea", "paranagua"], theme: "Aventura" },
       ];
-      
+
       const eventIndex = weekNumber % eventSchedule.length;
       return eventSchedule[eventIndex];
     },
@@ -123,22 +189,58 @@ export async function createConfigAndUtils(v) {
     // Mapeamento WMO Code -> Nome no Jogo e Ícone FontAwesome
     WEATHER_MAP: {
       0: { name: "Céu Limpo", icon: "fa-sun", color: "text-yellow-500" }, // Clear sky
-      1: { name: "Parcialmente Nublado", icon: "fa-cloud-sun", color: "text-yellow-400" }, // Mostly clear
+      1: {
+        name: "Parcialmente Nublado",
+        icon: "fa-cloud-sun",
+        color: "text-yellow-400",
+      }, // Mostly clear
       2: { name: "Nublado", icon: "fa-cloud-sun-rain", color: "text-gray-400" }, // Partly cloudy
       3: { name: "Céu Encoberto", icon: "fa-cloud", color: "text-gray-600" }, // Overcast
       45: { name: "Névoa", icon: "fa-smog", color: "text-gray-500" }, // Fog
-      48: { name: "Névoa Congelante", icon: "fa-icicles", color: "text-blue-200" }, // Depositing rime fog
-      51: { name: "Chuvisco Leve", icon: "fa-cloud-drizzle", color: "text-blue-500" }, // Drizzle: Light
-      53: { name: "Chuvisco Moderado", icon: "fa-cloud-drizzle", color: "text-blue-600" }, // Drizzle: Moderate
-      55: { name: "Chuvisco Intenso", icon: "fa-cloud-showers-heavy", color: "text-blue-700" }, // Drizzle: Dense
+      48: {
+        name: "Névoa Congelante",
+        icon: "fa-icicles",
+        color: "text-blue-200",
+      }, // Depositing rime fog
+      51: {
+        name: "Chuvisco Leve",
+        icon: "fa-cloud-drizzle",
+        color: "text-blue-500",
+      }, // Drizzle: Light
+      53: {
+        name: "Chuvisco Moderado",
+        icon: "fa-cloud-drizzle",
+        color: "text-blue-600",
+      }, // Drizzle: Moderate
+      55: {
+        name: "Chuvisco Intenso",
+        icon: "fa-cloud-showers-heavy",
+        color: "text-blue-700",
+      }, // Drizzle: Dense
       61: { name: "Chuva Leve", icon: "fa-cloud-rain", color: "text-blue-500" }, // Rain: Slight
-      63: { name: "Chuva Moderada", icon: "fa-cloud-showers-heavy", color: "text-blue-600" }, // Rain: Moderate
-      65: { name: "Chuva Forte", icon: "fa-cloud-showers-heavy", color: "text-blue-700" }, // Rain: Heavy
+      63: {
+        name: "Chuva Moderada",
+        icon: "fa-cloud-showers-heavy",
+        color: "text-blue-600",
+      }, // Rain: Moderate
+      65: {
+        name: "Chuva Forte",
+        icon: "fa-cloud-showers-heavy",
+        color: "text-blue-700",
+      }, // Rain: Heavy
       71: { name: "Neve Leve", icon: "fa-snowflakes", color: "text-blue-300" }, // Snow fall: Slight
-      73: { name: "Neve Moderada", icon: "fa-snowflake", color: "text-blue-400" }, // Snow fall: Moderate
+      73: {
+        name: "Neve Moderada",
+        icon: "fa-snowflake",
+        color: "text-blue-400",
+      }, // Snow fall: Moderate
       75: { name: "Neve Forte", icon: "fa-icicles", color: "text-blue-500" }, // Snow fall: Heavy
       95: { name: "Trovoada", icon: "fa-bolt", color: "text-yellow-600" }, // Thunderstorm: Slight or moderate
-      99: { name: "Trovoada Forte", icon: "fa-cloud-bolt", color: "text-yellow-700" }, // Thunderstorm with heavy hail
+      99: {
+        name: "Trovoada Forte",
+        icon: "fa-cloud-bolt",
+        color: "text-yellow-700",
+      }, // Thunderstorm with heavy hail
     },
   };
 
@@ -220,7 +322,7 @@ export async function createConfigAndUtils(v) {
         icon: "fa-sun", // Ícone FontAwesome
         rawCode: 0,
         lastFetch: 0,
-      }
+      },
     };
   }
 
@@ -241,7 +343,10 @@ export async function createConfigAndUtils(v) {
           "pokemonGamePokedexCache",
           JSON.stringify(stateToSave.pokedexCache)
         );
-        localStorage.setItem("pokemonGameProfile", JSON.stringify(profileToSave));
+        localStorage.setItem(
+          "pokemonGameProfile",
+          JSON.stringify(profileToSave)
+        );
         localStorage.setItem(
           "pokemonGameExploreLog",
           JSON.stringify(stateToSave.exploreLog)
@@ -256,7 +361,9 @@ export async function createConfigAndUtils(v) {
       try {
         const savedProfile = localStorage.getItem("pokemonGameProfile");
         const savedExploreLog = localStorage.getItem("pokemonGameExploreLog");
-        const savedPokedexCache = localStorage.getItem("pokemonGamePokedexCache");
+        const savedPokedexCache = localStorage.getItem(
+          "pokemonGamePokedexCache"
+        );
 
         if (savedProfile) {
           window.gameState.profile = JSON.parse(savedProfile);
@@ -285,7 +392,9 @@ export async function createConfigAndUtils(v) {
               isMuted: false,
               isBetaMode: false, // Garante que a flag exista ao carregar
             };
-          } else if (window.gameState.profile.preferences.isBetaMode === undefined) {
+          } else if (
+            window.gameState.profile.preferences.isBetaMode === undefined
+          ) {
             // Caso tenha preferências mas falte a nova flag
             window.gameState.profile.preferences.isBetaMode = false;
           }
@@ -300,22 +409,31 @@ export async function createConfigAndUtils(v) {
           }
 
           // NOVO: Garante que os campos do sistema de nível do treinador existam
-          if (typeof window.gameState.profile.trainerLevel !== 'number') {
+          if (typeof window.gameState.profile.trainerLevel !== "number") {
             // Calcula nível baseado no Pokémon de maior nível (migração)
-            const maxLevel = window.gameState.profile.pokemon.length > 0
-              ? Math.max(...window.gameState.profile.pokemon.map(p => p.level || 1))
-              : 1;
-            window.gameState.profile.trainerLevel = Math.min(100, Math.max(1, maxLevel));
+            const maxLevel =
+              window.gameState.profile.pokemon.length > 0
+                ? Math.max(
+                    ...window.gameState.profile.pokemon.map((p) => p.level || 1)
+                  )
+                : 1;
+            window.gameState.profile.trainerLevel = Math.min(
+              100,
+              Math.max(1, maxLevel)
+            );
           }
-          if (typeof window.gameState.profile.trainerExp !== 'number') {
+          if (typeof window.gameState.profile.trainerExp !== "number") {
             window.gameState.profile.trainerExp = 0;
           }
-          if (typeof window.gameState.profile.normalBattleCount !== 'number') {
+          if (typeof window.gameState.profile.normalBattleCount !== "number") {
             window.gameState.profile.normalBattleCount = 0;
           }
 
           // NOVO: Garante que o sistema de doces exista
-          if (!window.gameState.profile.pokemonCandy || typeof window.gameState.profile.pokemonCandy !== 'object') {
+          if (
+            !window.gameState.profile.pokemonCandy ||
+            typeof window.gameState.profile.pokemonCandy !== "object"
+          ) {
             window.gameState.profile.pokemonCandy = {};
           }
 
@@ -331,22 +449,48 @@ export async function createConfigAndUtils(v) {
             };
           }
 
-
           // Garante que os itens carregados tenham a spriteUrl.
-          window.gameState.profile.items = window.gameState.profile.items.map(
-            (savedItem) => {
-              const configItem = GameConfig.SHOP_ITEMS.find(
-                (c) => c.name === savedItem.name
-              );
-              return {
-                ...savedItem,
-                spriteUrl: configItem?.spriteUrl || "",
-                ppRestore: configItem?.ppRestore || savedItem.ppRestore,
-                healAmount:
-                  savedItem.healAmount ?? configItem?.healAmount ?? 0,
-              };
+          // NOVO: Consolida ovos duplicados em um único item
+          const itemsMap = new Map();
+          window.gameState.profile.items.forEach((savedItem) => {
+            const configItem = GameConfig.SHOP_ITEMS.find(
+              (c) => c.name === savedItem.name
+            );
+            const processedItem = {
+              ...savedItem,
+              spriteUrl: configItem?.spriteUrl || "",
+              ppRestore: configItem?.ppRestore || savedItem.ppRestore,
+              healAmount: savedItem.healAmount ?? configItem?.healAmount ?? 0,
+              isEgg: configItem?.isEgg || savedItem.isEgg || false,
+              isMove: configItem?.isMove || savedItem.isMove || false,
+            };
+
+            // Remove pokemonId de ovos antigos (não é mais necessário)
+            if (processedItem.isEgg && processedItem.pokemonId) {
+              delete processedItem.pokemonId;
+              delete processedItem.hatchesInto;
             }
-          );
+
+            // Se for item de ataque e não tiver sprite, usa atack.png
+            if (processedItem.isMove && !processedItem.spriteUrl) {
+              processedItem.spriteUrl = "../assets/sprites/items/atack.png";
+            }
+
+            // Consolida itens com o mesmo nome
+            if (itemsMap.has(savedItem.name)) {
+              const existing = itemsMap.get(savedItem.name);
+              existing.quantity =
+                (existing.quantity || 0) + (processedItem.quantity || 1);
+            } else {
+              // Se é ovo e tem pokemonId, remove o pokemonId e usa quantity total
+              if (processedItem.isEgg) {
+                processedItem.quantity = processedItem.quantity || 1;
+              }
+              itemsMap.set(savedItem.name, processedItem);
+            }
+          });
+
+          window.gameState.profile.items = Array.from(itemsMap.values());
 
           GameConfig.SHOP_ITEMS.forEach((shopItem) => {
             const exists = window.gameState.profile.items.some(
@@ -360,26 +504,27 @@ export async function createConfigAndUtils(v) {
             }
           });
 
-          window.gameState.profile.pokemon =
-            (window.gameState.profile.pokemon || []).map((poke) => {
-              const hasTracking =
-                typeof poke?.specialMoveRemaining === "number" &&
-                typeof poke?.normalMoveRemaining === "number";
-              return Utils.applyMoveTemplate(poke, {
-                forceResetUses: !hasTracking,
-              });
+          window.gameState.profile.pokemon = (
+            window.gameState.profile.pokemon || []
+          ).map((poke) => {
+            const hasTracking =
+              typeof poke?.specialMoveRemaining === "number" &&
+              typeof poke?.normalMoveRemaining === "number";
+            return Utils.applyMoveTemplate(poke, {
+              forceResetUses: !hasTracking,
             });
+          });
 
           if (savedExploreLog) {
             window.gameState.exploreLog = JSON.parse(savedExploreLog);
           }
           window.gameState.pendingSupportItem = null;
-          
+
           // Aplica as preferências de música após carregar o jogo
           if (window.AuthSetup && window.AuthSetup.applyMusicPreferences) {
             window.AuthSetup.applyMusicPreferences();
           }
-          
+
           console.log("Jogo Carregado com Sucesso!");
           return true;
         }
@@ -417,9 +562,7 @@ export async function createConfigAndUtils(v) {
           iterablePokedex = window.gameState.profile.pokedex;
         }
 
-        window.gameState.profile.pokedex = new Set(
-          iterablePokedex
-        );
+        window.gameState.profile.pokedex = new Set(iterablePokedex);
         console.warn("Pokedex re-inicializada como Set.");
       }
 
@@ -449,10 +592,7 @@ export async function createConfigAndUtils(v) {
     updateVolume: function (newVolume) {
       window.gameState.profile.preferences.volume = parseFloat(newVolume);
       window.gameState.profile.preferences.isMuted = false;
-      Utils.applyVolume(
-        window.gameState.profile.preferences.volume,
-        false
-      );
+      Utils.applyVolume(window.gameState.profile.preferences.volume, false);
       Utils.saveGame();
       if (window.Renderer) {
         window.Renderer.renderPreferences(
@@ -582,11 +722,13 @@ export async function createConfigAndUtils(v) {
       // Fallback: se não tiver PA individual, usa o sistema antigo
       const isSpecial = Utils.isSpecialMove(pokemon, moveName);
       const max = isSpecial
-        ? (pokemon.specialMoveMaxUses || SPECIAL_MOVE_MAX_USES)
-        : (pokemon.normalMoveMaxUses || GameConfig.NORMAL_MOVE_MAX_USES || DEFAULT_NORMAL_MOVE_MAX_USES);
+        ? pokemon.specialMoveMaxUses || SPECIAL_MOVE_MAX_USES
+        : pokemon.normalMoveMaxUses ||
+          GameConfig.NORMAL_MOVE_MAX_USES ||
+          DEFAULT_NORMAL_MOVE_MAX_USES;
       const remaining = isSpecial
-        ? (pokemon.specialMoveRemaining || max)
-        : (pokemon.normalMoveRemaining || max);
+        ? pokemon.specialMoveRemaining || max
+        : pokemon.normalMoveRemaining || max;
       return { remaining, max };
     },
 
@@ -594,14 +736,16 @@ export async function createConfigAndUtils(v) {
     getPokemonDisplayName: function (pokemon) {
       if (!pokemon) return "";
       // Retorna o nickname se existir e não estiver vazio, senão retorna o nome original
-      return (pokemon.nickname && pokemon.nickname.trim()) ? pokemon.nickname.trim() : pokemon.name;
+      return pokemon.nickname && pokemon.nickname.trim()
+        ? pokemon.nickname.trim()
+        : pokemon.name;
     },
 
     // NOVO: Função para usar PA de um movimento
     useMovePA: function (pokemon, moveName) {
       if (!pokemon || !moveName) return false;
       Utils.ensureMoveCounters(pokemon);
-      
+
       if (pokemon.moveUses && pokemon.moveUses[moveName]) {
         if (pokemon.moveUses[moveName].remaining > 0) {
           pokemon.moveUses[moveName].remaining--;
@@ -634,11 +778,11 @@ export async function createConfigAndUtils(v) {
       if (pokemon.moveUses && pokemon.moves) {
         const NORMAL_MOVE_PA = 30;
         const SPECIAL_MOVE_PA = 15;
-        
+
         pokemon.moves.forEach((move) => {
           const moveName = typeof move === "string" ? move : move.name || move;
           const isSpecial = Utils.isSpecialMove(pokemon, moveName);
-          
+
           if ((isSpecial && applySpecial) || (!isSpecial && applyNormal)) {
             const maxPA = isSpecial ? SPECIAL_MOVE_PA : NORMAL_MOVE_PA;
             if (!pokemon.moveUses[moveName]) {
@@ -684,8 +828,11 @@ export async function createConfigAndUtils(v) {
 
       // Redireciona para o menu principal para aplicar a nova navegação
       if (window.Renderer) {
-        window.Utils.showModal("infoModal", `Modo BETA ${prefs.isBetaMode ? 'ATIVADO' : 'DESATIVADO'}.`);
-        window.Renderer.showScreen('mainMenu');
+        window.Utils.showModal(
+          "infoModal",
+          `Modo BETA ${prefs.isBetaMode ? "ATIVADO" : "DESATIVADO"}.`
+        );
+        window.Renderer.showScreen("mainMenu");
       }
     },
 
@@ -758,29 +905,40 @@ export async function createConfigAndUtils(v) {
     // NOVO: Dá XP ao treinador e verifica level up
     giveTrainerExp: function (expGain) {
       if (!window.gameState || !window.gameState.profile) return;
-      
+
       const profile = window.gameState.profile;
-      if (typeof profile.trainerLevel !== 'number') profile.trainerLevel = 1;
-      if (typeof profile.trainerExp !== 'number') profile.trainerExp = 0;
-      
+      if (typeof profile.trainerLevel !== "number") profile.trainerLevel = 1;
+      if (typeof profile.trainerExp !== "number") profile.trainerExp = 0;
+
       profile.trainerExp += expGain;
-      
+
       // Verifica level up
-      let expToNextLevel = Utils.calculateTrainerExpToNextLevel(profile.trainerLevel);
-      while (profile.trainerExp >= expToNextLevel && profile.trainerLevel < 100) {
+      let expToNextLevel = Utils.calculateTrainerExpToNextLevel(
+        profile.trainerLevel
+      );
+      while (
+        profile.trainerExp >= expToNextLevel &&
+        profile.trainerLevel < 100
+      ) {
         profile.trainerExp -= expToNextLevel;
         profile.trainerLevel++;
-        
+
         // Notifica o level up
         if (window.BattleCore && window.gameState.battle) {
-          window.BattleCore.addBattleLog(`🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`);
+          window.BattleCore.addBattleLog(
+            `🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`
+          );
         } else if (window.GameLogic) {
-          window.GameLogic.addExploreLog(`🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`);
+          window.GameLogic.addExploreLog(
+            `🎉 TREINADOR SUBIU PARA NÍVEL ${profile.trainerLevel}!`
+          );
         }
-        
-        expToNextLevel = Utils.calculateTrainerExpToNextLevel(profile.trainerLevel);
+
+        expToNextLevel = Utils.calculateTrainerExpToNextLevel(
+          profile.trainerLevel
+        );
       }
-      
+
       // Limita o nível máximo
       if (profile.trainerLevel >= 100) {
         profile.trainerLevel = 100;
@@ -829,9 +987,9 @@ export async function createConfigAndUtils(v) {
 
   function findPathToTarget(branches, targetId) {
     for (const path of branches || []) {
-      const idx = path.findIndex(n => n.id === targetId);
+      const idx = path.findIndex((n) => n.id === targetId);
       if (idx !== -1) {
-        return path.slice(0, idx + 1).map(n => ({ id: n.id, name: n.name }));
+        return path.slice(0, idx + 1).map((n) => ({ id: n.id, name: n.name }));
       }
     }
     return null;
@@ -864,7 +1022,7 @@ export async function createConfigAndUtils(v) {
         }
       }
       // Checa também se o id está no conjunto geral de ids desse array para fallback linear
-      const idSet = new Set(arr.map(e => e.id));
+      const idSet = new Set(arr.map((e) => e.id));
       if (idSet.has(id)) {
         return { baseKey: key, chainArr: arr, head, branchesSource: null };
       }
@@ -883,8 +1041,6 @@ export async function createConfigAndUtils(v) {
 
     REVERSE_BRANCHED_EVOS: REVERSE_BRANCHED_EVOS,
     BRANCHED_EVOS: BRANCHED_EVOS,
-
-
 
     async fetchPokemonData(idOrName, isPokedexView = false) {
       let pokemonId = String(idOrName).toLowerCase();
@@ -939,7 +1095,7 @@ export async function createConfigAndUtils(v) {
           window.gameState.pokedexCache[result.id] = {
             name: result.name,
             types: result.types,
-            spriteUrl: result.sprite
+            spriteUrl: result.sprite,
           };
         }
 
@@ -947,13 +1103,14 @@ export async function createConfigAndUtils(v) {
           Utils.registerPokemon(result.id);
         }
       } else {
-        console.warn("Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem.");
+        console.warn(
+          "Aviso: window.gameState ou pokedexCache não totalmente inicializados ao buscar Pokémon selvagem."
+        );
       }
 
-      if (window.gameState.currentScreen === 'battle' && !isPokedexView) {
+      if (window.gameState.currentScreen === "battle" && !isPokedexView) {
         result.sprite = data.front_sprite;
       }
-
 
       return result;
     },
@@ -1012,11 +1169,15 @@ export async function createConfigAndUtils(v) {
       }
 
       // Caso branches no nó principal (head) OU no intermediário (branchesSource)
-      if (located.branchesSource && Array.isArray(located.branchesSource.branches) && located.branchesSource.branches.length) {
+      if (
+        located.branchesSource &&
+        Array.isArray(located.branchesSource.branches) &&
+        located.branchesSource.branches.length
+      ) {
         // retorna nó + todos UNIQUE das branches desse nó
         return [
           { id: located.branchesSource.id, name: located.branchesSource.name },
-          ...flattenBranches(located.branchesSource.branches)
+          ...flattenBranches(located.branchesSource.branches),
         ];
       }
 
@@ -1026,16 +1187,26 @@ export async function createConfigAndUtils(v) {
         console.log("revOrigin");
         console.log(revOrigin);
         // Encontra a cadeia do origin
-        const originLocated = locateChainContainingId(EVOLUTION_CHAINS, revOrigin);
-        if (originLocated && originLocated.branchesSource && originLocated.branchesSource.branches) {
+        const originLocated = locateChainContainingId(
+          EVOLUTION_CHAINS,
+          revOrigin
+        );
+        if (
+          originLocated &&
+          originLocated.branchesSource &&
+          originLocated.branchesSource.branches
+        ) {
           // Caminho da branch do origin até o id atual
-          const path = findPathToTarget(originLocated.branchesSource.branches, id);
+          const path = findPathToTarget(
+            originLocated.branchesSource.branches,
+            id
+          );
           if (path && path.length) {
             // Se o próprio revOrigin (Eevee) não está incluído, adicione
             if (path[0].id !== Number(revOrigin)) {
               return [
                 { id: Number(revOrigin), name: idToNameLocal(revOrigin) },
-                ...path
+                ...path,
               ];
             }
             return path;
@@ -1044,18 +1215,18 @@ export async function createConfigAndUtils(v) {
         // Fallback: [origin, target]
         return [
           { id: Number(revOrigin), name: idToNameLocal(revOrigin) },
-          { id, name: idToNameLocal(id) }
+          { id, name: idToNameLocal(id) },
         ];
       }
 
       // Cadeia linear: retorna tudo do array na ordem
       const { chainArr } = located;
-      return chainArr.map(p => ({ id: p.id, name: p.name }));
+      return chainArr.map((p) => ({ id: p.id, name: p.name }));
     },
 
     idToName: function (id) {
       return POKE_DATA[String(id)]?.name || null;
-    }
+    },
   };
 
   // Expõe EVOLUTION_CHAINS globalmente para uso no sistema de doces
@@ -1066,6 +1237,6 @@ export async function createConfigAndUtils(v) {
     initializeGameState,
     Utils,
     PokeAPI,
-    registerExistingPokemonOnLoad
+    registerExistingPokemonOnLoad,
   };
 }

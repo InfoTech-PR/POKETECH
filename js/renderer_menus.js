@@ -54,12 +54,12 @@ const TRAINER_AVATAR_CHOICES = [
 const getTrainerAvatarUrl = (profile) => {
   if (!profile) return TRAINER_AVATAR_CHOICES[0].url;
   const prefs = profile.preferences || {};
-  
+
   // NOVO: Verifica se há uma imagem customizada do celular
   if (prefs.customAvatarImage) {
     return prefs.customAvatarImage;
   }
-  
+
   const selectedKey = prefs.avatarTrainerKey || TRAINER_AVATAR_CHOICES[0].key;
   return (
     TRAINER_AVATAR_CHOICES.find((choice) => choice.key === selectedKey)?.url ||
@@ -388,27 +388,17 @@ export const RendererMenus = {
 
     // NOVO: Obtém informações do evento semanal
     const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
-    const eventRegions = weeklyEvent.regions.map(regionId => {
-      const region = window.GameConfig.POKEDEX_REGIONS.find(r => r.id === regionId);
-      return region ? region.name : regionId;
-    }).join(' & ');
+    const eventRegions = weeklyEvent.regions
+      .map((regionId) => {
+        const region = window.GameConfig.POKEDEX_REGIONS.find(
+          (r) => r.id === regionId
+        );
+        return region ? region.name : regionId;
+      })
+      .join(" & ");
 
     const statsHtml = `
   <div class="trainer-profile-card">
-    <!-- NOVO: Banner de Evento Semanal -->
-    <div class="mb-4 p-3 bg-gradient-to-r from-purple-500 to-pink-500 border-4 border-gray-800 rounded-lg shadow-lg flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="text-3xl">🎉</div>
-        <div>
-          <div class="gba-font text-xs text-white font-bold">EVENTO SEMANAL</div>
-          <div class="gba-font text-[10px] text-white opacity-90">${weeklyEvent.theme}: ${eventRegions}</div>
-        </div>
-      </div>
-      <div class="text-xs gba-font text-white bg-black bg-opacity-30 px-2 py-1 rounded">
-        Esta Semana
-      </div>
-    </div>
-    
     <!-- Header com avatar e nome -->
     <div class="trainer-profile-header">
       <div class="trainer-avatar-container">
@@ -464,7 +454,11 @@ export const RendererMenus = {
         <div class="stat-icon">🏅</div>
         <div class="stat-content">
           <div class="stat-label">INSÍGNIAS</div>
-          <div class="stat-value stat-value-badges">${(profile.badges && Array.isArray(profile.badges) ? profile.badges.length : 0)}</div>
+          <div class="stat-value stat-value-badges">${
+            profile.badges && Array.isArray(profile.badges)
+              ? profile.badges.length
+              : 0
+          }</div>
         </div>
       </div>
     </div>
@@ -907,6 +901,92 @@ export const RendererMenus = {
         `;
 
     window.Renderer.renderGbaCard(combinedHtml);
+
+    // Adiciona botão flutuante de evento semanal
+    const gbaScreen = document.querySelector(".gba-screen");
+    if (gbaScreen && !document.querySelector(".weekly-event-button")) {
+      const eventButton = document.createElement("button");
+      eventButton.className = "weekly-event-button";
+      eventButton.onclick = function () {
+        if (window.Renderer && window.Renderer.showWeeklyEventModal) {
+          window.Renderer.showWeeklyEventModal();
+        } else {
+          console.error("showWeeklyEventModal não encontrada");
+        }
+      };
+      eventButton.setAttribute("title", "Eventos Semanais");
+      eventButton.innerHTML = `
+        <span style="font-size: 28px;">🎉</span>
+        <span class="event-badge" style="
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          background: #ef4444;
+          color: white;
+          border: 2px solid #1e293b;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          font-size: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+        ">!</span>
+      `;
+      eventButton.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        border: 4px solid #1e293b;
+        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.5);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        transition: transform 0.2s, box-shadow 0.2s;
+        animation: pulse-event 2s infinite;
+      `;
+      eventButton.onmouseover = function () {
+        this.style.transform = "scale(1.1)";
+        this.style.boxShadow = "0 6px 16px rgba(168, 85, 247, 0.7)";
+      };
+      eventButton.onmouseout = function () {
+        this.style.transform = "scale(1)";
+        this.style.boxShadow = "0 4px 12px rgba(168, 85, 247, 0.5)";
+      };
+
+      // Adiciona estilo de animação se não existir
+      if (!document.getElementById("weekly-event-styles")) {
+        const style = document.createElement("style");
+        style.id = "weekly-event-styles";
+        style.textContent = `
+          @keyframes pulse-event {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          @media (max-width: 640px) {
+            .weekly-event-button {
+              width: 50px !important;
+              height: 50px !important;
+              bottom: 15px !important;
+              right: 15px !important;
+            }
+            .weekly-event-button span {
+              font-size: 22px !important;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      document.body.appendChild(eventButton);
+    }
 
     // Função global para lidar com o clique na Pokébola
     window.handleExploreClick = async function (event, action) {
@@ -1608,12 +1688,16 @@ export const RendererMenus = {
               <span>Editar Foto</span>
             </button>
           </div>
-          ${prefs.customAvatarImage ? `
+          ${
+            prefs.customAvatarImage
+              ? `
             <button onclick="window.Renderer.removeCustomAvatar()" class="gba-button bg-red-500 hover:bg-red-600 w-full text-xs flex items-center justify-center gap-2">
               <i class="fa-solid fa-trash"></i>
               <span>Remover Foto</span>
             </button>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
 
         <!-- Nome do Usuário -->
@@ -1725,14 +1809,20 @@ export const RendererMenus = {
     if (!file) return;
 
     // Valida se é uma imagem
-    if (!file.type.startsWith('image/')) {
-      window.Utils.showModal('errorModal', 'Por favor, selecione um arquivo de imagem válido.');
+    if (!file.type.startsWith("image/")) {
+      window.Utils.showModal(
+        "errorModal",
+        "Por favor, selecione um arquivo de imagem válido."
+      );
       return;
     }
 
     // Limita o tamanho (máximo 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      window.Utils.showModal('errorModal', 'A imagem deve ter no máximo 2MB. Por favor, escolha uma imagem menor.');
+      window.Utils.showModal(
+        "errorModal",
+        "A imagem deve ter no máximo 2MB. Por favor, escolha uma imagem menor."
+      );
       return;
     }
 
@@ -1740,35 +1830,41 @@ export const RendererMenus = {
     reader.onload = function (e) {
       const profile = window.gameState.profile;
       profile.preferences = profile.preferences || {};
-      
+
       // Salva a imagem como base64
       profile.preferences.customAvatarImage = e.target.result;
-      
+
       // Remove a seleção de avatar padrão quando usa imagem customizada
       if (profile.preferences.avatarTrainerKey) {
         delete profile.preferences.avatarTrainerKey;
       }
-      
+
       // Salva os dados
       if (window.GameLogic?.saveGameData) {
         window.GameLogic.saveGameData();
       }
-      
+
       // Recarrega a tela de perfil
       window.Renderer.showScreen("profile");
-      
-      window.Utils.showModal('infoModal', 'Foto de perfil atualizada com sucesso!');
+
+      window.Utils.showModal(
+        "infoModal",
+        "Foto de perfil atualizada com sucesso!"
+      );
     };
-    
+
     reader.onerror = function () {
-      window.Utils.showModal('errorModal', 'Erro ao ler a imagem. Tente novamente.');
+      window.Utils.showModal(
+        "errorModal",
+        "Erro ao ler a imagem. Tente novamente."
+      );
     };
-    
+
     // Lê a imagem como Data URL (base64)
     reader.readAsDataURL(file);
-    
+
     // Limpa o input para permitir selecionar o mesmo arquivo novamente
-    event.target.value = '';
+    event.target.value = "";
   },
 
   // NOVO: Função para remover imagem customizada
@@ -1777,24 +1873,67 @@ export const RendererMenus = {
     if (!profile.preferences) {
       profile.preferences = {};
     }
-    
+
     if (profile.preferences.customAvatarImage) {
       delete profile.preferences.customAvatarImage;
-      
+
       // Volta para o avatar padrão
       if (!profile.preferences.avatarTrainerKey) {
         profile.preferences.avatarTrainerKey = TRAINER_AVATAR_CHOICES[0].key;
       }
-      
+
       // Salva os dados
       if (window.GameLogic?.saveGameData) {
         window.GameLogic.saveGameData();
       }
-      
+
       // Recarrega a tela de perfil
       window.Renderer.showScreen("profile");
-      
-      window.Utils.showModal('infoModal', 'Foto customizada removida!');
+
+      window.Utils.showModal("infoModal", "Foto customizada removida!");
+    }
+  },
+
+  showWeeklyEventModal: function () {
+    const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
+    const eventRegions = weeklyEvent.regions
+      .map((regionId) => {
+        const region = window.GameConfig.POKEDEX_REGIONS.find(
+          (r) => r.id === regionId
+        );
+        return region ? region.name : regionId;
+      })
+      .join(" & ");
+
+    const modalContent = `
+      <div class="text-2xl mb-4">🎉</div>
+      <div class="text-xl font-bold text-purple-800 gba-font mb-2">EVENTO SEMANAL</div>
+      <div class="text-sm gba-font text-purple-700 mb-4">Esta Semana</div>
+      <div class="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-lg p-4 mb-4">
+        <div class="text-lg font-bold text-purple-900 gba-font mb-2">${weeklyEvent.theme}</div>
+        <div class="text-sm text-purple-800 gba-font">
+          <strong>Regiões Ativas:</strong><br>
+          ${eventRegions}
+        </div>
+      </div>
+      <div class="text-xs text-purple-600 gba-font mb-4">
+        🎯 Batalhe nestas regiões para encontrar Pokémon especiais!
+      </div>
+      <button
+        onclick="window.Utils.hideModal('weeklyEventModal')"
+        class="gba-button bg-purple-500 hover:bg-purple-600 w-full mt-2">
+        Fechar
+      </button>
+    `;
+
+    const modal = document.getElementById("weeklyEventModal");
+    if (modal) {
+      const modalBody = modal.querySelector(".weekly-event-modal-body");
+      if (modalBody) {
+        modalBody.innerHTML = modalContent;
+      }
+      // Remove a classe hidden para mostrar a modal
+      modal.classList.remove("hidden");
     }
   },
 };

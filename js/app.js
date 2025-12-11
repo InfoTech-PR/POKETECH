@@ -26,23 +26,28 @@ export async function init(cacheBuster = Date.now()) {
   // Variável global para ser usada em carregamentos de assets estáticos (ex: game_updates.json)
 
   const params = new URLSearchParams(window.location.search);
-  const friendshipId = params.get('friend');
+  const friendshipId = params.get("friend");
 
   if (friendshipId && window.userId && !window.userId.startsWith("anonimo")) {
     // Remove o parâmetro do URL para evitar reprocessamento
     const newUrl = window.location.pathname;
-    window.history.replaceState({}, '', newUrl);
+    window.history.replaceState({}, "", newUrl);
 
     // Aguarda um pouco para garantir que os módulos estão carregados
     setTimeout(async () => {
       if (window.PokeFriendship && window.Utils) {
         // Processa o aceite
-        const result = await window.PokeFriendship.processFriendshipAcceptance(friendshipId);
-        window.Utils.showModal(result.success ? "infoModal" : "errorModal", result.message);
+        const result = await window.PokeFriendship.processFriendshipAcceptance(
+          friendshipId
+        );
+        window.Utils.showModal(
+          result.success ? "infoModal" : "errorModal",
+          result.message
+        );
 
         // Continua para a tela principal (Menu ou Map)
         if (window.Renderer) {
-          window.Renderer.showScreen('mainMenu');
+          window.Renderer.showScreen("mainMenu");
         }
       }
     }, 1000);
@@ -54,8 +59,9 @@ export async function init(cacheBuster = Date.now()) {
     const statusElement = document.getElementById("error-status");
     if (statusElement) {
       statusElement.textContent = message;
-      statusElement.className = `text-[8px] gba-font text-center mt-2 ${isError ? "text-red-500" : "text-green-500"
-        }`;
+      statusElement.className = `text-[8px] gba-font text-center mt-2 ${
+        isError ? "text-red-500" : "text-green-500"
+      }`;
     }
   }
 
@@ -174,7 +180,9 @@ export async function init(cacheBuster = Date.now()) {
     AuthSetup = authModule.AuthSetup;
 
     // 8. Carregamento do Sistema de Amizade
-    const friendshipModule = await import(`./poke_friendship.js?v=${Date.now()}`);
+    const friendshipModule = await import(
+      `./poke_friendship.js?v=${Date.now()}`
+    );
     PokeFriendship = friendshipModule.PokeFriendship;
 
     // 9. Carregamento do Sistema de Chat (NOVO)
@@ -247,61 +255,67 @@ export async function init(cacheBuster = Date.now()) {
     // NOVO: Sistema de Instalação PWA
     window.deferredPrompt = null;
     window.isPWAInstalled = false;
-    window.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    window.isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                          window.navigator.standalone || 
-                          document.referrer.includes('android-app://');
+    window.isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    window.isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone ||
+      document.referrer.includes("android-app://");
 
     // Detecta se já está instalado
     if (window.isStandalone) {
       window.isPWAInstalled = true;
-      console.log('✅ [PWA] Aplicativo já está instalado');
+      console.log("✅ [PWA] Aplicativo já está instalado");
     }
 
     // Captura o evento beforeinstallprompt (Android/Chrome)
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('✅ [PWA] Evento beforeinstallprompt capturado');
+    window.addEventListener("beforeinstallprompt", (e) => {
+      console.log("✅ [PWA] Evento beforeinstallprompt capturado");
       e.preventDefault();
       window.deferredPrompt = e;
       window.isPWAInstallable = true;
-      
+
       // Dispara evento customizado para atualizar UI
-      window.dispatchEvent(new CustomEvent('pwa-installable', { detail: true }));
+      window.dispatchEvent(
+        new CustomEvent("pwa-installable", { detail: true })
+      );
     });
 
     // Detecta quando a PWA é instalada
-    window.addEventListener('appinstalled', () => {
-      console.log('✅ [PWA] Aplicativo instalado com sucesso!');
+    window.addEventListener("appinstalled", () => {
+      console.log("✅ [PWA] Aplicativo instalado com sucesso!");
       window.isPWAInstalled = true;
       window.deferredPrompt = null;
       window.isPWAInstallable = false;
-      window.dispatchEvent(new CustomEvent('pwa-installed', { detail: true }));
+      window.dispatchEvent(new CustomEvent("pwa-installed", { detail: true }));
     });
 
     // Função para instalar a PWA
-    window.installPWA = async function() {
+    window.installPWA = async function () {
       if (!window.deferredPrompt) {
-        console.warn('⚠️ [PWA] Prompt de instalação não disponível');
-        
+        console.warn("⚠️ [PWA] Prompt de instalação não disponível");
+
         // Para iOS, mostra instruções
         if (window.isIOS) {
-          window.Utils?.showModal('infoModal', 
-            'Para instalar no iOS:<br><br>' +
-            '1. Toque no botão de compartilhar (□↑)<br>' +
-            '2. Role para baixo e toque em "Adicionar à Tela Inicial"<br>' +
-            '3. Toque em "Adicionar"'
+          window.Utils?.showModal(
+            "infoModal",
+            "Para instalar no iOS:<br><br>" +
+              "1. Toque no botão de compartilhar (□↑)<br>" +
+              '2. Role para baixo e toque em "Adicionar à Tela Inicial"<br>' +
+              '3. Toque em "Adicionar"'
           );
           return false;
         }
-        
+
         // Para outros navegadores mobile
         const isAndroid = /Android/.test(navigator.userAgent);
         if (isAndroid) {
-          window.Utils?.showModal('infoModal',
-            'Para instalar no Android:<br><br>' +
-            '1. Toque no menu (⋮) no canto superior direito<br>' +
-            '2. Toque em "Instalar aplicativo" ou "Adicionar à tela inicial"<br>' +
-            '3. Confirme a instalação'
+          window.Utils?.showModal(
+            "infoModal",
+            "Para instalar no Android:<br><br>" +
+              "1. Toque no menu (⋮) no canto superior direito<br>" +
+              '2. Toque em "Instalar aplicativo" ou "Adicionar à tela inicial"<br>' +
+              "3. Confirme a instalação"
           );
         }
         return false;
@@ -311,108 +325,129 @@ export async function init(cacheBuster = Date.now()) {
         window.deferredPrompt.prompt();
         const { outcome } = await window.deferredPrompt.userChoice;
         console.log(`[PWA] Resultado da instalação: ${outcome}`);
-        
-        if (outcome === 'accepted') {
+
+        if (outcome === "accepted") {
           window.isPWAInstalled = true;
-          window.Utils?.showModal('infoModal', 'Aplicativo instalado com sucesso!');
+          window.Utils?.showModal(
+            "infoModal",
+            "Aplicativo instalado com sucesso!"
+          );
         }
-        
+
         window.deferredPrompt = null;
         window.isPWAInstallable = false;
-        window.dispatchEvent(new CustomEvent('pwa-install-result', { detail: outcome }));
-        return outcome === 'accepted';
+        window.dispatchEvent(
+          new CustomEvent("pwa-install-result", { detail: outcome })
+        );
+        return outcome === "accepted";
       } catch (error) {
-        console.error('❌ [PWA] Erro ao instalar:', error);
+        console.error("❌ [PWA] Erro ao instalar:", error);
         return false;
       }
     };
 
     // NOVO: Registro do Service Worker para PWA
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       // Registra imediatamente, não espera o load
       const registerSW = () => {
-        navigator.serviceWorker.register('/sw.js', { 
-          scope: '/',
-          updateViaCache: 'none' // Sempre busca atualizações
-        })
+        navigator.serviceWorker
+          .register("/sw.js", {
+            scope: "/",
+            updateViaCache: "none", // Sempre busca atualizações
+          })
           .then((registration) => {
-            console.log('✅ [SW] Registrado com sucesso:', registration.scope);
-            console.log('✅ [SW] Estado:', registration.active ? 'ATIVO' : 'INSTALANDO');
-            
+            console.log("✅ [SW] Registrado com sucesso:", registration.scope);
+            console.log(
+              "✅ [SW] Estado:",
+              registration.active ? "ATIVO" : "INSTALANDO"
+            );
+
             // Verifica atualizações
-            registration.addEventListener('updatefound', () => {
+            registration.addEventListener("updatefound", () => {
               const newWorker = registration.installing;
               if (newWorker) {
-                console.log('[SW] Nova versão encontrada, instalando...');
-                newWorker.addEventListener('statechange', () => {
+                console.log("[SW] Nova versão encontrada, instalando...");
+                newWorker.addEventListener("statechange", () => {
                   console.log(`[SW] Estado do novo worker: ${newWorker.state}`);
-                  if (newWorker.state === 'installed') {
+                  if (newWorker.state === "installed") {
                     if (navigator.serviceWorker.controller) {
-                      console.log('🔄 [SW] Nova versão instalada! Recarregue a página.');
+                      console.log(
+                        "🔄 [SW] Nova versão instalada! Recarregue a página."
+                      );
                     } else {
-                      console.log('✅ [SW] Instalado pela primeira vez!');
+                      console.log("✅ [SW] Instalado pela primeira vez!");
                     }
                   }
                 });
               }
             });
-            
+
             // Verifica atualizações periodicamente (a cada 5 minutos)
             setInterval(() => {
-              registration.update().catch(err => {
-                console.debug('[SW] Erro ao verificar atualização:', err.message);
+              registration.update().catch((err) => {
+                console.debug(
+                  "[SW] Erro ao verificar atualização:",
+                  err.message
+                );
               });
             }, 300000);
           })
           .catch((error) => {
-            console.error('❌ [SW] Falha ao registrar:', error);
-            console.error('❌ [SW] Detalhes:', {
+            console.error("❌ [SW] Falha ao registrar:", error);
+            console.error("❌ [SW] Detalhes:", {
               message: error.message,
               stack: error.stack,
-              name: error.name
+              name: error.name,
             });
           });
-        
-            // Aguarda o service worker estar pronto
+
+        // Aguarda o service worker estar pronto
         navigator.serviceWorker.ready
           .then((registration) => {
-            console.log('✅ [SW] Pronto para uso');
+            console.log("✅ [SW] Pronto para uso");
             if (navigator.serviceWorker.controller) {
-              console.log('✅ [SW] Está controlando a página');
+              console.log("✅ [SW] Está controlando a página");
               // Marca como instalável após SW estar ativo
               setTimeout(() => {
                 if (!window.isPWAInstalled && !window.isStandalone) {
                   // Verifica se é instalável mesmo sem o evento beforeinstallprompt
                   // Para Android/Chrome, o evento beforeinstallprompt deve ter sido disparado
                   // Para iOS, sempre mostra o botão de instalação
-                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  const isMobile =
+                    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                      navigator.userAgent
+                    );
                   if (isMobile && !window.deferredPrompt) {
                     // Se for mobile e não tiver o prompt, pode ser iOS ou navegador que não suporta
                     // Marca como potencialmente instalável
                     if (window.isIOS || !window.deferredPrompt) {
                       window.isPWAInstallable = true;
-                      window.dispatchEvent(new CustomEvent('pwa-check-installable'));
+                      window.dispatchEvent(
+                        new CustomEvent("pwa-check-installable")
+                      );
                     }
                   }
                 }
               }, 3000);
             } else {
-              console.log('⚠️ [SW] Ainda não está controlando (aguardando...)');
+              console.log("⚠️ [SW] Ainda não está controlando (aguardando...)");
             }
           })
           .catch((error) => {
-            console.warn('⚠️ [SW] Não está pronto:', error);
+            console.warn("⚠️ [SW] Não está pronto:", error);
           });
       };
-      
+
       // Tenta registrar imediatamente
-      if (document.readyState === 'loading') {
-        window.addEventListener('load', registerSW);
+      if (document.readyState === "loading") {
+        window.addEventListener("load", registerSW);
       } else {
         registerSW();
       }
     } else {
-      console.warn('⚠️ [SW] Service Workers não são suportados neste navegador');
+      console.warn(
+        "⚠️ [SW] Service Workers não são suportados neste navegador"
+      );
     }
   } catch (e) {
     console.error("Erro fatal ao carregar módulos dependentes:", e);
@@ -437,9 +472,9 @@ export async function init(cacheBuster = Date.now()) {
                             Ocorreu um erro ao carregar os arquivos principais.
                             <br>
                             <strong>Detalhe:</strong> ${errorMessage.substring(
-        0,
-        150
-      )}
+                              0,
+                              150
+                            )}
                         </div>
                     </div>
 

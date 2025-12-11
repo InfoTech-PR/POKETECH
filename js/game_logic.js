@@ -484,9 +484,50 @@ export const GameLogic = {
       );
 
       if (existingItem) {
+        // Todos os itens acumulam quantidade (incluindo ovos)
         existingItem.quantity += qty;
+        // Garante que as propriedades do item estão atualizadas
+        if (itemToBuy.spriteUrl && !existingItem.spriteUrl) {
+          existingItem.spriteUrl = itemToBuy.spriteUrl;
+        }
+        if (
+          itemToBuy.catchRate !== undefined &&
+          existingItem.catchRate === undefined
+        ) {
+          existingItem.catchRate = itemToBuy.catchRate;
+        }
+        if (
+          itemToBuy.healAmount !== undefined &&
+          existingItem.healAmount === undefined
+        ) {
+          existingItem.healAmount = itemToBuy.healAmount;
+        }
+        if (
+          itemToBuy.ppRestore !== undefined &&
+          existingItem.ppRestore === undefined
+        ) {
+          existingItem.ppRestore = itemToBuy.ppRestore;
+        }
+        if (itemToBuy.isEgg !== undefined && existingItem.isEgg === undefined) {
+          existingItem.isEgg = itemToBuy.isEgg;
+        }
+        if (
+          itemToBuy.isMove !== undefined &&
+          existingItem.isMove === undefined
+        ) {
+          existingItem.isMove = itemToBuy.isMove;
+        }
+        // Se for item de ataque e não tiver sprite, usa atack.png
+        if (existingItem.isMove && !existingItem.spriteUrl) {
+          existingItem.spriteUrl = "../assets/sprites/items/atack.png";
+        }
       } else {
+        // Cria novo item com a quantidade
         const newItem = { ...itemToBuy, quantity: qty };
+        // Se for item de ataque e não tiver sprite, usa atack.png
+        if (newItem.isMove && !newItem.spriteUrl) {
+          newItem.spriteUrl = "../assets/sprites/items/atack.png";
+        }
         window.gameState.profile.items.push(newItem);
       }
 
@@ -516,6 +557,22 @@ export const GameLogic = {
     }
 
     if (window.gameState.currentScreen !== "battle") {
+      // NOVO: Tratamento para ovos (não precisa de Pokémon alvo)
+      if (item.isEgg) {
+        // Verifica se tem ovo disponível
+        if (!item.quantity || item.quantity <= 0) {
+          window.Utils.showModal(
+            "errorModal",
+            "Você não tem ovos disponíveis!"
+          );
+          return false;
+        }
+
+        // Inicia a tela de chocar ovo (pokemonId será gerado ao clicar no ovo)
+        window.Renderer.showScreen("hatchEgg");
+        return true;
+      }
+
       const targetPokemon =
         window.gameState.profile.pokemon[targetPokemonIndex];
       if (!targetPokemon) return false;
@@ -729,6 +786,295 @@ export const GameLogic = {
       } Éter${item.quantity !== 1 ? "s" : ""}.`
     );
     return true;
+  },
+
+  // NOVO: Função auxiliar para iniciar o processo de chocar ovo
+  hatchEggItem: function () {
+    // Garante que gameState existe
+    if (!window.gameState) {
+      window.Utils.showModal(
+        "errorModal",
+        "Erro: Estado do jogo não encontrado."
+      );
+      return false;
+    }
+
+    // Verifica se tem ovo disponível
+    const hasEgg = window.gameState.profile?.items?.some(
+      (i) => i.isEgg && i.quantity > 0
+    );
+
+    if (!hasEgg) {
+      window.Utils.showModal("errorModal", "Você não tem ovos disponíveis!");
+      return false;
+    }
+
+    // Inicia a tela de chocar ovo (o pokemonId será gerado aleatoriamente ao clicar)
+    window.Renderer.showScreen("hatchEgg");
+    return true;
+  },
+
+  // NOVO: Função para gerar um Pokémon comum aleatório
+  _getRandomCommonPokemonId: async function () {
+    // Lista de IDs comuns (exclui lendários e míticos mais conhecidos)
+    // IDs de lendários e míticos conhecidos que devem ser excluídos
+    const legendaryMythicalIds = new Set([
+      144,
+      145,
+      146,
+      150,
+      151, // Kanto
+      243,
+      244,
+      245,
+      249,
+      250,
+      251, // Johto
+      377,
+      378,
+      379,
+      380,
+      381,
+      382,
+      383,
+      384,
+      385,
+      386, // Hoenn
+      480,
+      481,
+      482,
+      483,
+      484,
+      485,
+      486,
+      487,
+      488,
+      489,
+      490,
+      491,
+      492,
+      493, // Sinnoh
+      638,
+      639,
+      640,
+      641,
+      642,
+      643,
+      644,
+      645,
+      646,
+      647,
+      648,
+      649, // Unova
+      716,
+      717,
+      718,
+      719,
+      720,
+      721, // Kalos
+      772,
+      773,
+      785,
+      786,
+      787,
+      788,
+      789,
+      790,
+      791,
+      792,
+      800,
+      801,
+      802,
+      807,
+      808,
+      809, // Alola
+      888,
+      889,
+      890,
+      891,
+      892,
+      893,
+      894,
+      895,
+      896,
+      897,
+      898, // Galar
+      905,
+      906,
+      907,
+      908,
+      909,
+      910,
+      911,
+      912,
+      913,
+      914,
+      915,
+      916,
+      917,
+      918,
+      919,
+      920, // Paldea
+    ]);
+
+    let attempts = 0;
+    let pokemonId;
+    let isCommon = false;
+
+    // Tenta até 50 vezes encontrar um Pokémon comum
+    while (attempts < 50 && !isCommon) {
+      pokemonId =
+        Math.floor(Math.random() * (window.GameConfig?.POKEDEX_LIMIT || 1025)) +
+        1;
+
+      // Verifica se não é lendário/mítico
+      if (!legendaryMythicalIds.has(pokemonId)) {
+        try {
+          const speciesData = await window.PokeAPI.fetchSpeciesData(pokemonId);
+          if (
+            speciesData &&
+            !speciesData.isLegendary &&
+            !speciesData.isMythical
+          ) {
+            isCommon = true;
+          }
+        } catch (e) {
+          // Se não conseguir verificar, assume que é comum
+          isCommon = true;
+        }
+      }
+      attempts++;
+    }
+
+    // Se não encontrou após 50 tentativas, retorna um ID aleatório mesmo
+    return (
+      pokemonId ||
+      Math.floor(Math.random() * (window.GameConfig?.POKEDEX_LIMIT || 1025)) + 1
+    );
+  },
+
+  // NOVO: Função para chocar ovo e adicionar Pokémon ao time
+  hatchEgg: async function () {
+    // Previne múltiplas execuções simultâneas
+    if (window.gameState?._hatchingEgg) {
+      return;
+    }
+    window.gameState._hatchingEgg = true;
+
+    try {
+      // Gera um Pokémon comum aleatório
+      const pokemonId = await window.GameLogic._getRandomCommonPokemonId();
+
+      // Busca os dados do Pokémon
+      const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
+      if (!pokemonData) {
+        throw new Error(`Dados do Pokémon ${pokemonId} não encontrados.`);
+      }
+
+      // Configura o Pokémon com nível 1
+      pokemonData.level = 1;
+      pokemonData.maxHp = window.Utils.calculateMaxHp(
+        pokemonData.stats.hp,
+        pokemonData.level
+      );
+      pokemonData.currentHp = pokemonData.maxHp;
+
+      // Aplica template de movimentos
+      window.Utils.applyMoveTemplate(pokemonData, { forceResetUses: true });
+
+      // Adiciona data de chocagem
+      pokemonData.hatchDate = new Date().toISOString();
+
+      // Adiciona o Pokémon ao time
+      window.gameState.profile.pokemon.push(pokemonData);
+
+      // Remove 1 ovo do inventário
+      const eggItem = window.gameState.profile.items.find(
+        (i) => i.isEgg && i.quantity > 0
+      );
+      if (eggItem) {
+        eggItem.quantity--;
+        if (eggItem.quantity <= 0) {
+          // Remove o item se não sobrar nenhum
+          const eggItemIndex = window.gameState.profile.items.indexOf(eggItem);
+          if (eggItemIndex !== -1) {
+            window.gameState.profile.items.splice(eggItemIndex, 1);
+          }
+        }
+      }
+
+      // Adiciona doce
+      window.GameLogic.addPokemonCandy(pokemonId, 1);
+
+      // Registra no Pokedex se não estiver registrado
+      const foiCapturado = window.gameState.profile.pokedex.has(pokemonId);
+      if (!foiCapturado) {
+        window.Utils.registerPokemon(pokemonId);
+      }
+
+      // Limpa a flag antes de salvar e mostrar resultado
+      window.gameState._hatchingEgg = false;
+
+      // Salva o jogo (usa saveGameData mas sem navegação)
+      const profileToSave = { ...window.gameState.profile };
+      profileToSave.pokedex = Array.from(profileToSave.pokedex);
+      window.Utils.saveGame();
+
+      // Salva no Firestore de forma assíncrona sem bloquear
+      if (
+        window.db &&
+        window.auth?.currentUser &&
+        !window.auth.currentUser.isAnonymous
+      ) {
+        setDoc(
+          doc(window.db, "users", window.userId),
+          sanitizeForFirestore(profileToSave),
+          { merge: true }
+        ).catch((error) =>
+          console.error("Erro ao salvar dados no Firestore:", error)
+        );
+      }
+
+      // Mostra a tela de resultado imediatamente
+      console.log("[hatchEgg] Mostrando resultado:", pokemonData);
+      window._hatchEggRendering = false;
+
+      // Renderiza diretamente sem passar pelo showScreen para evitar problemas de navegação
+      const pokemonDisplayName =
+        window.Utils.getPokemonDisplayName(pokemonData);
+      const content = `
+        <div class="flex flex-col items-center justify-center h-full">
+          <div class="text-2xl font-bold text-center mb-4 text-gray-800 gba-font">🎉 OVO CHOCADO!</div>
+          <img src="../assets/sprites/pokemon/${pokemonData.id}_front.png" alt="${pokemonData.name}" class="w-32 h-32 mb-4">
+          <div class="text-xl font-bold text-center mb-2 text-gray-800 gba-font">${pokemonDisplayName}</div>
+          <div class="text-sm text-center mb-4 text-gray-600 gba-font">Nível 1</div>
+          <div class="text-center mb-4 text-gray-700 gba-font text-sm">
+            ${pokemonDisplayName} foi adicionado ao seu time!
+          </div>
+          <button onclick="window.Renderer.showScreen('pokemonList')" class="gba-button bg-blue-500 hover:bg-blue-600 w-full">
+            Ver Pokémons
+          </button>
+          <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-2">
+            Voltar à Mochila
+          </button>
+        </div>
+      `;
+      window.Renderer.renderGbaCard(content);
+    } catch (error) {
+      console.error("Erro ao chocar ovo:", error);
+      window.Utils.showModal(
+        "errorModal",
+        `Erro ao chocar ovo: ${error.message}`
+      );
+
+      // Limpa o pendingHatchedPokemon em caso de erro
+      delete window.gameState.pendingHatchedPokemon;
+      window.gameState._hatchingEgg = false;
+      window.Renderer.showScreen("bag");
+    }
+
+    // Limpa a flag de hatch em andamento
+    window.gameState._hatchingEgg = false;
   },
 
   healAllPokemon: function () {

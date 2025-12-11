@@ -213,6 +213,8 @@ export const RendererServices = {
                 ${
                   item.spriteUrl
                     ? `<img src="${item.spriteUrl}" alt="${item.name}" class="w-8 h-8 mr-2 flex-shrink-0">`
+                    : item.isMove
+                    ? `<img src="../assets/sprites/items/atack.png" alt="${item.name}" class="w-8 h-8 mr-2 flex-shrink-0">`
                     : ""
                 }
                 <div class="flex-grow min-w-0">
@@ -604,9 +606,18 @@ export const RendererServices = {
 
   // NOVO: Renderiza a tela de chocar ovo com animação
   renderHatchEgg: function (app, extraData = {}) {
+    console.log("[renderHatchEgg] Chamado com extraData:", extraData);
+
     const result = extraData?.result;
 
     if (result) {
+      console.log(
+        "[renderHatchEgg] Mostrando resultado para Pokémon:",
+        result.name,
+        "ID:",
+        result.id
+      );
+      window._hatchEggRendering = false;
       // Mostra o resultado após a animação
       const pokemonDisplayName = window.Utils.getPokemonDisplayName(result);
       const content = `
@@ -628,16 +639,21 @@ export const RendererServices = {
       `;
       window.Renderer.renderGbaCard(content);
     } else {
-      // Mostra a animação do ovo tremendo
+      // Mostra a animação do ovo tremendo - só choca ao clicar
+      // O pokemonId será gerado aleatoriamente ao clicar no ovo
+      const eggClickHandler = `if(!window.gameState?._hatchingEgg) { window.GameLogic.hatchEgg(); }`;
       const content = `
         <div class="flex flex-col items-center justify-center h-full">
-          <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font">CHOCANDO OVO...</div>
-          <div id="egg-container" class="relative">
-            <img src="../assets/sprites/items/potion.png" alt="Ovo" class="w-32 h-32 egg-shake" style="animation: shake 0.5s infinite;">
+          <div class="text-xl font-bold text-center mb-6 text-gray-800 gba-font">OVO PRONTO PARA CHOCAR</div>
+          <div id="egg-container" class="relative" style="cursor: pointer;" onclick="${eggClickHandler}">
+            <img src="../assets/sprites/items/egg.png" alt="Ovo" class="w-32 h-32 egg-shake" style="animation: shake 0.5s infinite; cursor: pointer; pointer-events: none;">
           </div>
           <div class="text-center mt-6 text-gray-600 gba-font text-sm">
-            O ovo está tremendo...
+            Clique no ovo para chocar!
           </div>
+          <button onclick="window.Renderer.showScreen('bag')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full mt-4">
+            Voltar à Mochila
+          </button>
         </div>
         <style>
           @keyframes shake {
@@ -654,44 +670,19 @@ export const RendererServices = {
           }
           .egg-shake {
             animation: shake 0.5s infinite;
+            cursor: pointer;
+            transition: transform 0.2s;
+          }
+          .egg-shake:hover {
+            transform: scale(1.1);
+          }
+          #egg-container:hover {
+            filter: brightness(1.1);
           }
         </style>
       `;
       window.Renderer.renderGbaCard(content);
-
-      // Após 3 segundos, finaliza o processo
-      // Armazena o ID em uma variável local para garantir que não seja perdido
-      const pokemonId = window.gameState?.pendingHatchedPokemon;
-      if (!pokemonId) {
-        console.error(
-          "Erro: pendingHatchedPokemon não encontrado ao iniciar animação"
-        );
-        window.Utils.showModal(
-          "errorModal",
-          "Erro ao chocar ovo. Tente novamente."
-        );
-        window.Renderer.showScreen("bag");
-        return;
-      }
-
-      setTimeout(() => {
-        // Verifica novamente se o pendingHatchedPokemon ainda existe
-        const currentId = window.gameState?.pendingHatchedPokemon || pokemonId;
-        if (!currentId) {
-          console.error(
-            "Erro: pendingHatchedPokemon perdido durante a animação"
-          );
-          window.Utils.showModal(
-            "errorModal",
-            "Erro ao chocar ovo. Tente novamente."
-          );
-          window.Renderer.showScreen("bag");
-          return;
-        }
-        // Garante que o ID esteja definido antes de chamar hatchEgg
-        window.gameState.pendingHatchedPokemon = currentId;
-        window.GameLogic.hatchEgg();
-      }, 3000);
+      window._hatchEggRendering = false;
     }
   },
 };

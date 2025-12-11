@@ -185,7 +185,8 @@ export const RendererPokemon = {
 
     // NOVO: Determina qual aba está ativa (default: 'general')
     // Usa extraData.tab se disponível, senão usa a aba salva, senão 'general'
-    const activeTab = extraData?.tab || window.currentPokemonListTab || 'general';
+    const activeTab =
+      extraData?.tab || window.currentPokemonListTab || "general";
     window.currentPokemonListTab = activeTab;
 
     // NOVO: Inicializa filtros se não existirem
@@ -302,22 +303,25 @@ export const RendererPokemon = {
 
     // NOVO: Renderiza HTML baseado na aba ativa
     let pokemonHtml = "";
-    
-    if (activeTab === 'team') {
+
+    if (activeTab === "team") {
       // ABA: EQUIPE ATIVA
       const profile = window.gameState.profile;
       const battleTeam = profile.battleTeam || [];
       const fullArray = window.gameState.profile.pokemon;
-      
+
       if (battleTeam.length === 0) {
-        pokemonHtml = '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon na equipe de batalha. Adicione pokémons na aba "Pokemons Gerais".</p>';
+        pokemonHtml =
+          '<p class="text-center text-gray-500 gba-font p-4">Nenhum Pokémon na equipe de batalha. Adicione pokémons na aba "Pokemons Gerais".</p>';
       } else {
         pokemonHtml = battleTeam
           .map((pokemonIndex, teamIndex) => {
             const p = fullArray[pokemonIndex];
             if (!p) return "";
-            
-            const expToNextLevel = window.Utils.calculateExpToNextLevel(p.level);
+
+            const expToNextLevel = window.Utils.calculateExpToNextLevel(
+              p.level
+            );
             const expPercent = Math.min(100, (p.exp / expToNextLevel) * 100);
             const isCurrentActive = pokemonIndex === 0;
             const isFavorite = p.isFavorite === true;
@@ -330,21 +334,27 @@ export const RendererPokemon = {
                    data-team-index="${teamIndex}"
                    class="flex items-center justify-between p-2 border-b border-gray-300 transition-colors duration-100 ${
                      p.currentHp <= 0 ? "opacity-50" : ""
-                   } ${isFavorite ? "bg-yellow-50 border-yellow-300" : ""} ${isFirst ? "bg-green-50 border-green-300" : ""}">
+                   } ${isFavorite ? "bg-yellow-50 border-yellow-300" : ""} ${
+              isFirst ? "bg-green-50 border-green-300" : ""
+            }">
                   
                   <!-- ÁREA 1: SETAS DE REORDENAÇÃO -->
                   <div class="flex flex-col gap-1 flex-shrink-0">
                     <button onclick="event.stopPropagation(); window.GameLogic.moveBattleTeamPokemon(${teamIndex}, 'up');" 
-                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${isFirst ? 'opacity-30 cursor-not-allowed' : ''}"
-                            ${isFirst ? 'disabled' : ''}
+                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${
+                              isFirst ? "opacity-30 cursor-not-allowed" : ""
+                            }"
+                            ${isFirst ? "disabled" : ""}
                             title="Mover para cima">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708z"/>
                       </svg>
                     </button>
                     <button onclick="event.stopPropagation(); window.GameLogic.moveBattleTeamPokemon(${teamIndex}, 'down');" 
-                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${isLast ? 'opacity-30 cursor-not-allowed' : ''}"
-                            ${isLast ? 'disabled' : ''}
+                            class="p-1 text-blue-600 hover:text-blue-800 disabled:opacity-30 disabled:cursor-not-allowed ${
+                              isLast ? "opacity-30 cursor-not-allowed" : ""
+                            }"
+                            ${isLast ? "disabled" : ""}
                             title="Mover para baixo">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>
@@ -356,9 +366,11 @@ export const RendererPokemon = {
                   <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
                     p.name
                   }', ${pokemonIndex})">
-                      <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
-                p.name
-              }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
+                      <img src="../assets/sprites/pokemon/${
+                        p.id
+                      }_front.png" alt="${
+              p.name
+            }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                       <div class="flex flex-col min-w-0">
                           <div class="font-bold gba-font text-xs sm:text-sm truncate">
                             ${
@@ -366,14 +378,14 @@ export const RendererPokemon = {
                                 ? '<span class="text-yellow-500">⭐</span> '
                                 : ""
                             }${window.Utils.getPokemonDisplayName(p)} ${
-                isCurrentActive
-                  ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
-                  : ""
-              } ${
-                isFirst
-                  ? '<span class="text-[8px] text-blue-600">(PRIMÁRIO)</span>'
-                  : ""
-              }
+              isCurrentActive
+                ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
+                : ""
+            } ${
+              isFirst
+                ? '<span class="text-[8px] text-blue-600">(PRIMÁRIO)</span>'
+                : ""
+            }
                           </div>
                           <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                             <span>(Nv. ${p.level})</span>
@@ -413,7 +425,7 @@ export const RendererPokemon = {
               </div>
           `;
           })
-          .filter(html => html !== "")
+          .filter((html) => html !== "")
           .join("");
       }
     } else {
@@ -440,9 +452,11 @@ export const RendererPokemon = {
                 <div class="flex items-center flex-grow min-w-0 p-1 cursor-pointer" onclick="window.Renderer.showPokemonStats('${
                   p.name
                 }', ${actualIndex})">
-                    <img src="../assets/sprites/pokemon/${p.id}_front.png" alt="${
-              p.name
-            }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
+                    <img src="../assets/sprites/pokemon/${
+                      p.id
+                    }_front.png" alt="${
+            p.name
+          }" class="w-16 h-16 sm:w-20 sm:h-20 mr-2 flex-shrink-0">
                     <div class="flex flex-col min-w-0">
                         <div class="font-bold gba-font text-xs sm:text-sm truncate">
                           ${
@@ -450,10 +464,10 @@ export const RendererPokemon = {
                               ? '<span class="text-yellow-500">⭐</span> '
                               : ""
                           }${window.Utils.getPokemonDisplayName(p)} ${
-              isCurrentActive
-                ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
-                : ""
-            }
+            isCurrentActive
+              ? '<span class="text-[8px] text-green-600">(ATUAL)</span>'
+              : ""
+          }
                         </div>
                         <div class="text-[8px] sm:text-xs gba-font flex flex-col sm:flex-row sm:space-x-2">
                           <span>(Nv. ${p.level})</span>
@@ -493,8 +507,8 @@ export const RendererPokemon = {
                   <button class="p-2 text-yellow-500 hover:text-yellow-600 transition-colors ${
                     isFavorite ? "opacity-100" : "opacity-30 hover:opacity-60"
                   }" title="${
-              isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
-            }">
+            isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
+          }">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
                       <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
                     </svg>
@@ -521,7 +535,7 @@ export const RendererPokemon = {
       if (newHpStatus !== undefined) filters.hpStatus = newHpStatus;
       if (newSortBy !== undefined) filters.sortBy = newSortBy;
       // NOVO: Preserva a aba atual ao filtrar
-      const currentTab = window.currentPokemonListTab || 'general';
+      const currentTab = window.currentPokemonListTab || "general";
       window.Renderer.showScreen("pokemonList", { tab: currentTab });
     };
 
@@ -657,17 +671,17 @@ export const RendererPokemon = {
       <div class="flex gap-2 mb-3 flex-shrink-0 border-b-2 border-gray-300">
         <button onclick="window.currentPokemonListTab = 'general'; window.Renderer.showScreen('pokemonList', { tab: 'general' });" 
                 class="flex-1 py-2 px-4 gba-font text-sm font-bold transition-colors ${
-                  activeTab === 'general' 
-                    ? 'bg-blue-500 text-white border-b-2 border-blue-700' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  activeTab === "general"
+                    ? "bg-blue-500 text-white border-b-2 border-blue-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }">
           Pokemons Gerais
         </button>
         <button onclick="window.currentPokemonListTab = 'team'; window.Renderer.showScreen('pokemonList', { tab: 'team' });" 
                 class="flex-1 py-2 px-4 gba-font text-sm font-bold transition-colors ${
-                  activeTab === 'team' 
-                    ? 'bg-blue-500 text-white border-b-2 border-blue-700' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  activeTab === "team"
+                    ? "bg-blue-500 text-white border-b-2 border-blue-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }">
           Equipe Ativa
         </button>
@@ -678,7 +692,7 @@ export const RendererPokemon = {
       <div class="text-xl font-bold text-center mb-2 text-gray-800 gba-font flex-shrink-0">SEUS POKÉMONS</div>
       ${actionBanner}
       ${tabsHtml}
-      ${activeTab === 'general' ? filtersHtml : ''}
+      ${activeTab === "general" ? filtersHtml : ""}
       <div class="pokemon-list-container flex-grow overflow-y-auto border border-gray-400 p-2 mb-4 bg-white">
         ${
           pokemonHtml ||
@@ -846,12 +860,13 @@ export const RendererPokemon = {
 
     const itemsHtml = items
       .map((item) => {
-        const isUsable = item.healAmount > 0 || item.ppRestore || item.isEgg || item.isMove;
+        const isUsable =
+          item.healAmount > 0 || item.ppRestore || item.isEgg || item.isMove;
         const isEgg = item.isEgg;
         const isMove = item.isMove;
         const isCommonMove = item.isCommonMove;
         const isSpecialMove = item.isSpecialMove;
-        
+
         let actionText = "Detalhes";
         if (item.healAmount > 0) {
           actionText = "Curar";
@@ -868,7 +883,7 @@ export const RendererPokemon = {
             actionText = "Usar (Ataque Aleatório)";
           }
         }
-        
+
         const isPokeball = item.name.toLowerCase().includes("ball");
         const itemConfig = window.GameConfig.SHOP_ITEMS.find(
           (i) => i.name === item.name
@@ -876,12 +891,13 @@ export const RendererPokemon = {
         const specialItemConfig = window.GameConfig.SPECIAL_ITEMS?.find(
           (i) => i.name === item.name
         );
-        let spriteUrl = itemConfig?.spriteUrl || specialItemConfig?.spriteUrl || "";
+        let spriteUrl =
+          itemConfig?.spriteUrl || specialItemConfig?.spriteUrl || "";
         // Se for item de ataque e não tiver sprite, usa atack.png
         if (isMove && !spriteUrl) {
           spriteUrl = "../assets/sprites/items/atack.png";
         }
-        
+
         // Ação: Se for item de cura, leva para a tela de lista de Pokémons para seleção.
         // Isso permite que a GameLogic utilize o item no Pokémon escolhido.
         // NOVO: Ovos são usados diretamente sem precisar selecionar pokemon
@@ -889,7 +905,10 @@ export const RendererPokemon = {
           ? `<button onclick="${
               isEgg
                 ? `window.GameLogic.hatchEggItem()`
-                : `window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name.replace(/'/g, "\\'")}' })`
+                : `window.Renderer.showScreen('pokemonList', { action: 'useItem', item: '${item.name.replace(
+                    /'/g,
+                    "\\'"
+                  )}' })`
             }" 
                         class="gba-button ${
                           item.ppRestore
@@ -927,7 +946,11 @@ export const RendererPokemon = {
                             <span class="gba-font text-[10px] sm:text-xs block">x${
                               item.quantity
                             } ${actionText}</span>
-                            ${item.description ? `<span class="gba-font text-[9px] text-gray-500 block">${item.description}</span>` : ""}
+                            ${
+                              item.description
+                                ? `<span class="gba-font text-[9px] text-gray-500 block">${item.description}</span>`
+                                : ""
+                            }
                         </div>
                     </div>
                     

@@ -8,83 +8,83 @@
  * @returns {Promise<object>} O objeto Renderer unificado.
  */
 export async function createRenderer(v) {
-    // 1. Carrega dinamicamente todos os submódulos usando a string de versionamento (v)
-    // Isso garante que o cache-busting seja aplicado a todas as dependências.
-    const [
-        { RendererCore },
-        { RendererMenus },
-        { RendererPokemon },
-        { RendererServices }
-    ] = await Promise.all([
-        import(`./renderer_core.js?v=${v}`),
-        import(`./renderer_menus.js?v=${v}`),
-        import(`./renderer_pokemon.js?v=${v}`),
-        import(`./renderer_services.js?v=${v}`)
-    ]);
+  // 1. Carrega dinamicamente todos os submódulos usando a string de versionamento (v)
+  // Isso garante que o cache-busting seja aplicado a todas as dependências.
+  const [
+    { RendererCore },
+    { RendererMenus },
+    { RendererPokemon },
+    { RendererServices },
+  ] = await Promise.all([
+    import(`./renderer_core.js?v=${v}`),
+    import(`./renderer_menus.js?v=${v}`),
+    import(`./renderer_pokemon.js?v=${v}`),
+    import(`./renderer_services.js?v=${v}`),
+  ]);
 
-    // 2. Exporta o objeto final 'Renderer' que combina o core e todos os submódulos.
-    const Renderer = {
-        // Core Functions
-        showScreen: RendererCore.showScreen,
-        renderGbaCard: RendererCore.renderGbaCard,
+  // 2. Exporta o objeto final 'Renderer' que combina o core e todos os submódulos.
+  const Renderer = {
+    // Core Functions
+    showScreen: RendererCore.showScreen,
+    renderGbaCard: RendererCore.renderGbaCard,
 
-        // Menu Functions (from renderer_menus.js)
-        renderInitialMenu: RendererMenus.renderInitialMenu,
-        renderStarterSelection: RendererMenus.renderStarterSelection,
-        renderMainMenu: RendererMenus.renderMainMenu,
-        renderProfile: RendererMenus.renderProfile,
-        renderPreferences: RendererMenus.renderPreferences,
-        renderPokemonMenu: RendererMenus.renderPokemonMenu,
-        renderProfileMenu: RendererMenus.renderProfileMenu,
-        renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
-        handleFriendLinkGeneration: RendererMenus.handleFriendLinkGeneration,
-        copyFriendLink: RendererMenus.copyFriendLink,
-        copyTrainerIdFromCard: RendererMenus.copyTrainerIdFromCard,
-        joinPvpFromFriendship: RendererMenus.joinPvpFromFriendship,
-        challengeFriendToPvp: RendererMenus.challengeFriendToPvp,
-        updateTrainerAvatar: RendererMenus.updateTrainerAvatar,
-        handleCustomAvatarUpload: RendererMenus.handleCustomAvatarUpload,
-        removeCustomAvatar: RendererMenus.removeCustomAvatar,
+    // Menu Functions (from renderer_menus.js)
+    renderInitialMenu: RendererMenus.renderInitialMenu,
+    renderStarterSelection: RendererMenus.renderStarterSelection,
+    renderMainMenu: RendererMenus.renderMainMenu,
+    renderProfile: RendererMenus.renderProfile,
+    renderPreferences: RendererMenus.renderPreferences,
+    renderPokemonMenu: RendererMenus.renderPokemonMenu,
+    renderProfileMenu: RendererMenus.renderProfileMenu,
+    renderFriendshipMenu: RendererMenus.renderFriendshipMenu,
+    handleFriendLinkGeneration: RendererMenus.handleFriendLinkGeneration,
+    copyFriendLink: RendererMenus.copyFriendLink,
+    copyTrainerIdFromCard: RendererMenus.copyTrainerIdFromCard,
+    joinPvpFromFriendship: RendererMenus.joinPvpFromFriendship,
+    challengeFriendToPvp: RendererMenus.challengeFriendToPvp,
+    updateTrainerAvatar: RendererMenus.updateTrainerAvatar,
+    handleCustomAvatarUpload: RendererMenus.handleCustomAvatarUpload,
+    removeCustomAvatar: RendererMenus.removeCustomAvatar,
 
-        // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
-        copyPlayerId: RendererMenus.copyPlayerId,
+    // NOVO: Expondo a função de cópia do ID para que window.Renderer.copyPlayerId funcione
+    copyPlayerId: RendererMenus.copyPlayerId,
 
-        // Funções de Gênero
-        selectGender: RendererMenus.selectGender,
-        updateGenderOnly: RendererMenus.updateGenderOnly,
-        
-        // Função de Eventos Semanais
-        showWeeklyEventModal: RendererMenus.showWeeklyEventModal,
+    // Funções de Gênero
+    selectGender: RendererMenus.selectGender,
+    updateGenderOnly: RendererMenus.updateGenderOnly,
 
-        // Pokémon Functions (from renderer_pokemon.js)
-        renderPokemonList: RendererPokemon.renderPokemonList,
-        renderManagePokemon: RendererPokemon.renderManagePokemon,
-        renderBag: RendererPokemon.renderBag,
-        renderBattleTeam: RendererPokemon.renderBattleTeam,
+    // Função de Eventos Semanais
+    showWeeklyEventModal: RendererMenus.showWeeklyEventModal,
 
-        // CORREÇÃO E NOVIDADE: renderPokedex agora é a tela que exibe a lista de regiões
-        // A função detalhada é chamada internamente.
-        renderPokedex: RendererPokemon.renderPokedex,
+    // Pokémon Functions (from renderer_pokemon.js)
+    renderPokemonList: RendererPokemon.renderPokemonList,
+    renderManagePokemon: RendererPokemon.renderManagePokemon,
+    renderBag: RendererPokemon.renderBag,
+    renderBattleTeam: RendererPokemon.renderBattleTeam,
 
-        // NOVA FUNÇÃO (para ser chamada via showScreen('pokedex'))
-        renderPokedexRegionList: RendererPokemon.renderPokedexRegionList,
+    // CORREÇÃO E NOVIDADE: renderPokedex agora é a tela que exibe a lista de regiões
+    // A função detalhada é chamada internamente.
+    renderPokedex: RendererPokemon.renderPokedex,
 
-        showPokemonStats: RendererPokemon.showPokemonStats,
-        showPokedexStats: RendererPokemon.showPokedexStats,
-        showRenamePokemonModal: RendererPokemon.showRenamePokemonModal,
-        confirmRenamePokemon: RendererPokemon.confirmRenamePokemon,
-        selectStarter: RendererMenus.selectStarter, // Mantido aqui para compatibilidade
+    // NOVA FUNÇÃO (para ser chamada via showScreen('pokedex'))
+    renderPokedexRegionList: RendererPokemon.renderPokedexRegionList,
 
-        // Services and Battle Functions (from renderer_services.js)
-        renderHealCenter: RendererServices.renderHealCenter,
-        renderShop: RendererServices.renderShop,
-        renderPvpSetup: RendererServices.renderPvpSetup,
-        renderPvpWaiting: RendererServices.renderPvpWaiting,
-        renderBattleScreen: RendererServices.renderBattleScreen,
-        renderSwitchPokemon: RendererServices.renderSwitchPokemon,
-        renderMapView: RendererServices.renderMapView, // NOVO: Mapeamento de tela de mapa
-        renderHatchEgg: RendererServices.renderHatchEgg, // NOVO: Tela de chocar ovo
-    };
+    showPokemonStats: RendererPokemon.showPokemonStats,
+    showPokedexStats: RendererPokemon.showPokedexStats,
+    showRenamePokemonModal: RendererPokemon.showRenamePokemonModal,
+    confirmRenamePokemon: RendererPokemon.confirmRenamePokemon,
+    selectStarter: RendererMenus.selectStarter, // Mantido aqui para compatibilidade
 
-    return Renderer;
+    // Services and Battle Functions (from renderer_services.js)
+    renderHealCenter: RendererServices.renderHealCenter,
+    renderShop: RendererServices.renderShop,
+    renderPvpSetup: RendererServices.renderPvpSetup,
+    renderPvpWaiting: RendererServices.renderPvpWaiting,
+    renderBattleScreen: RendererServices.renderBattleScreen,
+    renderSwitchPokemon: RendererServices.renderSwitchPokemon,
+    renderMapView: RendererServices.renderMapView, // NOVO: Mapeamento de tela de mapa
+    renderHatchEgg: RendererServices.renderHatchEgg, // NOVO: Tela de chocar ovo
+  };
+
+  return Renderer;
 }

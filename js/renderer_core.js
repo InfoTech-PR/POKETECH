@@ -101,8 +101,11 @@ export const RendererCore = {
       case "mapView": // NOVO: Tela do Mapa
         window.Renderer.renderMapView(app);
         break;
-      case "hatchEgg": // NOVO: Tela de chocar ovo
-        window.Renderer.renderHatchEgg(app, safeExtraData);
+      case "incubator": // NOVO: Tela da Incubadora
+        window.Renderer.renderIncubator(app);
+        break;
+      case "hatchEgg": // Tela de chocar ovo (sistema antigo)
+        window.Renderer.renderHatchEgg(app);
         break;
       // NOVOS SUBMENUS
       case "pokemonMenu":

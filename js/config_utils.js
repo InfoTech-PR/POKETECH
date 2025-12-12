@@ -61,12 +61,34 @@ export async function createConfigAndUtils(v) {
         defaultQuantity: 2,
       },
       {
-        name: "Ovo Pokémon",
+        name: "Ovo Comum",
         quantity: 0,
         isEgg: true,
+        eggType: "common", // comum, raro, lendario
+        battlesRequired: 100,
         cost: 1000,
         spriteUrl: "../assets/sprites/items/egg.png",
-        description: "Choca um Pokémon aleatório nível 1",
+        description: "Choca após 100 batalhas. Pokémon nível 10-25",
+      },
+      {
+        name: "Ovo Raro",
+        quantity: 0,
+        isEgg: true,
+        eggType: "rare",
+        battlesRequired: 200,
+        cost: 3000,
+        spriteUrl: "../assets/sprites/items/egg.png",
+        description: "Choca após 200 batalhas. Pokémon nível 10-25",
+      },
+      {
+        name: "Ovo Lendário",
+        quantity: 0,
+        isEgg: true,
+        eggType: "legendary",
+        battlesRequired: 350,
+        cost: 8000,
+        spriteUrl: "../assets/sprites/items/egg.png",
+        description: "Choca após 350 batalhas. Pokémon nível 10-25",
       },
     ],
     // Limite da Pokédex baseado nos dados locais
@@ -295,6 +317,7 @@ export async function createConfigAndUtils(v) {
         trainerExp: 0, // NOVO: XP do treinador
         normalBattleCount: 0, // NOVO: Contador de batalhas normais
         badges: [], // NOVO: Array de insígnias conquistadas (ex: ["Zona 1", "Zona 2"])
+        incubator: [], // NOVO: Array de ovos na incubadora [{eggType, battlesProgress, battlesRequired, itemName}]
         preferences: {
           volume: 0.5,
           isMuted: false,
@@ -429,6 +452,11 @@ export async function createConfigAndUtils(v) {
             window.gameState.profile.normalBattleCount = 0;
           }
 
+          // NOVO: Garante que a incubadora exista
+          if (!Array.isArray(window.gameState.profile.incubator)) {
+            window.gameState.profile.incubator = [];
+          }
+
           // NOVO: Garante que o sistema de doces exista
           if (
             !window.gameState.profile.pokemonCandy ||
@@ -463,6 +491,8 @@ export async function createConfigAndUtils(v) {
               healAmount: savedItem.healAmount ?? configItem?.healAmount ?? 0,
               isEgg: configItem?.isEgg || savedItem.isEgg || false,
               isMove: configItem?.isMove || savedItem.isMove || false,
+              eggType: configItem?.eggType || savedItem.eggType,
+              battlesRequired: configItem?.battlesRequired || savedItem.battlesRequired,
             };
 
             // Remove pokemonId de ovos antigos (não é mais necessário)

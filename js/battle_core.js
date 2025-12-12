@@ -1445,6 +1445,11 @@ export const BattleCore = {
       if (battle.type === "wild" && !battle.didEscape) {
         const profile = window.gameState.profile;
         profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
+        
+        // NOVO: Atualiza progresso dos ovos na incubadora
+        if (window.GameLogic && window.GameLogic.updateIncubatorProgress) {
+          window.GameLogic.updateIncubatorProgress();
+        }
       }
 
       // 2. Adiciona a mensagem final ao log principal

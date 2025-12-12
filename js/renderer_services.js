@@ -685,4 +685,150 @@ export const RendererServices = {
       window._hatchEggRendering = false;
     }
   },
+
+  // NOVO: Renderiza a tela da Incubadora
+  renderIncubator: function (app) {
+    const profile = window.gameState.profile;
+    const incubator = profile.incubator || [];
+
+    // Lista de ovos disponíveis na mochila
+    const availableEggs = (profile.items || []).filter(
+      (i) => i.isEgg && i.quantity > 0
+    );
+
+    // HTML dos ovos na incubadora
+    const incubatorSlotsHtml = Array(3)
+      .fill(null)
+      .map((_, index) => {
+        const egg = incubator[index];
+        if (egg) {
+          const progressPercent = Math.min(
+            100,
+            (egg.battlesProgress / egg.battlesRequired) * 100
+          );
+          const isReady = egg.battlesProgress >= egg.battlesRequired;
+
+          const eggTypeColors = {
+            common: { bg: "bg-gray-200", border: "border-gray-500", text: "text-gray-800" },
+            rare: { bg: "bg-blue-200", border: "border-blue-500", text: "text-blue-800" },
+            legendary: { bg: "bg-yellow-200", border: "border-yellow-500", text: "text-yellow-800" },
+          };
+
+          const colors = eggTypeColors[egg.eggType] || eggTypeColors.common;
+          const typeLabels = {
+            common: "Comum",
+            rare: "Raro",
+            legendary: "Lendário",
+          };
+
+          return `
+            <div class="p-3 border-2 ${colors.border} rounded-lg ${colors.bg}">
+              <div class="flex items-center justify-between mb-2">
+                <div class="gba-font text-xs font-bold ${colors.text}">${egg.itemName}</div>
+                <div class="gba-font text-[10px] ${colors.text}">${typeLabels[egg.eggType] || egg.eggType}</div>
+              </div>
+              <img src="../assets/sprites/items/egg.png" alt="Ovo" class="w-16 h-16 mx-auto mb-2">
+              <div class="mb-2">
+                <div class="w-full bg-gray-300 h-3 rounded-full border border-gray-500 overflow-hidden">
+                  <div class="h-full rounded-full bg-blue-500 transition-all duration-500" style="width: ${progressPercent}%;"></div>
+                </div>
+                <div class="gba-font text-[10px] text-center mt-1">
+                  ${egg.battlesProgress} / ${egg.battlesRequired} batalhas
+                </div>
+              </div>
+              ${
+                isReady
+                  ? '<div class="gba-font text-xs text-center text-green-600 font-bold mb-2">✨ PRONTO PARA CHOCAR!</div>'
+                  : ""
+              }
+              <button onclick="window.GameLogic.removeEggFromIncubator(${index}); setTimeout(() => window.Renderer.showScreen('incubator'), 100);" 
+                      class="gba-button bg-red-500 hover:bg-red-600 text-xs w-full">
+                Remover
+              </button>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="p-3 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 flex flex-col items-center justify-center min-h-[200px]">
+              <div class="gba-font text-xs text-gray-500 text-center mb-2">Slot ${index + 1} Vazio</div>
+              <img src="../assets/sprites/items/egg.png" alt="Vazio" class="w-16 h-16 opacity-30 mb-2">
+              <select id="egg-select-${index}" class="w-full p-1 border-2 border-gray-400 rounded gba-font text-xs mb-2">
+                <option value="">Selecione um ovo...</option>
+                ${availableEggs
+                  .map(
+                    (eggItem) =>
+                      `<option value="${eggItem.name}">${eggItem.name} (x${eggItem.quantity})</option>`
+                  )
+                  .join("")}
+              </select>
+              <button onclick="const select = document.getElementById('egg-select-${index}'); if(select.value) { window.GameLogic.addEggToIncubator(select.value); setTimeout(() => window.Renderer.showScreen('incubator'), 100); }" 
+                      class="gba-button bg-green-500 hover:bg-green-600 text-xs w-full"
+                      ${availableEggs.length === 0 ? "disabled" : ""}>
+                Adicionar Ovo
+              </button>
+            </div>
+          `;
+        }
+      })
+      .join("");
+
+    // HTML dos ovos disponíveis
+    const availableEggsHtml = availableEggs
+      .map((eggItem) => {
+        const eggConfig = window.GameConfig.SHOP_ITEMS.find(
+          (i) => i.name === eggItem.name && i.isEgg
+        );
+        const battlesRequired = eggConfig?.battlesRequired || 100;
+
+        return `
+          <div class="flex items-center justify-between p-2 border-b border-gray-300">
+            <div class="flex items-center">
+              <img src="../assets/sprites/items/egg.png" alt="${eggItem.name}" class="w-12 h-12 mr-2">
+              <div>
+                <div class="gba-font text-xs font-bold">${eggItem.name}</div>
+                <div class="gba-font text-[10px] text-gray-600">
+                  ${eggItem.description || `Choca após ${battlesRequired} batalhas`}
+                </div>
+                <div class="gba-font text-[10px] text-blue-600">Quantidade: x${eggItem.quantity}</div>
+              </div>
+            </div>
+            <button onclick="window.GameLogic.addEggToIncubator('${eggItem.name}'); setTimeout(() => window.Renderer.showScreen('incubator'), 100);" 
+                    class="gba-button bg-green-500 hover:bg-green-600 text-xs px-3 py-1"
+                    ${incubator.length >= 3 ? "disabled" : ""}>
+              Adicionar à Incubadora
+            </button>
+          </div>
+        `;
+      })
+      .join("");
+
+    const content = `
+      <div class="text-xl font-bold text-center mb-4 text-gray-800 gba-font flex-shrink-0">INCUBADORA</div>
+      <p class="text-center text-sm gba-font mb-4 flex-shrink-0 text-gray-600">
+        Coloque ovos na incubadora e complete batalhas para chocá-los!
+      </p>
+      
+      <!-- Slots da Incubadora -->
+      <div class="mb-4 flex-shrink-0">
+        <div class="gba-font text-xs font-bold mb-2 text-gray-800">OVOS NA INCUBADORA (${incubator.length}/3)</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          ${incubatorSlotsHtml}
+        </div>
+      </div>
+
+      <!-- Ovos Disponíveis -->
+      <div class="mb-4 flex-shrink-0">
+        <div class="gba-font text-xs font-bold mb-2 text-gray-800">OVOS DISPONÍVEIS NA MOCHILA</div>
+        <div class="flex-grow overflow-y-auto border border-gray-400 p-2 bg-white max-h-48">
+          ${
+            availableEggsHtml ||
+            '<p class="text-center text-gray-500 gba-font text-xs p-2">Você não tem ovos na mochila. Compre ovos na loja!</p>'
+          }
+        </div>
+      </div>
+
+      <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0">Voltar</button>
+    `;
+    window.Renderer.renderGbaCard(content);
+  },
 };

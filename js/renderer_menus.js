@@ -1580,6 +1580,10 @@ export const RendererMenus = {
                     <i class="fa-solid fa-book text-2xl"></i>
                     <span>POKÉDEX</span>
                 </button>
+                <button onclick="window.Renderer.showScreen('incubator')" class="gba-button bg-pink-500 hover:bg-pink-600 flex items-center justify-center gap-3 py-4 text-base font-bold" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border: 4px solid #000; box-shadow: 0 4px 0 #000, 0 8px 16px rgba(0,0,0,0.2);">
+                    <i class="fa-solid fa-egg text-2xl"></i>
+                    <span>INCUBADORA</span>
+                </button>
             </div>
             
             <button onclick="window.Renderer.showScreen('mainMenu')" class="gba-button bg-gray-500 hover:bg-gray-600 w-full flex-shrink-0" style="border: 4px solid #000;">Voltar</button>

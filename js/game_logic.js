@@ -2295,6 +2295,300 @@ export const GameLogic = {
     }
     window.Renderer.showScreen("mainMenu");
   },
+
+  // NOVO: SISTEMA DE INCUBADORA
+  
+  // Adiciona um ovo na incubadora
+  addEggToIncubator: function (itemName) {
+    const profile = window.gameState.profile;
+    if (!profile.incubator) {
+      profile.incubator = [];
+    }
+
+    // Limite de 3 ovos na incubadora
+    if (profile.incubator.length >= 3) {
+      window.Utils.showModal(
+        "errorModal",
+        "A incubadora está cheia! Remova um ovo antes de adicionar outro."
+      );
+      return false;
+    }
+
+    // Procura o item na mochila
+    const eggItem = profile.items.find(
+      (i) => i.name === itemName && i.isEgg && i.quantity > 0
+    );
+
+    if (!eggItem) {
+      window.Utils.showModal("errorModal", "Você não tem este ovo!");
+      return false;
+    }
+
+    // Busca a configuração do ovo para pegar o tipo e batalhas necessárias
+    const eggConfig = window.GameConfig.SHOP_ITEMS.find(
+      (i) => i.name === itemName && i.isEgg
+    );
+
+    if (!eggConfig) {
+      window.Utils.showModal("errorModal", "Configuração do ovo não encontrada!");
+      return false;
+    }
+
+    // Remove 1 ovo do inventário
+    eggItem.quantity--;
+    if (eggItem.quantity <= 0) {
+      const index = profile.items.indexOf(eggItem);
+      if (index !== -1) {
+        profile.items.splice(index, 1);
+      }
+    }
+
+    // Adiciona o ovo na incubadora
+    profile.incubator.push({
+      eggType: eggConfig.eggType || "common",
+      battlesProgress: 0,
+      battlesRequired: eggConfig.battlesRequired || 100,
+      itemName: itemName,
+    });
+
+    window.GameLogic.saveGameData();
+    window.Utils.showModal(
+      "infoModal",
+      `${itemName} foi colocado na incubadora! Complete ${eggConfig.battlesRequired} batalhas para chocar.`
+    );
+    return true;
+  },
+
+  // Atualiza o progresso dos ovos na incubadora após uma batalha
+  updateIncubatorProgress: function () {
+    const profile = window.gameState.profile;
+    if (!profile.incubator || profile.incubator.length === 0) {
+      return;
+    }
+
+    // Incrementa o progresso de todos os ovos na incubadora
+    profile.incubator.forEach((egg) => {
+      egg.battlesProgress = (egg.battlesProgress || 0) + 1;
+    });
+
+    // Verifica se algum ovo está pronto para chocar
+    this.checkAndHatchEggs();
+    
+    window.GameLogic.saveGameData();
+  },
+
+  // Verifica e choca ovos que atingiram o número necessário de batalhas
+  checkAndHatchEggs: async function () {
+    const profile = window.gameState.profile;
+    if (!profile.incubator || profile.incubator.length === 0) {
+      return;
+    }
+
+    // Procura ovos prontos para chocar
+    const readyEggs = profile.incubator.filter(
+      (egg) => egg.battlesProgress >= egg.battlesRequired
+    );
+
+    if (readyEggs.length === 0) {
+      return;
+    }
+
+    // Choca o primeiro ovo pronto (pode expandir para múltiplos depois)
+    const eggToHatch = readyEggs[0];
+    const eggIndex = profile.incubator.indexOf(eggToHatch);
+    
+    // Remove da incubadora
+    profile.incubator.splice(eggIndex, 1);
+
+    // Choca o ovo
+    await this.hatchIncubatorEgg(eggToHatch);
+  },
+
+  // Choca um ovo da incubadora
+  hatchIncubatorEgg: async function (eggData) {
+    try {
+      const eggType = eggData.eggType;
+      let pokemonId;
+
+      // Determina qual Pokémon gerar baseado no tipo do ovo
+      if (eggType === "legendary") {
+        // Para lendário, busca pokémons lendários
+        if (!window._legendaryCache) {
+          window._legendaryCache = [];
+          for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+            try {
+              const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+              if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+                window._legendaryCache.push(id);
+              }
+            } catch (e) {
+              // Ignora erros
+            }
+          }
+        }
+        if (window._legendaryCache.length > 0) {
+          pokemonId =
+            window._legendaryCache[
+              Math.floor(Math.random() * window._legendaryCache.length)
+            ];
+        }
+      } else if (eggType === "rare") {
+        // Para raro, busca pokémons evoluídos (mas não lendários)
+        if (!window._evolvedCache) {
+          window._evolvedCache = [];
+          for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
+            try {
+              const speciesData = await window.PokeAPI.fetchSpeciesData(id);
+              if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+                continue;
+              }
+              const chain = await window.PokeAPI.fetchEvolutionChainData(id);
+              if (chain && chain.length > 1) {
+                const chainFirstId = chain[0]?.id;
+                if (chainFirstId && id !== chainFirstId) {
+                  window._evolvedCache.push(id);
+                }
+              }
+            } catch (e) {
+              // Ignora erros
+            }
+          }
+        }
+        if (window._evolvedCache.length > 0) {
+          pokemonId =
+            window._evolvedCache[
+              Math.floor(Math.random() * window._evolvedCache.length)
+            ];
+        }
+      }
+
+      // Se não encontrou específico, ou é comum, usa um pokémon comum aleatório
+      if (!pokemonId) {
+        pokemonId = await this._getRandomCommonPokemonId();
+      }
+
+      // Busca os dados do Pokémon
+      const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
+      if (!pokemonData) {
+        throw new Error(`Dados do Pokémon ${pokemonId} não encontrados.`);
+      }
+
+      // Gera nível entre 10-25
+      const level = Math.floor(Math.random() * 16) + 10;
+
+      // Chance de shiny (1 em 512, ~0.2%)
+      const isShiny = Math.random() < 1 / 512;
+      if (isShiny) {
+        pokemonData.isShiny = true;
+      }
+
+      // Configura o Pokémon
+      pokemonData.level = level;
+      pokemonData.maxHp = window.Utils.calculateMaxHp(
+        pokemonData.stats.hp,
+        pokemonData.level
+      );
+      pokemonData.currentHp = pokemonData.maxHp;
+
+      // Aplica template de movimentos
+      window.Utils.applyMoveTemplate(pokemonData, { forceResetUses: true });
+
+      // Adiciona data de chocagem
+      pokemonData.hatchDate = new Date().toISOString();
+
+      // Adiciona o Pokémon ao time
+      window.gameState.profile.pokemon.push(pokemonData);
+
+      // Adiciona doce
+      window.GameLogic.addPokemonCandy(pokemonId, 1);
+
+      // Registra no Pokedex se não estiver registrado
+      const foiCapturado = window.gameState.profile.pokedex.has(pokemonId);
+      if (!foiCapturado) {
+        window.Utils.registerPokemon(pokemonId);
+      }
+
+      // Salva o jogo
+      const profileToSave = { ...window.gameState.profile };
+      profileToSave.pokedex = Array.from(profileToSave.pokedex);
+      window.Utils.saveGame();
+
+      // Salva no Firestore
+      if (
+        window.db &&
+        window.auth?.currentUser &&
+        !window.auth.currentUser.isAnonymous
+      ) {
+        setDoc(
+          doc(window.db, "users", window.userId),
+          sanitizeForFirestore(profileToSave),
+          { merge: true }
+        ).catch((error) =>
+          console.error("Erro ao salvar dados no Firestore:", error)
+        );
+      }
+
+      // Mostra mensagem de sucesso
+      const pokemonDisplayName = window.Utils.getPokemonDisplayName(pokemonData);
+      const shinyText = isShiny ? " ⭐ SHINY!" : "";
+      
+      // Atualiza a tela se estiver na incubadora
+      if (window.Renderer && window.gameState.currentScreen === "incubator") {
+        setTimeout(() => {
+          window.Renderer.showScreen("incubator");
+        }, 100);
+      }
+      
+      window.Utils.showModal(
+        "infoModal",
+        `🎉 ${eggData.itemName} chocou! Você recebeu ${pokemonDisplayName} (Nv. ${level})${shinyText}!`
+      );
+    } catch (error) {
+      console.error("Erro ao chocar ovo da incubadora:", error);
+      window.Utils.showModal(
+        "errorModal",
+        `Erro ao chocar ovo: ${error.message}`
+      );
+    }
+  },
+
+  // Remove um ovo da incubadora (devolve para a mochila)
+  removeEggFromIncubator: function (eggIndex) {
+    const profile = window.gameState.profile;
+    if (!profile.incubator || eggIndex >= profile.incubator.length) {
+      window.Utils.showModal("errorModal", "Ovo não encontrado!");
+      return false;
+    }
+
+    const egg = profile.incubator[eggIndex];
+    
+    // Procura o item na mochila ou cria novo
+    let eggItem = profile.items.find((i) => i.name === egg.itemName && i.isEgg);
+    if (eggItem) {
+      eggItem.quantity++;
+    } else {
+      // Cria novo item se não existir
+      const eggConfig = window.GameConfig.SHOP_ITEMS.find(
+        (i) => i.name === egg.itemName && i.isEgg
+      );
+      if (eggConfig) {
+        profile.items.push({
+          ...eggConfig,
+          quantity: 1,
+        });
+      }
+    }
+
+    // Remove da incubadora
+    profile.incubator.splice(eggIndex, 1);
+
+    window.GameLogic.saveGameData();
+    window.Utils.showModal(
+      "infoModal",
+      `${egg.itemName} foi removido da incubadora e devolvido à mochila.`
+    );
+    return true;
+  },
 };
 
 // Garantir global (se necessário em outras partes)

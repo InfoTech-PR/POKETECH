@@ -136,9 +136,13 @@ export const AuthSetup = {
 
     const startPlayback = () => {
       defaultMusicState.hasInteraction = true;
+      // Atualiza as preferências no momento do clique (caso tenham mudado)
+      const currentPrefs = getUserPreferences();
+      const currentVolume = currentPrefs.isMuted ? 0 : currentPrefs.volume;
+
       // Só inicia a música se não estiver mutada
-      if (!prefs.isMuted) {
-        playDefaultAudio(volume);
+      if (!currentPrefs.isMuted) {
+        playDefaultAudio(currentVolume);
       } else {
         // Se estiver mutada, apenas configura o volume mas não toca
         const audio = ensureDefaultAudio();
@@ -150,8 +154,12 @@ export const AuthSetup = {
 
     if (defaultMusicState.hasInteraction) {
       // Se já houve interação, aplica as preferências atuais
-      if (!prefs.isMuted) {
-        playDefaultAudio(volume);
+      // Atualiza as preferências (caso tenham mudado desde a última vez)
+      const currentPrefs = getUserPreferences();
+      const currentVolume = currentPrefs.isMuted ? 0 : currentPrefs.volume;
+
+      if (!currentPrefs.isMuted) {
+        playDefaultAudio(currentVolume);
       } else {
         const audio = ensureDefaultAudio();
         audio.volume = 0;
@@ -160,6 +168,8 @@ export const AuthSetup = {
       return;
     }
 
+    // Se as preferências indicam que está mutado, não adiciona o listener
+    // A música só será iniciada quando o usuário clicar E não estiver mutado
     if (!defaultMusicState.listenerAttached) {
       document.addEventListener(
         "click",
@@ -242,6 +252,18 @@ export const AuthSetup = {
   initAuth: async function () {
     const firebaseConfig = window.firebaseConfig;
 
+    // IMPORTANTE: Carrega o jogo do localStorage ANTES de configurar a música
+    // Isso garante que as preferências do usuário sejam aplicadas desde o início
+    if (window.Utils && window.Utils.loadGame) {
+      window.initializeGameState();
+      const gameLoaded = window.Utils.loadGame();
+      if (gameLoaded) {
+        // Se o jogo foi carregado, aplica as preferências imediatamente
+        AuthSetup.applyMusicPreferences();
+      }
+    }
+
+    // Agora configura as interações iniciais com as preferências já carregadas
     AuthSetup.setupInitialInteractions();
 
     const originalShowScreen = window.Renderer.showScreen;
@@ -299,8 +321,15 @@ export const AuthSetup = {
             // Usuário não está logado, mostra a tela de login.
             console.log("Nenhum usuário logado. Exibindo tela de login.");
             window.userId = "anonimo";
-            window.initializeGameState();
-            // Aplica as preferências de música após inicializar o estado
+            // Se já carregou o jogo acima, não precisa inicializar novamente
+            if (!window.gameState || !window.gameState.profile) {
+              window.initializeGameState();
+              // Tenta carregar do localStorage novamente
+              if (window.Utils && window.Utils.loadGame) {
+                window.Utils.loadGame();
+              }
+            }
+            // Aplica as preferências de música após inicializar/carregar o estado
             AuthSetup.applyMusicPreferences();
             window.Renderer.showScreen("initialMenu");
           }
@@ -310,8 +339,15 @@ export const AuthSetup = {
         window.db = null;
         window.auth = null;
         window.userId = "anonimo-erro";
-        window.initializeGameState();
-        // Aplica as preferências de música após inicializar o estado
+        // Se já carregou o jogo acima, não precisa inicializar novamente
+        if (!window.gameState || !window.gameState.profile) {
+          window.initializeGameState();
+          // Tenta carregar do localStorage novamente
+          if (window.Utils && window.Utils.loadGame) {
+            window.Utils.loadGame();
+          }
+        }
+        // Aplica as preferências de música após inicializar/carregar o estado
         AuthSetup.applyMusicPreferences();
         window.Utils.showModal(
           "errorModal",
@@ -324,8 +360,15 @@ export const AuthSetup = {
       window.db = null;
       window.auth = null;
       window.userId = "anonimo-erro";
-      window.initializeGameState();
-      // Aplica as preferências de música após inicializar o estado
+      // Se já carregou o jogo acima, não precisa inicializar novamente
+      if (!window.gameState || !window.gameState.profile) {
+        window.initializeGameState();
+        // Tenta carregar do localStorage novamente
+        if (window.Utils && window.Utils.loadGame) {
+          window.Utils.loadGame();
+        }
+      }
+      // Aplica as preferências de música após inicializar/carregar o estado
       AuthSetup.applyMusicPreferences();
       window.Renderer.showScreen("initialMenu");
     }
@@ -339,21 +382,22 @@ export const AuthSetup = {
     // Aplica o volume em todas as instâncias de áudio existentes
     if (defaultMusicState.audio) {
       defaultMusicState.audio.volume = volume;
-      if (prefs.isMuted && !defaultMusicState.audio.paused) {
+      if (prefs.isMuted) {
+        // Se estiver mutada, pausa imediatamente
         defaultMusicState.audio.pause();
       }
     }
 
     if (battleMusicInstance) {
       battleMusicInstance.volume = volume;
-      if (prefs.isMuted && !battleMusicInstance.paused) {
+      if (prefs.isMuted) {
         battleMusicInstance.pause();
       }
     }
 
     if (healMusicInstance) {
       healMusicInstance.volume = volume;
-      if (prefs.isMuted && !healMusicInstance.paused) {
+      if (prefs.isMuted) {
         healMusicInstance.pause();
       }
     }
@@ -361,19 +405,22 @@ export const AuthSetup = {
     // Atualiza o volume do backgroundMusic se existir
     if (window.backgroundMusic) {
       window.backgroundMusic.volume = volume;
-      if (prefs.isMuted && !window.backgroundMusic.paused) {
+      if (prefs.isMuted) {
         window.backgroundMusic.pause();
       }
     }
 
-    // Se já houve interação e não está mutada, reinicia a música
-    if (defaultMusicState.hasInteraction && !prefs.isMuted) {
-      playDefaultAudio(volume);
-    } else if (prefs.isMuted) {
-      // Se estiver mutada, garante que tudo está pausado
+    // Se estiver mutada, garante que tudo está pausado e não reinicia
+    if (prefs.isMuted) {
       pauseDefaultAudio();
       if (battleMusicInstance) battleMusicInstance.pause();
       if (healMusicInstance) healMusicInstance.pause();
+      // Reseta o estado de interação para que a música não seja iniciada no próximo clique
+      // (mas mantém o listener para caso o usuário desmute depois)
+      // Não resetamos hasInteraction aqui, pois queremos manter o estado
+    } else if (defaultMusicState.hasInteraction) {
+      // Se já houve interação e não está mutada, reinicia a música
+      playDefaultAudio(volume);
     }
   },
 };

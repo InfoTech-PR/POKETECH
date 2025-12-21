@@ -415,11 +415,22 @@ export async function createConfigAndUtils(v) {
               isMuted: false,
               isBetaMode: false, // Garante que a flag exista ao carregar
             };
-          } else if (
-            window.gameState.profile.preferences.isBetaMode === undefined
-          ) {
-            // Caso tenha preferências mas falte a nova flag
-            window.gameState.profile.preferences.isBetaMode = false;
+          } else {
+            // Garante que todos os campos de preferências existam com valores padrão se necessário
+            window.gameState.profile.preferences = {
+              volume:
+                window.gameState.profile.preferences.volume !== undefined
+                  ? window.gameState.profile.preferences.volume
+                  : 0.5,
+              isMuted:
+                window.gameState.profile.preferences.isMuted !== undefined
+                  ? window.gameState.profile.preferences.isMuted
+                  : false,
+              isBetaMode:
+                window.gameState.profile.preferences.isBetaMode !== undefined
+                  ? window.gameState.profile.preferences.isBetaMode
+                  : false,
+            };
           }
 
           // Garante que a localização exista com defaults se ausente
@@ -492,7 +503,8 @@ export async function createConfigAndUtils(v) {
               isEgg: configItem?.isEgg || savedItem.isEgg || false,
               isMove: configItem?.isMove || savedItem.isMove || false,
               eggType: configItem?.eggType || savedItem.eggType,
-              battlesRequired: configItem?.battlesRequired || savedItem.battlesRequired,
+              battlesRequired:
+                configItem?.battlesRequired || savedItem.battlesRequired,
             };
 
             // Remove pokemonId de ovos antigos (não é mais necessário)
@@ -623,7 +635,13 @@ export async function createConfigAndUtils(v) {
       window.gameState.profile.preferences.volume = parseFloat(newVolume);
       window.gameState.profile.preferences.isMuted = false;
       Utils.applyVolume(window.gameState.profile.preferences.volume, false);
+
+      // Salva no localStorage e no Firestore (se logado)
       Utils.saveGame();
+      if (window.GameLogic && window.GameLogic.saveGameData) {
+        window.GameLogic.saveGameData();
+      }
+
       if (window.Renderer) {
         window.Renderer.renderPreferences(
           document.getElementById("app-container")
@@ -635,7 +653,13 @@ export async function createConfigAndUtils(v) {
       const prefs = window.gameState.profile.preferences;
       prefs.isMuted = !prefs.isMuted;
       Utils.applyVolume(prefs.volume, prefs.isMuted);
+
+      // Salva no localStorage e no Firestore (se logado)
       Utils.saveGame();
+      if (window.GameLogic && window.GameLogic.saveGameData) {
+        window.GameLogic.saveGameData();
+      }
+
       if (window.Renderer) {
         window.Renderer.renderPreferences(
           document.getElementById("app-container")

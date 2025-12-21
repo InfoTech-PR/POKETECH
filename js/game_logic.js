@@ -292,6 +292,37 @@ export const GameLogic = {
 
       if (docSnap.exists()) {
         const savedProfile = docSnap.data();
+
+        // Preserva as preferências do localStorage antes de sobrescrever
+        const localPreferences = window.gameState?.profile?.preferences;
+
+        // Garante que as preferências existam e tenham valores padrão se necessário
+        if (!savedProfile.preferences) {
+          savedProfile.preferences = localPreferences || {
+            volume: 0.5,
+            isMuted: false,
+            isBetaMode: false,
+          };
+        } else {
+          // Mescla preferências: prioriza Firestore, mas usa localStorage como fallback para campos ausentes
+          savedProfile.preferences = {
+            volume:
+              savedProfile.preferences.volume !== undefined
+                ? savedProfile.preferences.volume
+                : localPreferences?.volume || 0.5,
+            isMuted:
+              savedProfile.preferences.isMuted !== undefined
+                ? savedProfile.preferences.isMuted
+                : localPreferences?.isMuted !== undefined
+                ? localPreferences.isMuted
+                : false,
+            isBetaMode:
+              savedProfile.preferences.isBetaMode !== undefined
+                ? savedProfile.preferences.isBetaMode
+                : localPreferences?.isBetaMode || false,
+          };
+        }
+
         window.gameState.profile = savedProfile;
         if (window.gameState.profile.pokedex) {
           window.gameState.profile.pokedex = new Set(
@@ -2297,7 +2328,7 @@ export const GameLogic = {
   },
 
   // NOVO: SISTEMA DE INCUBADORA
-  
+
   // Adiciona um ovo na incubadora
   addEggToIncubator: function (itemName) {
     const profile = window.gameState.profile;
@@ -2330,7 +2361,10 @@ export const GameLogic = {
     );
 
     if (!eggConfig) {
-      window.Utils.showModal("errorModal", "Configuração do ovo não encontrada!");
+      window.Utils.showModal(
+        "errorModal",
+        "Configuração do ovo não encontrada!"
+      );
       return false;
     }
 
@@ -2373,7 +2407,7 @@ export const GameLogic = {
 
     // Verifica se algum ovo está pronto para chocar
     this.checkAndHatchEggs();
-    
+
     window.GameLogic.saveGameData();
   },
 
@@ -2396,7 +2430,7 @@ export const GameLogic = {
     // Choca o primeiro ovo pronto (pode expandir para múltiplos depois)
     const eggToHatch = readyEggs[0];
     const eggIndex = profile.incubator.indexOf(eggToHatch);
-    
+
     // Remove da incubadora
     profile.incubator.splice(eggIndex, 1);
 
@@ -2418,7 +2452,10 @@ export const GameLogic = {
           for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
             try {
               const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-              if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+              if (
+                speciesData &&
+                (speciesData.isLegendary || speciesData.isMythical)
+              ) {
                 window._legendaryCache.push(id);
               }
             } catch (e) {
@@ -2439,7 +2476,10 @@ export const GameLogic = {
           for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
             try {
               const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-              if (speciesData && (speciesData.isLegendary || speciesData.isMythical)) {
+              if (
+                speciesData &&
+                (speciesData.isLegendary || speciesData.isMythical)
+              ) {
                 continue;
               }
               const chain = await window.PokeAPI.fetchEvolutionChainData(id);
@@ -2529,16 +2569,17 @@ export const GameLogic = {
       }
 
       // Mostra mensagem de sucesso
-      const pokemonDisplayName = window.Utils.getPokemonDisplayName(pokemonData);
+      const pokemonDisplayName =
+        window.Utils.getPokemonDisplayName(pokemonData);
       const shinyText = isShiny ? " ⭐ SHINY!" : "";
-      
+
       // Atualiza a tela se estiver na incubadora
       if (window.Renderer && window.gameState.currentScreen === "incubator") {
         setTimeout(() => {
           window.Renderer.showScreen("incubator");
         }, 100);
       }
-      
+
       window.Utils.showModal(
         "infoModal",
         `🎉 ${eggData.itemName} chocou! Você recebeu ${pokemonDisplayName} (Nv. ${level})${shinyText}!`
@@ -2561,7 +2602,7 @@ export const GameLogic = {
     }
 
     const egg = profile.incubator[eggIndex];
-    
+
     // Procura o item na mochila ou cria novo
     let eggItem = profile.items.find((i) => i.name === egg.itemName && i.isEgg);
     if (eggItem) {

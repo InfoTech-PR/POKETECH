@@ -11,7 +11,6 @@ export const RendererCore = {
     if (typeof extraData === 'string' && screenId === 'pokedex') {
       try {
         safeExtraData = JSON.parse(extraData);
-        console.log(`[NAV] DADOS EXTRAS RESTAURADOS (JSON.parse):`, safeExtraData);
       } catch (e) {
         console.error('[NAV] Erro ao fazer JSON.parse do extraData. Usando objeto vazio.', e);
         safeExtraData = {};
@@ -23,11 +22,7 @@ export const RendererCore = {
     if (Object.keys(safeExtraData).length === 0 && window.nextScreenPayload) {
       safeExtraData = window.nextScreenPayload;
       window.nextScreenPayload = null; // Limpa imediatamente após o uso
-      console.log(`[NAV] DADOS EXTRAS RESTAURADOS (GLOBAL):`, safeExtraData);
     }
-
-    // [LOG A] Adicionado log para rastrear a navegação e dados extras (agora usando safeExtraData)
-    console.log(`[NAV] Tentativa de navegar para: ${screenId}. Dados extras:`, safeExtraData);
 
     window.gameState.currentScreen = screenId;
     const app = document.getElementById("app-container");

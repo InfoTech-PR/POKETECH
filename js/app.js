@@ -265,12 +265,10 @@ export async function init(cacheBuster = Date.now()) {
     // Detecta se já está instalado
     if (window.isStandalone) {
       window.isPWAInstalled = true;
-      console.log("✅ [PWA] Aplicativo já está instalado");
     }
 
     // Captura o evento beforeinstallprompt (Android/Chrome)
     window.addEventListener("beforeinstallprompt", (e) => {
-      console.log("✅ [PWA] Evento beforeinstallprompt capturado");
       e.preventDefault();
       window.deferredPrompt = e;
       window.isPWAInstallable = true;
@@ -283,7 +281,6 @@ export async function init(cacheBuster = Date.now()) {
 
     // Detecta quando a PWA é instalada
     window.addEventListener("appinstalled", () => {
-      console.log("✅ [PWA] Aplicativo instalado com sucesso!");
       window.isPWAInstalled = true;
       window.deferredPrompt = null;
       window.isPWAInstallable = false;
@@ -324,7 +321,6 @@ export async function init(cacheBuster = Date.now()) {
       try {
         window.deferredPrompt.prompt();
         const { outcome } = await window.deferredPrompt.userChoice;
-        console.log(`[PWA] Resultado da instalação: ${outcome}`);
 
         if (outcome === "accepted") {
           window.isPWAInstalled = true;
@@ -356,27 +352,13 @@ export async function init(cacheBuster = Date.now()) {
             updateViaCache: "none", // Sempre busca atualizações
           })
           .then((registration) => {
-            console.log("✅ [SW] Registrado com sucesso:", registration.scope);
-            console.log(
-              "✅ [SW] Estado:",
-              registration.active ? "ATIVO" : "INSTALANDO"
-            );
-
             // Verifica atualizações
             registration.addEventListener("updatefound", () => {
               const newWorker = registration.installing;
               if (newWorker) {
-                console.log("[SW] Nova versão encontrada, instalando...");
                 newWorker.addEventListener("statechange", () => {
-                  console.log(`[SW] Estado do novo worker: ${newWorker.state}`);
                   if (newWorker.state === "installed") {
-                    if (navigator.serviceWorker.controller) {
-                      console.log(
-                        "🔄 [SW] Nova versão instalada! Recarregue a página."
-                      );
-                    } else {
-                      console.log("✅ [SW] Instalado pela primeira vez!");
-                    }
+                    // Nova versão instalada ou primeira instalação
                   }
                 });
               }
@@ -404,9 +386,7 @@ export async function init(cacheBuster = Date.now()) {
         // Aguarda o service worker estar pronto
         navigator.serviceWorker.ready
           .then((registration) => {
-            console.log("✅ [SW] Pronto para uso");
             if (navigator.serviceWorker.controller) {
-              console.log("✅ [SW] Está controlando a página");
               // Marca como instalável após SW estar ativo
               setTimeout(() => {
                 if (!window.isPWAInstalled && !window.isStandalone) {
@@ -429,8 +409,6 @@ export async function init(cacheBuster = Date.now()) {
                   }
                 }
               }, 3000);
-            } else {
-              console.log("⚠️ [SW] Ainda não está controlando (aguardando...)");
             }
           })
           .catch((error) => {

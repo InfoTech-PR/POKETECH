@@ -166,8 +166,6 @@ export const PokeChat = {
             // Rola para o final da conversa
             chatContentElement.scrollTop = chatContentElement.scrollHeight;
         });
-
-        console.log(`[CHAT] Listener iniciado para sala: ${roomId}`);
     },
 
     /**
@@ -177,7 +175,6 @@ export const PokeChat = {
         if (unsubscribeChat) {
             unsubscribeChat();
             unsubscribeChat = null;
-            console.log("[CHAT] Listener de chat desinscrito.");
         }
         window.Utils.hideModal("chatModal");
     }

@@ -218,7 +218,6 @@ export const GameLogic = {
         const profileSanitized = sanitizeForFirestore(profileToSave);
 
         await setDoc(docRef, profileSanitized, { merge: true });
-        console.log("Dados salvos no Firestore com sucesso!");
       } catch (error) {
         console.error("Erro ao salvar dados no Firestore:", error);
       }
@@ -305,7 +304,9 @@ export const GameLogic = {
           };
         } else {
           // Mescla preferências: prioriza Firestore, mas usa localStorage como fallback para campos ausentes
+          // PRESERVA campos importantes como customAvatarImage e avatarTrainerKey
           savedProfile.preferences = {
+            ...savedProfile.preferences, // Preserva todos os campos do Firestore primeiro (incluindo customAvatarImage e avatarTrainerKey)
             volume:
               savedProfile.preferences.volume !== undefined
                 ? savedProfile.preferences.volume
@@ -321,6 +322,15 @@ export const GameLogic = {
                 ? savedProfile.preferences.isBetaMode
                 : localPreferences?.isBetaMode || false,
           };
+          // Garante que customAvatarImage e avatarTrainerKey sejam preservados se existirem
+          if (savedProfile.preferences.customAvatarImage) {
+            // Já está preservado pelo spread acima
+          } else if (localPreferences?.customAvatarImage) {
+            savedProfile.preferences.customAvatarImage = localPreferences.customAvatarImage;
+          }
+          if (!savedProfile.preferences.avatarTrainerKey && localPreferences?.avatarTrainerKey) {
+            savedProfile.preferences.avatarTrainerKey = localPreferences.avatarTrainerKey;
+          }
         }
 
         window.gameState.profile = savedProfile;
@@ -370,12 +380,8 @@ export const GameLogic = {
           window.gameState.profile.pokemonCandy = {};
         }
 
-        console.log("Perfil do usuário carregado do Firestore!");
         return true;
       } else {
-        console.log(
-          "Nenhum perfil encontrado para este usuário. Criando um novo."
-        );
         return false;
       }
     } catch (error) {
@@ -1067,7 +1073,6 @@ export const GameLogic = {
       }
 
       // Mostra a tela de resultado imediatamente
-      console.log("[hatchEgg] Mostrando resultado:", pokemonData);
       window._hatchEggRendering = false;
 
       // Renderiza diretamente sem passar pelo showScreen para evitar problemas de navegação
@@ -1748,7 +1753,6 @@ export const GameLogic = {
           const writable = await fileHandle.createWritable();
           await writable.write(blob);
           await writable.close();
-          console.log("Save salvo automaticamente na pasta!");
           return;
         } catch (err) {
           // Usuário cancelou ou erro na API, faz fallback para download
@@ -1768,7 +1772,6 @@ export const GameLogic = {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      console.log("Save baixado automaticamente!");
     } catch (e) {
       console.error("Erro ao salvar automaticamente:", e);
     }

@@ -1831,30 +1831,38 @@ export const RendererMenus = {
     }
 
     const reader = new FileReader();
-    reader.onload = function (e) {
-      const profile = window.gameState.profile;
-      profile.preferences = profile.preferences || {};
+    reader.onload = async function (e) {
+      try {
+        const profile = window.gameState.profile;
+        profile.preferences = profile.preferences || {};
 
-      // Salva a imagem como base64
-      profile.preferences.customAvatarImage = e.target.result;
+        // Salva a imagem como base64
+        profile.preferences.customAvatarImage = e.target.result;
 
-      // Remove a seleção de avatar padrão quando usa imagem customizada
-      if (profile.preferences.avatarTrainerKey) {
-        delete profile.preferences.avatarTrainerKey;
+        // Remove a seleção de avatar padrão quando usa imagem customizada
+        if (profile.preferences.avatarTrainerKey) {
+          delete profile.preferences.avatarTrainerKey;
+        }
+
+        // Salva os dados e aguarda a conclusão
+        if (window.GameLogic?.saveGameData) {
+          await window.GameLogic.saveGameData();
+        }
+
+        // Recarrega a tela de perfil
+        window.Renderer.showScreen("profile");
+
+        window.Utils.showModal(
+          "infoModal",
+          "Foto de perfil atualizada com sucesso!"
+        );
+      } catch (error) {
+        console.error("Erro ao salvar foto de perfil:", error);
+        window.Utils.showModal(
+          "errorModal",
+          "Erro ao salvar foto de perfil. Tente novamente."
+        );
       }
-
-      // Salva os dados
-      if (window.GameLogic?.saveGameData) {
-        window.GameLogic.saveGameData();
-      }
-
-      // Recarrega a tela de perfil
-      window.Renderer.showScreen("profile");
-
-      window.Utils.showModal(
-        "infoModal",
-        "Foto de perfil atualizada com sucesso!"
-      );
     };
 
     reader.onerror = function () {
@@ -1872,29 +1880,37 @@ export const RendererMenus = {
   },
 
   // NOVO: Função para remover imagem customizada
-  removeCustomAvatar: function () {
-    const profile = window.gameState.profile;
-    if (!profile.preferences) {
-      profile.preferences = {};
-    }
-
-    if (profile.preferences.customAvatarImage) {
-      delete profile.preferences.customAvatarImage;
-
-      // Volta para o avatar padrão
-      if (!profile.preferences.avatarTrainerKey) {
-        profile.preferences.avatarTrainerKey = TRAINER_AVATAR_CHOICES[0].key;
+  removeCustomAvatar: async function () {
+    try {
+      const profile = window.gameState.profile;
+      if (!profile.preferences) {
+        profile.preferences = {};
       }
 
-      // Salva os dados
-      if (window.GameLogic?.saveGameData) {
-        window.GameLogic.saveGameData();
+      if (profile.preferences.customAvatarImage) {
+        delete profile.preferences.customAvatarImage;
+
+        // Volta para o avatar padrão
+        if (!profile.preferences.avatarTrainerKey) {
+          profile.preferences.avatarTrainerKey = TRAINER_AVATAR_CHOICES[0].key;
+        }
+
+        // Salva os dados e aguarda a conclusão
+        if (window.GameLogic?.saveGameData) {
+          await window.GameLogic.saveGameData();
+        }
+
+        // Recarrega a tela de perfil
+        window.Renderer.showScreen("profile");
+
+        window.Utils.showModal("infoModal", "Foto customizada removida!");
       }
-
-      // Recarrega a tela de perfil
-      window.Renderer.showScreen("profile");
-
-      window.Utils.showModal("infoModal", "Foto customizada removida!");
+    } catch (error) {
+      console.error("Erro ao remover foto de perfil:", error);
+      window.Utils.showModal(
+        "errorModal",
+        "Erro ao remover foto de perfil. Tente novamente."
+      );
     }
   },
 

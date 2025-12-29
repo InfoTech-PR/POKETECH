@@ -460,7 +460,6 @@
           if (manifestResponse.ok) {
             const manifest = await manifestResponse.json();
             checks.manifest = true;
-            console.log("✅ Manifest encontrado:", manifest);
 
             // Verifica ícones
             if (manifest.icons && manifest.icons.length >= 2) {
@@ -490,9 +489,6 @@
                           img192.naturalHeight >= 192
                         ) {
                           checks.icons = true;
-                          console.log(
-                            `✅ Ícone 192x192 OK: ${img192.naturalWidth}x${img192.naturalHeight}`
-                          );
                         } else {
                           issues.push(
                             `❌ Ícone 192x192 tem tamanho real ${img192.naturalWidth}x${img192.naturalHeight} (precisa ser pelo menos 192x192)`
@@ -516,9 +512,6 @@
                           img512.naturalWidth >= 512 &&
                           img512.naturalHeight >= 512
                         ) {
-                          console.log(
-                            `✅ Ícone 512x512 OK: ${img512.naturalWidth}x${img512.naturalHeight}`
-                          );
                         } else {
                           issues.push(
                             `❌ Ícone 512x512 tem tamanho real ${img512.naturalWidth}x${img512.naturalHeight} (precisa ser pelo menos 512x512)`
@@ -562,7 +555,6 @@
               await navigator.serviceWorker.getRegistration();
             if (registration && registration.active) {
               checks.serviceWorker = true;
-              console.log("✅ Service Worker ativo");
             } else {
               issues.push("❌ Service Worker não está ativo");
             }
@@ -579,19 +571,6 @@
             "⚠️ Evento beforeinstallprompt não foi disparado (PWA pode não ser instalável)"
           );
         } else {
-          console.log("✅ beforeinstallprompt disponível");
-        }
-
-        console.log("\n=== DIAGNÓSTICO PWA ===");
-        console.log("HTTPS:", checks.https ? "✅" : "❌");
-        console.log("Manifest:", checks.manifest ? "✅" : "❌");
-        console.log("Service Worker:", checks.serviceWorker ? "✅" : "❌");
-        console.log("Ícones:", checks.icons ? "✅" : "❌");
-        if (issues.length > 0) {
-          console.log("\n⚠️ PROBLEMAS ENCONTRADOS:");
-          issues.forEach((issue) => console.log(issue));
-        } else {
-          console.log("\n✅ Todos os requisitos atendidos!");
         }
 
         return { checks, issues };

@@ -1,7 +1,7 @@
 /**
  * js/battle_core.js
- * MÓDULO CORE DE BATALHA (Lógica de Combate Selvagem e Suporte para PvP)
- * Este módulo gerencia o estado da batalha, cálculos de dano e a interface de combate.
+ * M?DULO CORE DE BATALHA (L?gica de Combate Selvagem e Suporte para PvP)
+ * Este m?dulo gerencia o estado da batalha, c?lculos de dano e a interface de combate.
  */
 
 // Garante que o objeto window.BattleCore exista para acesso global.
@@ -10,10 +10,10 @@ if (typeof window.BattleCore === "undefined") {
 }
 
 // =======================================================
-// TABELA DE EFICÁCIA DE TIPOS (TYPE CHART)
-// Define a eficácia de um tipo de ataque (chave) contra um tipo de defesa (valor).
-// 0: Nenhum Dano, 0.5: Não muito eficaz, 1: Normal, 2: Super eficaz
-// Todos os tipos são convertidos para minúsculas antes da comparação.
+// TABELA DE EFIC?CIA DE TIPOS (TYPE CHART)
+// Define a efic?cia de um tipo de ataque (chave) contra um tipo de defesa (valor).
+// 0: Nenhum Dano, 0.5: N?o muito eficaz, 1: Normal, 2: Super eficaz
+// Todos os tipos s?o convertidos para min?sculas antes da compara??o.
 // =======================================================
 const TYPE_CHART = {
   normal: { rock: 0.5, ghost: 0, steel: 0.5 },
@@ -143,7 +143,7 @@ const TYPE_CHART = {
 
 // =======================================================
 // MAPA DE MOVIMENTOS PARA TIPAGEM
-// Mapeia o nome do movimento para o tipo (usado na eficácia de dano)
+// Mapeia o nome do movimento para o tipo (usado na efic?cia de dano)
 // =======================================================
 const MOVES_TO_TYPE_MAPPING = {
   "razor-wind": "normal",
@@ -785,22 +785,22 @@ const ensureAttackAudioContext = async () => {
     try {
       await attackAudioCtx.resume();
     } catch (err) {
-      console.warn("Falha ao retomar contexto de áudio:", err);
+      console.warn("Falha ao retomar contexto de ?udio:", err);
     }
   }
   return attackAudioCtx;
 };
 
-// NOVO: Função auxiliar para obter os índices dos pokémons disponíveis para batalha
+// NOVO: Fun??o auxiliar para obter os ?ndices dos pok?mons dispon?veis para batalha
 function getBattleTeamIndices() {
   const profile = window.gameState.profile;
   const battleTeam = profile.battleTeam || [];
   const pokemonArray = profile.pokemon || [];
   const MAX_BATTLE_TEAM = 5;
 
-  // Se há uma equipe definida e válida, usa ela
+  // Se h? uma equipe definida e v?lida, usa ela
   if (Array.isArray(battleTeam) && battleTeam.length > 0) {
-    // Filtra apenas índices válidos e pokémons que existem
+    // Filtra apenas ?ndices v?lidos e pok?mons que existem
     return battleTeam
       .filter(
         (index) =>
@@ -809,7 +809,7 @@ function getBattleTeamIndices() {
       .slice(0, MAX_BATTLE_TEAM);
   }
 
-  // Se não há equipe definida, usa os 5 primeiros pokémons
+  // Se n?o h? equipe definida, usa os 5 primeiros pok?mons
   const defaultIndices = [];
   for (let i = 0; i < Math.min(MAX_BATTLE_TEAM, pokemonArray.length); i++) {
     defaultIndices.push(i);
@@ -822,7 +822,7 @@ export const BattleCore = {
 
   _getBallSpriteUrl: function (ballName) {
     switch (ballName.toLowerCase()) {
-      case "pokébola":
+      case "pok?bola":
         return "../assets/sprites/items/poke-ball.png";
       case "great ball":
         return "../assets/sprites/items/great-ball.png";
@@ -895,7 +895,7 @@ export const BattleCore = {
   startWildBattle: async function () {
     const profile = window.gameState.profile;
 
-    // NOVO: Verifica pokémons da equipe de batalha especificamente
+    // NOVO: Verifica pok?mons da equipe de batalha especificamente
     const battleTeamIndices = getBattleTeamIndices();
     const battleTeamPokemon = battleTeamIndices
       .map((index) => profile.pokemon[index])
@@ -903,7 +903,7 @@ export const BattleCore = {
 
     if (battleTeamPokemon.length === 0) {
       window.GameLogic.addExploreLog(
-        "Nenhum pokémon da sua equipe de batalha está em condições de lutar! Visite o Centro Pokémon antes de explorar novamente."
+        "Nenhum pok?mon da sua equipe de batalha est? em condi??es de lutar! Visite o Centro Pok?mon antes de explorar novamente."
       );
       window.AuthSetup?.handleBattleMusic(false);
       return;
@@ -924,13 +924,13 @@ export const BattleCore = {
 
     const trainerLevel = profile.trainerLevel;
 
-    // NOVO: Verifica se é hora do chefe de zona (a cada 50 batalhas)
+    // NOVO: Verifica se ? hora do chefe de zona (a cada 50 batalhas)
     if (profile.normalBattleCount > 0 && profile.normalBattleCount % 50 === 0) {
-      // Calcula qual zona é baseado no número de batalhas
+      // Calcula qual zona ? baseado no n?mero de batalhas
       const zoneNumber = Math.floor(profile.normalBattleCount / 50);
       const zoneBadgeName = `Zona ${zoneNumber}`;
 
-      // Verifica se o jogador já tem essa insígnia (para evitar repetir)
+      // Verifica se o jogador j? tem essa ins?gnia (para evitar repetir)
       if (!profile.badges.includes(zoneBadgeName)) {
         await BattleCore.startBossBattle(
           zoneNumber,
@@ -946,15 +946,15 @@ export const BattleCore = {
     let isLegendary = false;
 
     // Sistema de contagem de batalhas
-    // A cada 100 batalhas normais: 1 lendário (nível + 10)
+    // A cada 100 batalhas normais: 1 lend?rio (n?vel + 10)
     if (
       profile.normalBattleCount > 0 &&
       profile.normalBattleCount % 100 === 0
     ) {
-      // Busca um lendário usando cache global
+      // Busca um lend?rio usando cache global
       if (!window._legendaryCache) {
         window._legendaryCache = [];
-        // Usa PokeAPI para buscar dados de espécie
+        // Usa PokeAPI para buscar dados de esp?cie
         for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
           try {
             const speciesData = await window.PokeAPI.fetchSpeciesData(id);
@@ -974,29 +974,29 @@ export const BattleCore = {
         isLegendary = true;
       }
     }
-    // A cada 10 batalhas normais: 1 evoluído (nível + 5)
+    // A cada 10 batalhas normais: 1 evolu?do (n?vel + 5)
     else if (
       profile.normalBattleCount > 0 &&
       profile.normalBattleCount % 10 === 0
     ) {
-      // Busca um Pokémon evoluído usando cache global (sem lendários/miticos)
+      // Busca um Pok?mon evolu?do usando cache global (sem lend?rios/miticos)
       if (!window._evolvedCache) {
         window._evolvedCache = [];
-        // Busca cadeias evolutivas e identifica evoluídos (excluindo lendários/miticos)
+        // Busca cadeias evolutivas e identifica evolu?dos (excluindo lend?rios/miticos)
         for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
           try {
-            // Verifica se é lendário ou mitico
+            // Verifica se ? lend?rio ou mitico
             const speciesData = await window.PokeAPI.fetchSpeciesData(id);
             if (
               speciesData &&
               (speciesData.isLegendary || speciesData.isMythical)
             ) {
-              continue; // Pula lendários e miticos
+              continue; // Pula lend?rios e miticos
             }
 
             const chain = await window.PokeAPI.fetchEvolutionChainData(id);
             if (chain && chain.length > 1) {
-              // Verifica se este ID não é o primeiro da cadeia (ou seja, é evoluído)
+              // Verifica se este ID n?o ? o primeiro da cadeia (ou seja, ? evolu?do)
               const chainFirstId = chain[0]?.id;
               if (
                 chainFirstId &&
@@ -1020,14 +1020,14 @@ export const BattleCore = {
       }
     }
 
-    // Se não encontrou especial, busca um Pokémon normal (sem lendários/miticos)
+    // Se n?o encontrou especial, busca um Pok?mon normal (sem lend?rios/miticos)
     if (!pokemonId) {
       // NOVO: Sistema de Eventos Semanais
-      // Obtém as regiões ativas no evento semanal atual
+      // Obt?m as regi?es ativas no evento semanal atual
       const weeklyEvent = window.GameConfig.getWeeklyEventRegions();
       let allowedIds = [];
 
-      // Coleta todos os IDs das regiões do evento
+      // Coleta todos os IDs das regi?es do evento
       if (
         weeklyEvent &&
         weeklyEvent.regions &&
@@ -1045,14 +1045,14 @@ export const BattleCore = {
         }
       }
 
-      // Se não há evento ou nenhuma região encontrada, usa todas as regiões
+      // Se n?o h? evento ou nenhuma regi?o encontrada, usa todas as regi?es
       if (allowedIds.length === 0) {
         for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
           allowedIds.push(id);
         }
       }
 
-      // Cria cache de Pokémon comuns baseado nas regiões do evento
+      // Cria cache de Pok?mon comuns baseado nas regi?es do evento
       const cacheKey = `_weeklyEventCache_${
         weeklyEvent ? weeklyEvent.regions.join("_") : "all"
       }`;
@@ -1062,7 +1062,7 @@ export const BattleCore = {
         for (const id of allowedIds) {
           try {
             const speciesData = await window.PokeAPI.fetchSpeciesData(id);
-            // Inclui apenas se NÃO for lendário e NÃO for mitico
+            // Inclui apenas se N?O for lend?rio e N?O for mitico
             if (
               speciesData &&
               !speciesData.isLegendary &&
@@ -1071,7 +1071,7 @@ export const BattleCore = {
               window[cacheKey].push(id);
             }
           } catch (e) {
-            // Se não conseguir buscar species, adiciona ao cache para evitar travamentos
+            // Se n?o conseguir buscar species, adiciona ao cache para evitar travamentos
             window[cacheKey].push(id);
           }
         }
@@ -1081,7 +1081,7 @@ export const BattleCore = {
         pokemonId =
           window[cacheKey][Math.floor(Math.random() * window[cacheKey].length)];
       } else {
-        // Fallback: escolhe aleatoriamente das regiões permitidas
+        // Fallback: escolhe aleatoriamente das regi?es permitidas
         if (allowedIds.length > 0) {
           pokemonId = allowedIds[Math.floor(Math.random() * allowedIds.length)];
         } else {
@@ -1093,22 +1093,22 @@ export const BattleCore = {
 
     const wildPokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
     if (!wildPokemonData) {
-      window.GameLogic.addExploreLog("Erro ao encontrar Pokémon selvagem.");
+      window.GameLogic.addExploreLog("Erro ao encontrar Pok?mon selvagem.");
       window.AuthSetup?.handleBattleMusic(false);
       return;
     }
 
-    // Calcula o nível baseado no nível do treinador
-    // Normal: nível do treinador ± 2
-    // Evoluído: nível do treinador + 5
-    // Lendário: nível do treinador + 10
+    // Calcula o n?vel baseado no n?vel do treinador
+    // Normal: n?vel do treinador ? 2
+    // Evolu?do: n?vel do treinador + 5
+    // Lend?rio: n?vel do treinador + 10
     let baseLevel = trainerLevel;
     if (isLegendary) {
       baseLevel = trainerLevel + 10;
     } else if (isEvolved) {
       baseLevel = trainerLevel + 5;
     } else {
-      // Normal: variação de ±2 níveis
+      // Normal: varia??o de ?2 n?veis
       const variation = Math.floor(Math.random() * 5) - 2; // -2 a +2
       baseLevel = trainerLevel + variation;
     }
@@ -1125,17 +1125,17 @@ export const BattleCore = {
 
     // NOVO: Adiciona o status de captura (capturado/novo)
     const isCaught = window.gameState.profile.pokedex.has(wildPokemonData.id);
-    const captureStatus = isCaught ? " (JÁ CAPTURADO)" : " (NOVO!)";
+    const captureStatus = isCaught ? " (J? CAPTURADO)" : " (NOVO!)";
 
-    // Mensagem especial para evoluídos e lendários
+    // Mensagem especial para evolu?dos e lend?rios
     let specialType = "";
     if (isLegendary) {
-      specialType = " ⭐ LENDÁRIO ⭐";
+      specialType = " ? LEND?RIO ?";
     } else if (isEvolved) {
-      specialType = " ⚡ EVOLUÍDO ⚡";
+      specialType = " ? EVOLU?DO ?";
     }
 
-    // NOVO: Encontra o primeiro pokémon da equipe que está vivo para ser o inicial
+    // NOVO: Encontra o primeiro pok?mon da equipe que est? vivo para ser o inicial
     const firstAvailableIndex =
       battleTeamIndices.find(
         (index) =>
@@ -1149,9 +1149,9 @@ export const BattleCore = {
       opponent: wildPokemonData,
       isEvolved: isEvolved,
       isLegendary: isLegendary,
-      // NOVO: Usa o primeiro pokémon da equipe de batalha disponível
+      // NOVO: Usa o primeiro pok?mon da equipe de batalha dispon?vel
       playerPokemonIndex: firstAvailableIndex,
-      // NOVO: Armazena os índices da equipe de batalha na batalha
+      // NOVO: Armazena os ?ndices da equipe de batalha na batalha
       battleTeamIndices: battleTeamIndices,
       turn: 0,
       // Mensagem inicial com o status de captura
@@ -1163,14 +1163,14 @@ export const BattleCore = {
       participatingIndices: new Set(),
       forceSwitchSelection: false,
       forceSwitchMessage: null,
-      // NOVO: Cooldown de 3 segundos para o botão de fugir no início da batalha
+      // NOVO: Cooldown de 3 segundos para o bot?o de fugir no in?cio da batalha
       runButtonCooldown: true,
     };
 
-    // Adiciona o índice do pokémon inicial ao set de participantes
+    // Adiciona o ?ndice do pok?mon inicial ao set de participantes
     window.gameState.battle.participatingIndices.add(firstAvailableIndex);
 
-    // Remove o cooldown após 3 segundos
+    // Remove o cooldown ap?s 3 segundos
     setTimeout(() => {
       if (window.gameState.battle) {
         window.gameState.battle.runButtonCooldown = false;
@@ -1181,7 +1181,7 @@ export const BattleCore = {
     window.Renderer.showScreen("battle");
     BattleCore._checkActivePokemonOnBattleStart();
 
-    // NOVO: Inimigo toma a primeira ação após um pequeno delay
+    // NOVO: Inimigo toma a primeira a??o ap?s um pequeno delay
     setTimeout(async () => {
       if (
         window.gameState.battle &&
@@ -1193,10 +1193,10 @@ export const BattleCore = {
   },
 
   /**
-   * Inicia uma batalha contra um chefe de zona com 5 pokémons.
-   * @param {number} zoneNumber - Número da zona (1, 2, 3, etc.)
-   * @param {number} trainerLevel - Nível do treinador
-   * @param {Array<number>} battleTeamIndices - Índices da equipe de batalha do jogador
+   * Inicia uma batalha contra um chefe de zona com 5 pok?mons.
+   * @param {number} zoneNumber - N?mero da zona (1, 2, 3, etc.)
+   * @param {number} trainerLevel - N?vel do treinador
+   * @param {Array<number>} battleTeamIndices - ?ndices da equipe de batalha do jogador
    */
   startBossBattle: async function (
     zoneNumber,
@@ -1205,11 +1205,11 @@ export const BattleCore = {
   ) {
     const profile = window.gameState.profile;
 
-    // Gera 5 pokémons para o chefe (todos evoluídos e com nível maior)
+    // Gera 5 pok?mons para o chefe (todos evolu?dos e com n?vel maior)
     const bossPokemon = [];
-    const bossLevel = trainerLevel + 10; // Chefe sempre 10 níveis acima
+    const bossLevel = trainerLevel + 10; // Chefe sempre 10 n?veis acima
 
-    // Busca pokémons evoluídos para o chefe
+    // Busca pok?mons evolu?dos para o chefe
     if (!window._evolvedCache) {
       window._evolvedCache = [];
       for (let id = 1; id <= window.GameConfig.POKEDEX_LIMIT; id++) {
@@ -1231,7 +1231,7 @@ export const BattleCore = {
       }
     }
 
-    // Seleciona 5 pokémons aleatórios evoluídos
+    // Seleciona 5 pok?mons aleat?rios evolu?dos
     const availableEvolved = [...window._evolvedCache];
     const selectedIds = [];
     for (let i = 0; i < 5 && availableEvolved.length > 0; i++) {
@@ -1240,7 +1240,7 @@ export const BattleCore = {
       selectedIds.push(selectedId);
     }
 
-    // Se não tiver 5 evoluídos, completa com pokémons normais
+    // Se n?o tiver 5 evolu?dos, completa com pok?mons normais
     while (selectedIds.length < 5) {
       const randomId =
         Math.floor(Math.random() * window.GameConfig.POKEDEX_LIMIT) + 1;
@@ -1249,7 +1249,7 @@ export const BattleCore = {
       }
     }
 
-    // Carrega os dados dos pokémons do chefe
+    // Carrega os dados dos pok?mons do chefe
     for (const pokemonId of selectedIds) {
       try {
         const pokemonData = await window.PokeAPI.fetchPokemonData(pokemonId);
@@ -1264,7 +1264,7 @@ export const BattleCore = {
           bossPokemon.push(pokemonData);
         }
       } catch (e) {
-        console.error(`Erro ao carregar pokémon ${pokemonId} do chefe:`, e);
+        console.error(`Erro ao carregar pok?mon ${pokemonId} do chefe:`, e);
       }
     }
 
@@ -1274,7 +1274,7 @@ export const BattleCore = {
       return;
     }
 
-    // Encontra o primeiro pokémon da equipe que está vivo
+    // Encontra o primeiro pok?mon da equipe que est? vivo
     const firstAvailableIndex =
       battleTeamIndices.find(
         (index) =>
@@ -1285,53 +1285,53 @@ export const BattleCore = {
 
     const zoneBadgeName = `Zona ${zoneNumber}`;
 
-    // Nomes de líderes por zona
+    // Nomes de l?deres por zona
     const leaderNames = [
-      "Líder Brock",
-      "Líder Misty",
-      "Líder Lt. Surge",
-      "Líder Erika",
-      "Líder Koga",
-      "Líder Sabrina",
-      "Líder Blaine",
-      "Líder Giovanni",
+      "L?der Brock",
+      "L?der Misty",
+      "L?der Lt. Surge",
+      "L?der Erika",
+      "L?der Koga",
+      "L?der Sabrina",
+      "L?der Blaine",
+      "L?der Giovanni",
     ];
     const leaderName =
       leaderNames[(zoneNumber - 1) % leaderNames.length] ||
-      `Líder da ${zoneBadgeName}`;
+      `L?der da ${zoneBadgeName}`;
 
     window.gameState.battle = {
       type: "boss",
-      opponent: bossPokemon[0], // Primeiro pokémon do chefe
-      bossTeam: bossPokemon, // Todos os 5 pokémons do chefe
-      currentBossIndex: 0, // Índice do pokémon atual do chefe
+      opponent: bossPokemon[0], // Primeiro pok?mon do chefe
+      bossTeam: bossPokemon, // Todos os 5 pok?mons do chefe
+      currentBossIndex: 0, // ?ndice do pok?mon atual do chefe
       zoneNumber: zoneNumber,
       zoneBadgeName: zoneBadgeName,
       leaderName: leaderName,
       playerPokemonIndex: firstAvailableIndex,
       battleTeamIndices: battleTeamIndices,
       turn: 0,
-      lastMessage: `🏆 ${leaderName.toUpperCase()} DESAFIOU VOCÊ PARA UMA BATALHA! 🏆\n${
+      lastMessage: `?? ${leaderName.toUpperCase()} DESAFIOU VOC? PARA UMA BATALHA! ??\n${
         bossPokemon[0].name
       } (Nv. ${bossPokemon[0].level}) lidera o time do ${leaderName}!`,
       log: [
-        `🏆 ${leaderName.toUpperCase()} DESAFIOU VOCÊ PARA UMA BATALHA! 🏆`,
+        `?? ${leaderName.toUpperCase()} DESAFIOU VOC? PARA UMA BATALHA! ??`,
         `${bossPokemon[0].name} (Nv. ${bossPokemon[0].level}) lidera o time do ${leaderName}!`,
-        `O ${leaderName} tem ${bossPokemon.length} pokémons poderosos!`,
-        `Próxima luta: Batalha contra ${leaderName}`,
+        `O ${leaderName} tem ${bossPokemon.length} pok?mons poderosos!`,
+        `Pr?xima luta: Batalha contra ${leaderName}`,
       ],
       currentMenu: "disabled",
       participatingIndices: new Set(),
       forceSwitchSelection: false,
       forceSwitchMessage: null,
-      // NOVO: Cooldown de 3 segundos para o botão de fugir no início da batalha
+      // NOVO: Cooldown de 3 segundos para o bot?o de fugir no in?cio da batalha
       runButtonCooldown: true,
     };
 
-    // Adiciona o índice do pokémon inicial ao set de participantes
+    // Adiciona o ?ndice do pok?mon inicial ao set de participantes
     window.gameState.battle.participatingIndices.add(firstAvailableIndex);
 
-    // Remove o cooldown após 3 segundos
+    // Remove o cooldown ap?s 3 segundos
     setTimeout(() => {
       if (window.gameState.battle) {
         window.gameState.battle.runButtonCooldown = false;
@@ -1342,7 +1342,7 @@ export const BattleCore = {
     window.Renderer.showScreen("battle");
     BattleCore._checkActivePokemonOnBattleStart();
 
-    // NOVO: Inimigo toma a primeira ação após um pequeno delay
+    // NOVO: Inimigo toma a primeira a??o ap?s um pequeno delay
     setTimeout(async () => {
       if (
         window.gameState.battle &&
@@ -1354,10 +1354,10 @@ export const BattleCore = {
   },
 
   /**
-   * Calcula o dano simplificado de um ataque, incluindo a eficácia de tipos.
-   * @param {object} attacker - Pokémon atacante.
-   * @param {string} moveName - Nome do movimento (para fins de exibição).
-   * @param {object} defender - Pokémon alvo.
+   * Calcula o dano simplificado de um ataque, incluindo a efic?cia de tipos.
+   * @param {object} attacker - Pok?mon atacante.
+   * @param {string} moveName - Nome do movimento (para fins de exibi??o).
+   * @param {object} defender - Pok?mon alvo.
    * @returns {{damage: number, isCritical: boolean, effectiveness: number}}
    */
   calculateDamage: function (attacker, moveName, defender) {
@@ -1366,10 +1366,10 @@ export const BattleCore = {
     const POWER_BASE = 50;
     const LEVEL_FACTOR = 0.35;
 
-    // 1. Determina o Tipo do Movimento (fallback para 'normal' se não encontrado)
+    // 1. Determina o Tipo do Movimento (fallback para 'normal' se n?o encontrado)
     const moveType = MOVES_TO_TYPE_MAPPING[moveName.toLowerCase()] || "normal";
 
-    // 2. Cálculo do Modificador de Tipo (Effectiveness)
+    // 2. C?lculo do Modificador de Tipo (Effectiveness)
     let effectiveness = 1;
     const defenderTypes = (defender.types || []).map((t) => t.toLowerCase());
 
@@ -1386,14 +1386,14 @@ export const BattleCore = {
     const defenseStat = (defender.stats.defense || 50) * DEFENSE_MODIFIER;
     const level = attacker.level || 5;
 
-    // 4. Bônus de Ataque do Mesmo Tipo (STAB - Same Type Attack Bonus)
+    // 4. B?nus de Ataque do Mesmo Tipo (STAB - Same Type Attack Bonus)
     let stab = 1;
     const attackerTypes = (attacker.types || []).map((t) => t.toLowerCase());
     if (attackerTypes.includes(moveType)) {
       stab = 1.5;
     }
 
-    // FÓRMULA DE DANO PRINCIPAL
+    // F?RMULA DE DANO PRINCIPAL
     const baseDamage =
       ((level * LEVEL_FACTOR + 2) * POWER_BASE * attackStat) /
         defenseStat /
@@ -1402,9 +1402,9 @@ export const BattleCore = {
     let finalDamage = baseDamage;
     let modifier = 1;
 
-    // 5. Modificadores de Batalha (Crítico, Variação, STAB e Eficácia)
+    // 5. Modificadores de Batalha (Cr?tico, Varia??o, STAB e Efic?cia)
 
-    // Crítico
+    // Cr?tico
     const criticalRoll = Math.random();
     let isCritical = false;
     if (criticalRoll < 0.0625) {
@@ -1412,11 +1412,11 @@ export const BattleCore = {
       isCritical = true;
     }
 
-    // Variação (0.85 a 1.00)
+    // Varia??o (0.85 a 1.00)
     const variance = Math.random() * 0.15 + 0.85;
     modifier *= variance;
 
-    // Aplica STAB e Eficácia
+    // Aplica STAB e Efic?cia
     modifier *= stab;
     modifier *= effectiveness;
 
@@ -1425,7 +1425,7 @@ export const BattleCore = {
     // 6. Dano Final
     let damage = Math.max(1, Math.floor(finalDamage));
 
-    // Pokémon imune (dano 0)
+    // Pok?mon imune (dano 0)
     if (effectiveness === 0) {
       damage = 0;
     }
@@ -1434,14 +1434,14 @@ export const BattleCore = {
   },
 
   /**
-   * Função auxiliar para encerrar a batalha e sincronizar o log.
-   * @param {string} finalMessage Mensagem final para o log de exploração.
+   * Fun??o auxiliar para encerrar a batalha e sincronizar o log.
+   * @param {string} finalMessage Mensagem final para o log de explora??o.
    */
   _endBattleAndSyncLog: function (finalMessage) {
     const battle = window.gameState.battle;
     if (battle) {
       // 1. contabiliza batalhas normais (exceto fugas e chefes)
-      // Chefes não contam como batalhas normais para o contador
+      // Chefes n?o contam como batalhas normais para o contador
       if (battle.type === "wild" && !battle.didEscape) {
         const profile = window.gameState.profile;
         profile.normalBattleCount = (profile.normalBattleCount || 0) + 1;
@@ -1455,22 +1455,22 @@ export const BattleCore = {
       // 2. Adiciona a mensagem final ao log principal
       window.GameLogic.addExploreLog(finalMessage);
 
-      // 3. Limpa flags temporárias e estado da batalha
+      // 3. Limpa flags tempor?rias e estado da batalha
       delete battle.didEscape;
       window.gameState.battle = null;
 
       // 4. Salva os dados
       window.GameLogic.saveGameData();
 
-      // 5. LÓGICA DE RETORNO DO MAPA (BETA MODE)
+      // 5. L?GICA DE RETORNO DO MAPA (BETA MODE)
       if (window.gameState.profile.preferences?.isBetaMode) {
         window.AuthSetup?.handleBattleMusic(false);
-        // Chama a função no MapCore para voltar ao mapa e exibir o modal
+        // Chama a fun??o no MapCore para voltar ao mapa e exibir o modal
         window.MapCore.handleBattleReturn(finalMessage);
         return;
       }
 
-      // 6. Fallback para o Menu Principal (Modo Clássico)
+      // 6. Fallback para o Menu Principal (Modo Cl?ssico)
       window.AuthSetup?.handleBattleMusic(false);
       window.Renderer.showScreen("mainMenu");
     }
@@ -1478,52 +1478,40 @@ export const BattleCore = {
 
   /**
    * Calcula e aplica XP e dinheiro ao vencedor da batalha selvagem.
-   * @param {number} defeatedLevel Nível do Pokémon derrotado.
-   * @param {Set<number>} participatingIndices Índices dos Pokémons que participaram da batalha.
+   * @param {number} defeatedLevel N?vel do Pok?mon derrotado.
+   * @param {Set<number>} participatingIndices ?ndices dos Pok?mons que participaram da batalha.
    */
   gainExp: function (defeatedLevel, participatingIndices) {
-    // Log de Vitória e Dinheiro (se não foi adicionado antes)
+    // Log de Vit?ria e Dinheiro (se n?o foi adicionado antes)
     if (
       !window.gameState.battle.lastMessage ||
-      !window.gameState.battle.lastMessage.includes("Parabéns!")
+      !window.gameState.battle.lastMessage.includes("Parab?ns!")
     ) {
       const winner = window.Utils.getActivePokemon();
-      BattleCore.addBattleLog(`Parabéns! ${winner.name} venceu!`);
+      BattleCore.addBattleLog(`Parab?ns! ${winner.name} venceu!`);
 
       const moneyGain = Math.floor(Math.random() * 500) + 200;
       window.gameState.profile.money += moneyGain;
-      BattleCore.addBattleLog(`Você ganhou P$${moneyGain}.`);
+      BattleCore.addBattleLog(`Voc? ganhou P$${moneyGain}.`);
     }
 
     const totalExpGain = Math.floor(((defeatedLevel * 50) / 5) * 1.1); // NOVO: Aumentado em 10%
 
-    // 1. Converte o Set para Array e ordena pelo índice para log limpo
-    // Filtra índices que ainda estão no time (ou seja, não foram soltos, etc.)
+    // 1. Converte o Set para Array e ordena pelo ?ndice para log limpo
+    // Filtra ?ndices que ainda est?o no time (ou seja, n?o foram soltos, etc.)
     const indicesArray = Array.from(participatingIndices)
       .filter((index) => window.gameState.profile.pokemon[index])
       .sort((a, b) => a - b);
 
     const uniqueParticipantsCount = indicesArray.length;
 
-    // LOG DE CONSOLE: Divisão
-    console.log("--- DISTRIBUIÇÃO DE XP INICIADA ---");
-    console.log(
-      `POKÉMON DERROTADO (Nv ${defeatedLevel}) XP BASE: ${totalExpGain}`
-    );
-    console.log(
-      `Participantes Válidos (Índices): [${indicesArray.join(", ")}]`
-    );
-
     if (uniqueParticipantsCount === 0) {
-      console.log(
-        "AVISO: Nenhum participante encontrado para receber XP. (Set Vazio)"
-      );
       return;
     }
 
     const sharedExp = Math.floor(totalExpGain / uniqueParticipantsCount);
 
-    // 2. Log da Divisão de XP (Tela)
+    // 2. Log da Divis?o de XP (Tela)
     const participatingNames = indicesArray
       .map(
         (index) =>
@@ -1532,19 +1520,18 @@ export const BattleCore = {
       .join(", ");
 
     BattleCore.addBattleLog(
-      `XP Total: ${totalExpGain} | Dividido por ${uniqueParticipantsCount} Pokémons: (${participatingNames}).`
+      `XP Total: ${totalExpGain} | Dividido por ${uniqueParticipantsCount} Pok?mons: (${participatingNames}).`
     );
     BattleCore.addBattleLog(`Cada um ganha ${sharedExp} XP.`);
-    console.log(`XP DISTRIBUÍDA POR POKÉMON: ${sharedExp}`);
 
-    // NOVO: Treinador também ganha XP (10% do total)
+    // NOVO: Treinador tamb?m ganha XP (10% do total)
     const trainerExpGain = Math.floor(totalExpGain * 0.1);
     if (trainerExpGain > 0 && window.Utils.giveTrainerExp) {
       window.Utils.giveTrainerExp(trainerExpGain);
       BattleCore.addBattleLog(`Treinador ganhou ${trainerExpGain} XP!`);
     }
 
-    // 3. Distribuição e Level Up
+    // 3. Distribui??o e Level Up
     indicesArray.forEach((index) => {
       const participant = window.gameState.profile.pokemon[index];
       if (!participant) return;
@@ -1556,17 +1543,12 @@ export const BattleCore = {
         BattleCore.addBattleLog(`${participant.name} ganhou ${sharedExp} XP!`);
       }
 
-      // Log de Console de Status Atual
-      console.log(
-        `  - ${participant.name} (Nv ${participant.level}): +${sharedExp} XP. Novo XP Total: ${participant.exp}`
-      );
-
       let expToNextLevel = window.Utils.calculateExpToNextLevel(
         participant.level
       );
       while (participant.exp >= expToNextLevel) {
         if (participant.level >= 100) {
-          participant.exp = 0; // Limita XP ao máximo
+          participant.exp = 0; // Limita XP ao m?ximo
           break;
         }
 
@@ -1583,10 +1565,7 @@ export const BattleCore = {
 
         // Log de Level Up
         BattleCore.addBattleLog(
-          `${participant.name} subiu para o Nível ${participant.level}!`
-        );
-        console.log(
-          `  >>> ${participant.name} SUBIU DE NÍVEL: Nv ${participant.level} (XP Restante: ${participant.exp})`
+          `${participant.name} subiu para o N?vel ${participant.level}!`
         );
 
         expToNextLevel = window.Utils.calculateExpToNextLevel(
@@ -1594,28 +1573,26 @@ export const BattleCore = {
         );
       }
     });
-
-    console.log("--- DISTRIBUÇÃO DE XP FINALIZADA ---");
   },
 
   battleWin: function (winner, loser) {
-    // A lógica de XP e dinheiro é delegada a gainExp.
+    // A l?gica de XP e dinheiro ? delegada a gainExp.
     const participatingIndices = window.gameState.battle.participatingIndices;
     BattleCore.gainExp(loser.level, participatingIndices);
 
-    // NOVO: Recompensa doces aos Pokémon que participaram da batalha
-    // 1 doce do Pokémon derrotado + 2 doces para cada Pokémon próprio que lutou
+    // NOVO: Recompensa doces aos Pok?mon que participaram da batalha
+    // 1 doce do Pok?mon derrotado + 2 doces para cada Pok?mon pr?prio que lutou
     if (participatingIndices && participatingIndices.size > 0) {
-      // 1. Adiciona 1 doce do Pokémon derrotado (baseado na linha evolutiva do oponente)
+      // 1. Adiciona 1 doce do Pok?mon derrotado (baseado na linha evolutiva do oponente)
       const loserBaseId = window.GameLogic.getEvolutionChainBaseId(loser.id);
       window.GameLogic.addPokemonCandy(loser.id, 1);
       const loserTotalCandy = window.GameLogic.getPokemonCandy(loserBaseId);
       const loserName = window.Utils.formatName(loser.name);
       BattleCore.addBattleLog(
-        `Você ganhou 1 doce de ${loserName}! (Total: ${loserTotalCandy} doces)`
+        `Voc? ganhou 1 doce de ${loserName}! (Total: ${loserTotalCandy} doces)`
       );
 
-      // 2. Adiciona 2 doces para cada Pokémon próprio que participou da batalha
+      // 2. Adiciona 2 doces para cada Pok?mon pr?prio que participou da batalha
       const indicesArray = Array.from(participatingIndices)
         .filter((index) => window.gameState.profile.pokemon[index])
         .sort((a, b) => a - b);
@@ -1623,7 +1600,7 @@ export const BattleCore = {
       indicesArray.forEach((index) => {
         const pokemon = window.gameState.profile.pokemon[index];
         if (pokemon) {
-          // Adiciona 2 doces baseado na linha evolutiva do Pokémon próprio
+          // Adiciona 2 doces baseado na linha evolutiva do Pok?mon pr?prio
           window.GameLogic.addPokemonCandy(pokemon.id, 2);
           const pokemonBaseId = window.GameLogic.getEvolutionChainBaseId(
             pokemon.id
@@ -1650,7 +1627,7 @@ export const BattleCore = {
   addBattleLog: function (message) {
     if (window.gameState.battle) {
       window.gameState.battle.lastMessage = message;
-      // NOVO: Mantém apenas a última mensagem (substitui a anterior)
+      // NOVO: Mant?m apenas a ?ltima mensagem (substitui a anterior)
       if (window.gameState.battle.log) {
         window.gameState.battle.log = [message];
       }
@@ -1688,7 +1665,7 @@ export const BattleCore = {
       const battleMenu = document.querySelector(".battle-menu");
 
       if (!battleMenu) {
-        // Fallback se não encontrar o menu
+        // Fallback se n?o encontrar o menu
         resolve({
           success: false,
           chance: BattleCore.calculateCatchRate(
@@ -1708,17 +1685,17 @@ export const BattleCore = {
       const level = Math.max(1, wildPokemon.level || 1);
 
       // Fatores de dificuldade:
-      // - Vida baixa = mais fácil (zona verde maior)
-      // - Nível alto = mais difícil (zona verde menor)
-      // - Bola melhor = mais fácil (zona verde maior)
-      // NOVO: Verde é o menor, amarelo médio, vermelho maior
+      // - Vida baixa = mais f?cil (zona verde maior)
+      // - N?vel alto = mais dif?cil (zona verde menor)
+      // - Bola melhor = mais f?cil (zona verde maior)
+      // NOVO: Verde ? o menor, amarelo m?dio, vermelho maior
       const baseGreenZoneSize = 12; // Tamanho base da zona verde (centro, menor) em %
-      const baseYellowZoneSize = 35; // Tamanho total da zona amarela (médio, engloba verde) em % - aumentado 10%
-      const hpBonus = (1 - hpRatio) * 8; // Até 8% de bônus se HP baixo
-      const levelPenalty = (level / 100) * 6; // Até 6% de penalidade se nível alto
-      const ballBonus = (ballCatchRate - 0.5) * 4; // Bônus baseado na qualidade da bola
+      const baseYellowZoneSize = 35; // Tamanho total da zona amarela (m?dio, engloba verde) em % - aumentado 10%
+      const hpBonus = (1 - hpRatio) * 8; // At? 8% de b?nus se HP baixo
+      const levelPenalty = (level / 100) * 6; // At? 6% de penalidade se n?vel alto
+      const ballBonus = (ballCatchRate - 0.5) * 4; // B?nus baseado na qualidade da bola
 
-      // Tamanho das zonas: verde menor (centro), amarelo médio (ao redor), vermelho maior (extremas)
+      // Tamanho das zonas: verde menor (centro), amarelo m?dio (ao redor), vermelho maior (extremas)
       const greenZoneSize = Math.max(
         8,
         Math.min(20, baseGreenZoneSize + hpBonus - levelPenalty + ballBonus)
@@ -1728,12 +1705,12 @@ export const BattleCore = {
         Math.min(50, baseYellowZoneSize + hpBonus - levelPenalty * 0.5)
       );
 
-      // Velocidade da barra aumentada (nível alto = mais rápido)
+      // Velocidade da barra aumentada (n?vel alto = mais r?pido)
       const baseSpeed = 4; // Velocidade base aumentada (era 2)
-      const speedMultiplier = 1 + level / 40; // Mais rápido com nível alto
+      const speedMultiplier = 1 + level / 40; // Mais r?pido com n?vel alto
       const barSpeed = baseSpeed * speedMultiplier;
 
-      // Substitui o conteúdo do menu pelo minigame
+      // Substitui o conte?do do menu pelo minigame
       battleMenu.innerHTML = `
         <div class="battle-menu-body">
           <div style="padding: 15px; text-align: center;">
@@ -1741,19 +1718,19 @@ export const BattleCore = {
               MINIGAME DE CAPTURA
             </div>
             <div style="font-size: 0.7rem; color: #fff; margin-bottom: 15px; text-shadow: 1px 1px 0px #000;">
-              Clique na área quando a barra estiver na zona verde!
+              Clique na ?rea quando a barra estiver na zona verde!
             </div>
             <div id="capture-timing-container" style="width: 100%; height: 60px; background: #1e293b; border: 3px solid #000; border-radius: 8px; position: relative; overflow: hidden; margin: 15px 0; cursor: pointer;">
               <!-- Zona vermelha (extremos - erro) -->
               <div id="capture-red-zone-left" style="position: absolute; top: 0; left: 0; height: 100%; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); opacity: 0.5;"></div>
               <div id="capture-red-zone-right" style="position: absolute; top: 0; right: 0; height: 100%; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); opacity: 0.5;"></div>
-              <!-- Zona amarela (meio - acerta sem bônus) -->
+              <!-- Zona amarela (meio - acerta sem b?nus) -->
               <div id="capture-yellow-zone" style="position: absolute; top: 0; height: 100%; background: linear-gradient(180deg, #facc15 0%, #eab308 100%); border: 2px solid #fff; opacity: 0.6; box-shadow: inset 0 0 15px rgba(250, 204, 21, 0.6);"></div>
               <!-- Zona verde (centro - maior chance) -->
               <div id="capture-green-zone" style="position: absolute; top: 0; height: 100%; background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); border: 2px solid #fff; opacity: 0.7; box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.8);"></div>
               <!-- Linha central -->
               <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.8); z-index: 10;"></div>
-              <!-- Barra móvel -->
+              <!-- Barra m?vel -->
               <div id="capture-timing-bar" style="position: absolute; top: 0; left: 0; height: 100%; width: 20px; background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); border: 2px solid #fff; border-radius: 4px; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); transition: left 0.03s linear; z-index: 5;"></div>
             </div>
             <div id="capture-feedback" style="text-align: center; font-size: 0.8rem; font-weight: bold; margin-top: 10px; text-shadow: 2px 2px 0px #000; min-height: 20px;"></div>
@@ -1773,7 +1750,7 @@ export const BattleCore = {
       const feedbackElement = document.getElementById("capture-feedback");
       const container = document.getElementById("capture-timing-container");
 
-      // Aguarda um frame para garantir que o elemento está renderizado
+      // Aguarda um frame para garantir que o elemento est? renderizado
       setTimeout(() => {
         // Configura as zonas
         const containerWidth = container.offsetWidth;
@@ -1782,7 +1759,7 @@ export const BattleCore = {
         const greenWidth = (containerWidth * greenZoneSize) / 100;
         const greenLeft = (containerWidth - greenWidth) / 2;
 
-        // Zona amarela (ao redor do verde - MÉDIO, engloba o verde)
+        // Zona amarela (ao redor do verde - M?DIO, engloba o verde)
         const yellowTotalWidth = (containerWidth * yellowTotalZoneSize) / 100;
         const yellowLeft = (containerWidth - yellowTotalWidth) / 2;
 
@@ -1799,7 +1776,7 @@ export const BattleCore = {
         redZoneLeftElement.style.width = `${redZoneWidth}px`;
         redZoneRightElement.style.width = `${redZoneWidth}px`;
 
-        // Variáveis para o handler do clique
+        // Vari?veis para o handler do clique
         const greenStart = greenLeft;
         const greenEnd = greenLeft + greenWidth;
         const yellowStart = yellowLeft;
@@ -1811,7 +1788,7 @@ export const BattleCore = {
         let clicked = false;
         let animateBarInterval = null;
 
-        // Animação da barra usando setInterval para melhor controle
+        // Anima??o da barra usando setInterval para melhor controle
         const startAnimation = () => {
           animateBarInterval = setInterval(() => {
             if (!gameActive || clicked) {
@@ -1821,7 +1798,7 @@ export const BattleCore = {
 
             barPosition += barSpeed * direction;
 
-            // Inverte direção nas bordas
+            // Inverte dire??o nas bordas
             if (barPosition >= containerWidth - 20) {
               barPosition = containerWidth - 20;
               direction = -1;
@@ -1836,7 +1813,7 @@ export const BattleCore = {
 
         startAnimation();
 
-        // Handler do clique na área toda
+        // Handler do clique na ?rea toda
         const handleClick = (e) => {
           if (!gameActive || clicked) return;
 
@@ -1846,7 +1823,7 @@ export const BattleCore = {
           container.style.cursor = "not-allowed";
           container.style.opacity = "0.7";
 
-          // Verifica em qual zona a barra está
+          // Verifica em qual zona a barra est?
           const barCenter = barPosition + 10; // Centro da barra (largura 20px)
 
           const baseChance = BattleCore.calculateCatchRate(
@@ -1863,11 +1840,11 @@ export const BattleCore = {
             const maxDistance = greenWidth / 2;
             const precision = 1 - distanceFromCenter / maxDistance; // 0 a 1
 
-            // Bônus de precisão: até 25% extra se clicou no centro exato
+            // B?nus de precis?o: at? 25% extra se clicou no centro exato
             const precisionBonus = precision * 25;
             const finalChance = Math.min(95, baseChance + precisionBonus);
 
-            feedbackElement.textContent = `PERFEITO! Precisão: ${Math.round(
+            feedbackElement.textContent = `PERFEITO! Precis?o: ${Math.round(
               precision * 100
             )}%!`;
             feedbackElement.style.color = "#22c55e";
@@ -1876,10 +1853,10 @@ export const BattleCore = {
               resolve({ success: true, chance: finalChance, missed: false });
             }, 1000);
           }
-          // Depois verifica a zona amarela (meio, mas não no verde)
+          // Depois verifica a zona amarela (meio, mas n?o no verde)
           else if (barCenter >= yellowStart && barCenter <= yellowEnd) {
-            // ZONA AMARELA - Não aumenta nem diminui (neutral)
-            const finalChance = baseChance; // Chance base, sem modificação
+            // ZONA AMARELA - N?o aumenta nem diminui (neutral)
+            const finalChance = baseChance; // Chance base, sem modifica??o
 
             feedbackElement.textContent = "Bom! Mas poderia ser melhor...";
             feedbackElement.style.color = "#facc15";
@@ -1888,10 +1865,10 @@ export const BattleCore = {
               resolve({ success: true, chance: finalChance, missed: false });
             }, 1000);
           }
-          // Por último, zona vermelha (extremos)
+          // Por ?ltimo, zona vermelha (extremos)
           else {
-            // ZONA VERMELHA - Errou completamente, perde pokébola e passa turno
-            feedbackElement.textContent = "Errou! A pokébola falhou!";
+            // ZONA VERMELHA - Errou completamente, perde pok?bola e passa turno
+            feedbackElement.textContent = "Errou! A pok?bola falhou!";
             feedbackElement.style.color = "#ef4444";
 
             setTimeout(() => {
@@ -1902,7 +1879,7 @@ export const BattleCore = {
 
         container.addEventListener("click", handleClick);
 
-        // Timeout de segurança (se não clicar em 8 segundos, falha)
+        // Timeout de seguran?a (se n?o clicar em 8 segundos, falha)
         setTimeout(() => {
           if (!clicked) {
             gameActive = false;
@@ -1929,7 +1906,7 @@ export const BattleCore = {
             }, 1000);
           }
         }, 8000);
-      }, 50); // Pequeno delay para garantir renderização
+      }, 50); // Pequeno delay para garantir renderiza??o
     });
   },
 
@@ -1944,9 +1921,9 @@ export const BattleCore = {
         ballCatchRate
       );
 
-      // NOVO: Se errou no vermelho, não mostra animação de captura
+      // NOVO: Se errou no vermelho, n?o mostra anima??o de captura
       if (minigameResult.missed) {
-        // Retorna informação de que errou
+        // Retorna informa??o de que errou
         resolve({ battleEnded: false, missed: true });
         return;
       }
@@ -1984,7 +1961,7 @@ export const BattleCore = {
 
         if (shakes <= 3) {
           BattleCore.addBattleLog(
-            `... ${ballName} balança ${shakes} vez(es) ...`
+            `... ${ballName} balan?a ${shakes} vez(es) ...`
           );
         }
 
@@ -2009,21 +1986,21 @@ export const BattleCore = {
             BattleCore.updateBattleScreen();
 
             setTimeout(() => {
-              // Lógica de adicionar Pokémon
+              // L?gica de adicionar Pok?mon
               window.Utils.applyMoveTemplate(wildPokemon, {
                 forceResetUses: true,
               });
 
-              // NOVO: Adiciona data de captura e pokébola usada
+              // NOVO: Adiciona data de captura e pok?bola usada
               wildPokemon.captureDate = new Date().toISOString();
               wildPokemon.captureBall = ballName;
 
               window.gameState.profile.pokemon.push(wildPokemon);
 
-              // NOVO: Adiciona doce quando Pokémon é capturado
+              // NOVO: Adiciona doce quando Pok?mon ? capturado
               window.GameLogic.addPokemonCandy(wildPokemon.id, 1);
 
-              // NOVO: Treinador ganha XP ao capturar (baseado no nível do Pokémon)
+              // NOVO: Treinador ganha XP ao capturar (baseado no n?vel do Pok?mon)
               const captureExp = Math.floor(wildPokemon.level * 5);
               if (captureExp > 0 && window.Utils.giveTrainerExp) {
                 window.Utils.giveTrainerExp(captureExp);
@@ -2032,7 +2009,7 @@ export const BattleCore = {
                 );
               }
 
-              // // AÇÃO DE CAPTURA BEM-SUCEDIDA
+              // // A??O DE CAPTURA BEM-SUCEDIDA
               const foiCapturado = window.gameState.profile.pokedex.has(
                 wildPokemon.id
               );
@@ -2041,19 +2018,19 @@ export const BattleCore = {
                 window.GameLogic.saveGameData();
               }
 
-              // NOVO: Salva automaticamente o save em arquivo após captura
+              // NOVO: Salva automaticamente o save em arquivo ap?s captura
               if (window.GameLogic.autoSaveToFile) {
                 window.GameLogic.autoSaveToFile();
               }
 
-              // Usa a função de encerramento para sincronizar o log
+              // Usa a fun??o de encerramento para sincronizar o log
               BattleCore._endBattleAndSyncLog(finalMsg);
 
               resolve({ battleEnded: true, missed: false });
             }, 1000);
           } else {
-            // O Pokémon não foi capturado.
-            BattleCore.addBattleLog(`Oh não! ${wildPokemon.name} escapou!`);
+            // O Pok?mon n?o foi capturado.
+            BattleCore.addBattleLog(`Oh n?o! ${wildPokemon.name} escapou!`);
 
             if (opponentSpriteElement) {
               opponentSpriteElement.src = wildPokemon.sprite;
@@ -2061,18 +2038,18 @@ export const BattleCore = {
             }
 
             if (roll > 90) {
-              // O Pokémon escapou E fugiu da batalha
+              // O Pok?mon escapou E fugiu da batalha
               const finalMsg = `${wildPokemon.name} fugiu da batalha!`;
               BattleCore.addBattleLog(finalMsg);
               BattleCore.updateBattleScreen();
 
               setTimeout(() => {
-                // Usa a função de encerramento para sincronizar o log
+                // Usa a fun??o de encerramento para sincronizar o log
                 BattleCore._endBattleAndSyncLog(finalMsg);
                 resolve({ battleEnded: true, missed: false });
               }, 1500);
             } else {
-              // O Pokémon escapou, mas a batalha continua
+              // O Pok?mon escapou, mas a batalha continua
               resolve({ battleEnded: false, missed: false });
             }
           }
@@ -2086,11 +2063,11 @@ export const BattleCore = {
       (i) => i.name === ballName
     );
     if (!ballItem || ballItem.quantity <= 0) {
-      BattleCore.addBattleLog(`Você não tem mais ${ballName}!`);
+      BattleCore.addBattleLog(`Voc? n?o tem mais ${ballName}!`);
       return;
     }
 
-    BattleCore.addBattleLog(`Você joga a ${ballName}!`);
+    BattleCore.addBattleLog(`Voc? joga a ${ballName}!`);
     BattleCore.setBattleMenu("disabled", true);
 
     const captureResult = await BattleCore.animateCapture(
@@ -2098,9 +2075,9 @@ export const BattleCore = {
       ballCatchRate
     );
 
-    // NOVO: Se errou no vermelho (missed), perde pokébola e passa turno imediatamente
+    // NOVO: Se errou no vermelho (missed), perde pok?bola e passa turno imediatamente
     if (captureResult.missed) {
-      BattleCore.addBattleLog("Errou! A pokébola falhou!");
+      BattleCore.addBattleLog("Errou! A pok?bola falhou!");
       ballItem.quantity--;
       window.GameLogic.saveGameData();
       BattleCore.updateBattleScreen();
@@ -2114,7 +2091,7 @@ export const BattleCore = {
       return;
     }
 
-    // Se não errou, subtrai a pokébola normalmente
+    // Se n?o errou, subtrai a pok?bola normalmente
     ballItem.quantity--;
     window.GameLogic.saveGameData();
     BattleCore.updateBattleScreen();
@@ -2132,12 +2109,12 @@ export const BattleCore = {
   playerTurn: async function (action, moveName = null) {
     const battle = window.gameState.battle;
 
-    // Previne múltiplos cliques rápidos
+    // Previne m?ltiplos cliques r?pidos
     if (battle.isProcessingAction) {
       return;
     }
 
-    // Marca que uma ação está sendo processada
+    // Marca que uma a??o est? sendo processada
     battle.isProcessingAction = true;
 
     try {
@@ -2149,7 +2126,7 @@ export const BattleCore = {
       window.Utils.ensureMoveCounters(playerPokemon);
       window.Utils.ensureMoveCounters(opponent);
 
-      // Desabilita os botões imediatamente
+      // Desabilita os bot?es imediatamente
       BattleCore.setBattleMenu("disabled", true);
       BattleCore.updateBattleScreen();
 
@@ -2160,7 +2137,7 @@ export const BattleCore = {
       if (battle.type === "pvp") {
         if (action === "item" && item && item.catchRate) {
           BattleCore.addBattleLog(
-            "Pokébolas não podem ser usadas em batalhas PvP."
+            "Pok?bolas n?o podem ser usadas em batalhas PvP."
           );
           BattleCore.setBattleMenu("main", true);
           return;
@@ -2172,7 +2149,7 @@ export const BattleCore = {
       if (action === "run") {
         // NOVO: Fuga sempre bem-sucedida (sem porcentagem de falha)
         battle.didEscape = true;
-        finalMessage = `Você fugiu com sucesso!`;
+        finalMessage = `Voc? fugiu com sucesso!`;
         BattleCore.addBattleLog(finalMessage);
         ended = true;
         BattleCore.updateBattleScreen();
@@ -2181,7 +2158,7 @@ export const BattleCore = {
           BattleCore.addBattleLog(
             `${window.Utils.getPokemonDisplayName(
               playerPokemon
-            )} desmaiou e não pode atacar!`
+            )} desmaiou e n?o pode atacar!`
           );
           BattleCore.setBattleMenu("main", true);
           return;
@@ -2200,7 +2177,7 @@ export const BattleCore = {
           BattleCore.addBattleLog(
             `${window.Utils.getPokemonDisplayName(
               playerPokemon
-            )} está sem ${moveType} para ${window.Utils.formatName(moveName)}!`
+            )} est? sem ${moveType} para ${window.Utils.formatName(moveName)}!`
           );
           BattleCore.setBattleMenu("fight", true);
           BattleCore.updateBattleScreen();
@@ -2237,11 +2214,11 @@ export const BattleCore = {
 
         let effectivenessMessage = "";
         if (damageResult.effectiveness === 0)
-          effectivenessMessage = " Não teve efeito!";
+          effectivenessMessage = " N?o teve efeito!";
         else if (damageResult.effectiveness <= 0.5)
-          effectivenessMessage = " Não é muito eficaz.";
+          effectivenessMessage = " N?o ? muito eficaz.";
         else if (damageResult.effectiveness >= 2)
-          effectivenessMessage = " É super eficaz!";
+          effectivenessMessage = " ? super eficaz!";
 
         // NOVO: Usa PA individual do movimento
         const paUsed = window.Utils.useMovePA(playerPokemon, moveName);
@@ -2249,14 +2226,14 @@ export const BattleCore = {
           BattleCore.addBattleLog(
             `${window.Utils.getPokemonDisplayName(
               playerPokemon
-            )} não conseguiu usar ${window.Utils.formatName(moveName)}!`
+            )} n?o conseguiu usar ${window.Utils.formatName(moveName)}!`
           );
           BattleCore.setBattleMenu("fight", true);
           BattleCore.updateBattleScreen();
           return;
         }
 
-        // Obtém PA atualizado após o uso
+        // Obt?m PA atualizado ap?s o uso
         const updatedMovePA = window.Utils.getMovePA(playerPokemon, moveName);
 
         let logMessage = `${window.Utils.getPokemonDisplayName(
@@ -2267,7 +2244,7 @@ export const BattleCore = {
         }
 
         if (damageResult.isCritical) {
-          logMessage += ` É UM ACERTO CRÍTICO!`;
+          logMessage += ` ? UM ACERTO CR?TICO!`;
         }
         BattleCore.addBattleLog(logMessage);
 
@@ -2318,19 +2295,19 @@ export const BattleCore = {
       if (opponent.currentHp === 0) {
         const battle = window.gameState.battle;
 
-        // NOVO: Lógica especial para chefe de zona
+        // NOVO: L?gica especial para chefe de zona
         if (
           battle.type === "boss" &&
           battle.bossTeam &&
           battle.currentBossIndex !== undefined
         ) {
-          // Derrotou o pokémon atual do chefe
+          // Derrotou o pok?mon atual do chefe
           BattleCore.battleWin(playerPokemon, opponent);
 
-          // Verifica se há mais pokémons no time do chefe
+          // Verifica se h? mais pok?mons no time do chefe
           const nextBossIndex = battle.currentBossIndex + 1;
           if (nextBossIndex < battle.bossTeam.length) {
-            // Ainda há pokémons, troca para o próximo
+            // Ainda h? pok?mons, troca para o pr?ximo
             const nextBossPokemon = battle.bossTeam[nextBossIndex];
             nextBossPokemon.currentHp = nextBossPokemon.maxHp; // Restaura HP
             battle.opponent = nextBossPokemon;
@@ -2344,32 +2321,32 @@ export const BattleCore = {
               } (Nv. ${nextBossPokemon.level})!`
             );
             BattleCore.addBattleLog(
-              `Restam ${remainingCount} pokémon${
+              `Restam ${remainingCount} pok?mon${
                 remainingCount > 1 ? "s" : ""
               } do ${battle.leaderName || "chefe"}!`
             );
 
-            // Atualiza a tela para mostrar as pokébolas atualizadas
+            // Atualiza a tela para mostrar as pok?bolas atualizadas
             BattleCore.updateBattleScreen();
 
-            // Não encerra a batalha, continua
+            // N?o encerra a batalha, continua
             ended = false;
             finalMessage = null;
           } else {
-            // Todos os pokémons do chefe foram derrotados!
+            // Todos os pok?mons do chefe foram derrotados!
             ended = true;
             const profile = window.gameState.profile;
             const zoneBadgeName = battle.zoneBadgeName;
 
-            // Adiciona a insígnia se ainda não tiver
+            // Adiciona a ins?gnia se ainda n?o tiver
             if (!profile.badges.includes(zoneBadgeName)) {
               profile.badges.push(zoneBadgeName);
-              finalMessage = `🎉 VITÓRIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! 🎉\nVocê recebeu a Insígnia ${zoneBadgeName}!`;
+              finalMessage = `?? VIT?RIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! ??\nVoc? recebeu a Ins?gnia ${zoneBadgeName}!`;
               BattleCore.addBattleLog(
-                `🏅 Você recebeu a Insígnia ${zoneBadgeName}!`
+                `?? Voc? recebeu a Ins?gnia ${zoneBadgeName}!`
               );
             } else {
-              finalMessage = `🎉 VITÓRIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! 🎉`;
+              finalMessage = `?? VIT?RIA CONTRA O CHEFE DE ${zoneBadgeName.toUpperCase()}! ??`;
             }
           }
         } else {
@@ -2399,7 +2376,7 @@ export const BattleCore = {
         });
         if (selectableMoves.length === 0) {
           BattleCore.addBattleLog(
-            `${opponent.name} está sem energia para atacar!`
+            `${opponent.name} est? sem energia para atacar!`
           );
         }
         const randomOpponentMove =
@@ -2423,7 +2400,7 @@ export const BattleCore = {
         );
         if (!opponentPAUsed) {
           BattleCore.addBattleLog(
-            `${opponent.name} não conseguiu usar ${window.Utils.formatName(
+            `${opponent.name} n?o conseguiu usar ${window.Utils.formatName(
               opponentMoveName
             )}!`
           );
@@ -2456,11 +2433,11 @@ export const BattleCore = {
 
         let effectivenessMessage = "";
         if (damageResult.effectiveness === 0)
-          effectivenessMessage = " Não teve efeito!";
+          effectivenessMessage = " N?o teve efeito!";
         else if (damageResult.effectiveness <= 0.5)
-          effectivenessMessage = " Não é muito eficaz.";
+          effectivenessMessage = " N?o ? muito eficaz.";
         else if (damageResult.effectiveness >= 2)
-          effectivenessMessage = " É super eficaz.";
+          effectivenessMessage = " ? super eficaz.";
 
         let logMessage = `${opponent.name} usou ${window.Utils.formatName(
           opponentMoveName
@@ -2470,7 +2447,7 @@ export const BattleCore = {
         }
 
         if (damageResult.isCritical) {
-          logMessage += ` É UM ACERTO CRÍTICO!`;
+          logMessage += ` ? UM ACERTO CR?TICO!`;
         }
         BattleCore.addBattleLog(logMessage);
 
@@ -2493,13 +2470,13 @@ export const BattleCore = {
           if (hasLivePokemon) {
             const faintedMessage = `${window.Utils.getPokemonDisplayName(
               playerPokemon
-            )} desmaiou! Você precisa trocar de Pokémon.`;
+            )} desmaiou! Voc? precisa trocar de Pok?mon.`;
             BattleCore.addBattleLog(faintedMessage);
             BattleCore.forceSwitchSelection(faintedMessage);
             return;
           } else {
             finalMessage =
-              "Todos os seus Pokémons desmaiados! Você perdeu a batalha.";
+              "Todos os seus Pok?mons desmaiados! Voc? perdeu a batalha.";
             BattleCore.addBattleLog(finalMessage);
             ended = true;
           }
@@ -2542,7 +2519,7 @@ export const BattleCore = {
     const battle = window.gameState.battle;
     const currentPokemon = window.Utils.getActivePokemon();
 
-    // NOVO: Verifica se o pokémon está na equipe de batalha
+    // NOVO: Verifica se o pok?mon est? na equipe de batalha
     const battleTeamIndices =
       battle?.battleTeamIndices ||
       (window.gameState.profile.battleTeam &&
@@ -2553,12 +2530,12 @@ export const BattleCore = {
     if (!battleTeamIndices.includes(newIndex)) {
       window.Utils.showModal(
         "infoModal",
-        "Este pokémon não está na sua equipe de batalha! Selecione um pokémon da equipe."
+        "Este pok?mon n?o est? na sua equipe de batalha! Selecione um pok?mon da equipe."
       );
       return;
     }
 
-    // NOTA: newPokemon aqui referencia o Pokémon no índice da lista NÃO REORDENADA.
+    // NOTA: newPokemon aqui referencia o Pok?mon no ?ndice da lista N?O REORDENADA.
     const newPokemon = window.gameState.profile.pokemon[newIndex];
 
     if (newIndex === battle.playerPokemonIndex || newPokemon.currentHp <= 0) {
@@ -2567,27 +2544,27 @@ export const BattleCore = {
 
     const wasForcedSwitch = Boolean(battle.forceSwitchSelection);
 
-    // *** CORREÇÃO: REMOVENDO A MANIPULAÇÃO DO ARRAY ***
+    // *** CORRE??O: REMOVENDO A MANIPULA??O DO ARRAY ***
 
-    // 1. Ação: Apenas atualiza o índice do Pokémon ativo.
+    // 1. A??o: Apenas atualiza o ?ndice do Pok?mon ativo.
     battle.playerPokemonIndex = newIndex;
 
-    // 2. Registra o novo Pokémon ativo.
+    // 2. Registra o novo Pok?mon ativo.
     if (battle.type === "wild") {
       battle.participatingIndices.add(newIndex);
     }
 
-    // 2.1 Limpa flags de troca forçada (se existirem)
+    // 2.1 Limpa flags de troca for?ada (se existirem)
     battle.forceSwitchSelection = false;
     battle.forceSwitchMessage = null;
 
     // 3. Salva o estado sem reordenar a lista.
     window.GameLogic.saveGameData();
 
-    // 4. Redesenha a tela de batalha com o novo Pokémon.
+    // 4. Redesenha a tela de batalha com o novo Pok?mon.
     window.Renderer.showScreen("battle");
     BattleCore.addBattleLog(
-      `Volte, ${currentPokemon.name}! Vá, ${newPokemon.name}!`
+      `Volte, ${currentPokemon.name}! V?, ${newPokemon.name}!`
     );
 
     // 5. Continua o fluxo de batalha.
@@ -2622,7 +2599,7 @@ export const BattleCore = {
 
     battle.forceSwitchSelection = true;
     battle.forceSwitchMessage =
-      message || "Selecione um Pokémon em condições de lutar.";
+      message || "Selecione um Pok?mon em condi??es de lutar.";
 
     window.Renderer.showScreen("switchPokemon");
   },
@@ -2635,8 +2612,8 @@ export const BattleCore = {
     const activePokemon = window.Utils.getActivePokemon();
     if (!activePokemon || activePokemon.currentHp <= 0) {
       const message = activePokemon
-        ? `${activePokemon.name} está desmaiado! Escolha outro Pokémon para iniciar a batalha.`
-        : "Escolha um Pokémon em condições de lutar para iniciar a batalha.";
+        ? `${activePokemon.name} est? desmaiado! Escolha outro Pok?mon para iniciar a batalha.`
+        : "Escolha um Pok?mon em condi??es de lutar para iniciar a batalha.";
       BattleCore.forceSwitchSelection(message);
     }
   },
@@ -2672,7 +2649,7 @@ export const BattleCore = {
     window.Utils.ensureMoveCounters(playerPokemon);
     window.Utils.ensureMoveCounters(opponent);
 
-    // O backSprite (e a sprite do oponente) agora usam o índice correto que está em window.Utils.getActivePokemon()
+    // O backSprite (e a sprite do oponente) agora usam o ?ndice correto que est? em window.Utils.getActivePokemon()
     const playerBackSprite =
       playerPokemon.backSprite ||
       `../assets/sprites/pokemon/${playerPokemon.id}_back.png`;
@@ -2700,13 +2677,13 @@ export const BattleCore = {
         })
         .join("");
 
-    // NOVO: Mostra apenas a última mensagem (substitui a anterior)
+    // NOVO: Mostra apenas a ?ltima mensagem (substitui a anterior)
     const lastMessage =
       battle.lastMessage ||
       (battle.log && battle.log.length > 0
         ? battle.log[battle.log.length - 1]
         : null);
-    const displayMessage = lastMessage || "A batalha começou!";
+    const displayMessage = lastMessage || "A batalha come?ou!";
     const logHtml = `<span class="battle-log-line">${displayMessage}</span>`;
 
     const isMainMenu = battle.currentMenu === "main";
@@ -2744,10 +2721,10 @@ export const BattleCore = {
       <button onclick="window.Renderer.showScreen('switchPokemon')" class="gba-button battle-action-btn bg-blue-500 hover:bg-blue-600" ${
         disableInteractions ? "disabled" : ""
       }>
-        <i class="fa-solid fa-dragon"></i> Pokémon
+        <i class="fa-solid fa-dragon"></i> Pok?mon
       </button>
     `;
-    // NOVO: Desabilita o botão de fugir se estiver em cooldown (3 segundos no início da batalha)
+    // NOVO: Desabilita o bot?o de fugir se estiver em cooldown (3 segundos no in?cio da batalha)
     const runButtonInCooldown = battle.runButtonCooldown === true;
     const runDisabled =
       battle.type === "pvp" ||
@@ -2800,7 +2777,7 @@ export const BattleCore = {
       secondaryHtml = `<div class="battle-secondary battle-secondary--moves">${movesHtml}</div>`;
     } else if (isItemMenu) {
       if (!battleItems.length) {
-        secondaryHtml = `<div class="battle-secondary battle-secondary-message">Sem itens utilizáveis no momento.</div>`;
+        secondaryHtml = `<div class="battle-secondary battle-secondary-message">Sem itens utiliz?veis no momento.</div>`;
       } else {
         const itemsHtml = battleItems
           .map((item) => {
@@ -2823,13 +2800,13 @@ export const BattleCore = {
         secondaryHtml = `<div class="battle-secondary battle-secondary--items">${itemsHtml}</div>`;
       }
     } else if (isDisabled) {
-      secondaryHtml = `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
+      secondaryHtml = `<div class="battle-secondary battle-secondary-message">Aguarde a a??o do oponente...</div>`;
     }
 
     const opponentTypes = renderTypes(opponent.types);
     const playerTypes = renderTypes(playerPokemon.types);
 
-    // NOVO: Verifica se o oponente já foi capturado
+    // NOVO: Verifica se o oponente j? foi capturado
     const pokedex = window.gameState?.profile?.pokedex;
     const isOpponentCaught =
       pokedex &&
@@ -2837,7 +2814,7 @@ export const BattleCore = {
         ? pokedex.has(opponent.id)
         : pokedex.includes(opponent.id));
     const caughtIcon = isOpponentCaught
-      ? '<img src="../assets/sprites/items/poke-ball.png" alt="Capturado" class="inline-block w-4 h-4 ml-1" title="Já capturado" style="image-rendering: pixelated;">'
+      ? '<img src="../assets/sprites/items/poke-ball.png" alt="Capturado" class="inline-block w-4 h-4 ml-1" title="J? capturado" style="image-rendering: pixelated;">'
       : "";
 
     let scrollContent = "";
@@ -2845,7 +2822,7 @@ export const BattleCore = {
     if (isDisabled) {
       scrollContent =
         secondaryHtml ||
-        `<div class="battle-secondary battle-secondary-message">Aguarde a ação do oponente...</div>`;
+        `<div class="battle-secondary battle-secondary-message">Aguarde a a??o do oponente...</div>`;
     } else if (isMainMenu) {
       scrollContent = mainActionsHtml;
     } else {
@@ -2866,7 +2843,7 @@ export const BattleCore = {
       </div>
     `;
 
-    // NOVO: Indicador de pokébolas para batalha de chefe
+    // NOVO: Indicador de pok?bolas para batalha de chefe
     let bossIndicatorHtml = "";
     if (
       battle.type === "boss" &&
@@ -2884,7 +2861,7 @@ export const BattleCore = {
           const opacity = isDefeated ? "0.3" : isCurrent ? "1" : "0.7";
           const scale = isCurrent ? "1.2" : "1";
           return `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" 
-                     alt="Pokébola" 
+                     alt="Pok?bola" 
                      class="boss-pokeball-indicator" 
                      style="width: 20px; height: 20px; opacity: ${opacity}; transform: scale(${scale}); image-rendering: pixelated; transition: all 0.3s;" 
                      title="${
@@ -2902,7 +2879,7 @@ export const BattleCore = {
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
             <div style="flex: 1;">
               <div class="gba-font" style="font-size: 0.5rem; color: #fbbf24; text-shadow: 2px 2px 0px #000; line-height: 1.2;">
-                🏆 ${battle.leaderName || "LÍDER DE ZONA"}
+                ?? ${battle.leaderName || "L?DER DE ZONA"}
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2);">

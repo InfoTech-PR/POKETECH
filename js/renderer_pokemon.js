@@ -27,10 +27,6 @@ window.nextScreenPayload = null;
  * @param {string} regionId - O ID da região (ex: 'kanto').
  */
 window.openPokedexRegion = function (regionId) {
-  console.log(
-    "[POKEDEX NAV HELPER] Chamado openPokedexRegion com ID:",
-    regionId
-  );
   if (regionId) {
     const payload = { region: regionId };
     window.currentPokedexFilters.region = regionId; // Salva a região
@@ -1758,31 +1754,15 @@ export const RendererPokemon = {
     let isShowingFullBranch = false;
 
     if (baseId) {
-      console.log("entrou no baseID: ");
-      console.log(baseId);
       // Mostra a cadeia curta: [Base -> Atual]
       const baseEvo = rawEvolutionChain.find((e) => e.id === baseId);
       const currentEvo = rawEvolutionChain.find((e) => e.id === pokemonId);
-      console.log(rawEvolutionChain);
-      console.log("BaseEvo: ");
-      console.log(baseEvo);
-      console.log("CurrentEvo:");
-      console.log(currentEvo);
       if (baseEvo && currentEvo) {
-        console.log("entrou no baseEvo e currentEvo");
         evolutionChain = [baseEvo, currentEvo].filter(Boolean);
-
-        console.log(evolutionChain);
       }
     } else {
-      console.log("entrou no else do baseID");
-      console.log(currentPokemonIdString);
-      console.log(window.PokeAPI.BRANCHED_EVOS);
-      console.log(window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]);
-      console.log(window.PokeAPI.REVERSE_BRANCHED_EVOS);
       // Prioridade 2: É a forma base de uma ramificação (Ex: Eevee, Tyrogue).
       if (window.PokeAPI.BRANCHED_EVOS?.[currentPokemonIdString]) {
-        console.log("entrou if do BRANCHED_EVOS");
         // Mostra A CADEIA COMPLETA.
         evolutionChain = rawEvolutionChain;
         isShowingFullBranch = true;
@@ -2191,7 +2171,6 @@ export const RendererPokemon = {
   },
 
   renderPokedexRegionList: function () {
-    console.log("[POKÉDEX] Renderizando: Lista de Regiões.");
 
     const pokedexSet = window.gameState.profile.pokedex;
     const regions = window.GameConfig.POKEDEX_REGIONS;
@@ -2306,11 +2285,6 @@ export const RendererPokemon = {
   },
 
   renderPokedex: function (app, extraData = {}) {
-    console.log(
-      "[POKÉDEX] Chamado renderPokedex. Recebido extraData:",
-      extraData
-    );
-
     // Suporte ao payload global por bug de passagem de argumentos
     if (!extraData || Object.keys(extraData).length === 0) {
       if (window.nextScreenPayload) {
@@ -2325,7 +2299,6 @@ export const RendererPokemon = {
     // TENTA USAR A REGIÃO ATUAL SALVA SE NENHUMA FOR PASSADA
     const finalRegionKey = regionKey || window.currentPokedexFilters.region;
 
-    console.log("[POKÉDEX] Region Key extraída:", finalRegionKey);
     if (finalRegionKey) {
       region = window.GameConfig.POKEDEX_REGIONS.find(
         (r) => r.id === finalRegionKey
@@ -2334,13 +2307,8 @@ export const RendererPokemon = {
     }
 
     if (!region) {
-      console.log(
-        "[POKÉDEX] Região inválida ou nula. Redirecionando para lista de regiões."
-      );
       return RendererPokemon.renderPokedexRegionList();
     }
-
-    console.log("[POKÉDEX] Região encontrada:", region.name);
 
     const pokedexSet = window.gameState.profile.pokedex;
     let caughtInRegion = 0;
@@ -2356,10 +2324,6 @@ export const RendererPokemon = {
       );
       return RendererPokemon.renderPokedexRegionList();
     }
-
-    console.log(
-      `[POKÉDEX] Iniciando renderização do Grid para ${region.name}.`
-    );
 
     window.currentPokedexFilters.search =
       window.currentPokedexFilters.search || "";
@@ -2397,9 +2361,6 @@ export const RendererPokemon = {
           : window.currentPokedexFilters.search;
       const nextType =
         newType !== undefined ? newType : window.currentPokedexFilters.type;
-      console.log(
-        `[POKÉDEX FILTER] Aplicando filtro. Busca: ${nextSearch}, Tipo: ${nextType}`
-      );
 
       window.currentPokedexFilters.search = nextSearch;
       window.currentPokedexFilters.type = nextType;
@@ -2445,9 +2406,6 @@ export const RendererPokemon = {
   },
 
   _renderPokedexGrid: function (searchQuery, typeFilter, region) {
-    console.log(
-      `[POKÉDEX GRID] Renderizando grid para ${region.name}. Filtros: Busca='${searchQuery}', Tipo='${typeFilter}'`
-    );
     const pokedexSet = window.gameState.profile.pokedex;
     const cache = window.gameState.pokedexCache || {};
 

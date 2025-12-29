@@ -63,7 +63,6 @@ export const MapCore = {
 
         // 1. Verifica o limite de taxa de requisição
         if (now - (currentWeather.lastFetch || 0) < WEATHER_FETCH_INTERVAL) {
-            console.log("[CLIMA] Usando dados em cache. Última busca: ", new Date(currentWeather.lastFetch).toLocaleTimeString());
             // Chama a atualização da camada mesmo no cache
             MapCore._updateMapLayer(currentWeather.isDay);
             return;
@@ -98,7 +97,6 @@ export const MapCore = {
 
             window.gameState.currentWeather = newWeatherState;
             window.GameLogic.saveGameData();
-            console.log("[CLIMA] Dados de clima atualizados:", newWeatherState);
 
             // NOVIDADE CRÍTICA: Troca a camada do mapa imediatamente após buscar o clima
             MapCore._updateMapLayer(newWeatherState.isDay);
@@ -126,13 +124,11 @@ export const MapCore = {
             mapInstance.remove();
             mapInstance = null;
             currentTileLayer = null; // Limpa a referência da camada
-            console.log("[MAPA] Instância do mapa Leaflet destruída.");
         }
         // Para o rastreamento de localização se estiver ativo
         if (locationWatcherId !== null && navigator.geolocation) {
             navigator.geolocation.clearWatch(locationWatcherId);
             locationWatcherId = null;
-            console.log("[MAPA] Rastreamento de localização parado.");
         }
     },
 
@@ -290,8 +286,6 @@ export const MapCore = {
 
         // Tenta a chamada inicial. Se falhar na primeira tentativa, ainda assim inicia o watch.
         navigator.geolocation.getCurrentPosition(initialCall, locationError, geoOptions);
-
-        console.log("[MAPA] Solicitação de rastreamento de localização enviada.");
     },
 
     /**

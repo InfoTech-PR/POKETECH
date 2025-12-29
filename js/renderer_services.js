@@ -606,17 +606,9 @@ export const RendererServices = {
 
   // NOVO: Renderiza a tela de chocar ovo com animação
   renderHatchEgg: function (app, extraData = {}) {
-    console.log("[renderHatchEgg] Chamado com extraData:", extraData);
-
     const result = extraData?.result;
 
     if (result) {
-      console.log(
-        "[renderHatchEgg] Mostrando resultado para Pokémon:",
-        result.name,
-        "ID:",
-        result.id
-      );
       window._hatchEggRendering = false;
       // Mostra o resultado após a animação
       const pokemonDisplayName = window.Utils.getPokemonDisplayName(result);

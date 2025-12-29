@@ -118,7 +118,6 @@ export const AuthSetup = {
   signOutUser: async function () {
     try {
       await signOut(window.auth);
-      console.log("Usuário deslogado com sucesso.");
       window.Utils.showModal(
         "infoModal",
         "Você deslogou com sucesso. Recarregando..."
@@ -288,7 +287,6 @@ export const AuthSetup = {
           if (user) {
             // Usuário está logado
             window.userId = user.uid;
-            console.log("Usuário autenticado:", window.userId);
 
             const loaded = await window.GameLogic.loadProfile();
 
@@ -297,18 +295,12 @@ export const AuthSetup = {
 
             if (!loaded) {
               // É a primeira vez do usuário, redireciona para a seleção de inicial.
-              console.log(
-                "Nenhum save encontrado. Redirecionando para a seleção de Pokémon."
-              );
               window.initializeGameState();
               window.gameState.profile.trainerName =
                 user.displayName || "TREINADOR";
               window.Renderer.showScreen("starterSelection");
             } else {
               // O usuário já tem um save.
-              console.log(
-                "Save encontrado. Redirecionando para o menu principal."
-              );
               window.Renderer.showScreen("mainMenu");
             }
 
@@ -319,7 +311,6 @@ export const AuthSetup = {
             }
           } else {
             // Usuário não está logado, mostra a tela de login.
-            console.log("Nenhum usuário logado. Exibindo tela de login.");
             window.userId = "anonimo";
             // Se já carregou o jogo acima, não precisa inicializar novamente
             if (!window.gameState || !window.gameState.profile) {

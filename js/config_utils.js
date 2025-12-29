@@ -374,7 +374,6 @@ export async function createConfigAndUtils(v) {
           "pokemonGameExploreLog",
           JSON.stringify(stateToSave.exploreLog)
         );
-        console.log("Jogo Salvo com Sucesso!");
       } catch (error) {
         console.error("Erro ao salvar jogo:", error);
       }
@@ -567,7 +566,6 @@ export async function createConfigAndUtils(v) {
             window.AuthSetup.applyMusicPreferences();
           }
 
-          console.log("Jogo Carregado com Sucesso!");
           return true;
         }
       } catch (error) {
@@ -581,7 +579,6 @@ export async function createConfigAndUtils(v) {
         localStorage.removeItem("pokemonGameProfile");
         localStorage.removeItem("pokemonGameExploreLog");
         localStorage.removeItem("pokemonGamePokedexCache");
-        console.log("Dados do jogo resetados.");
 
         window.Utils.showModal(
           "infoModal",
@@ -611,7 +608,6 @@ export async function createConfigAndUtils(v) {
       const id = parseInt(pokemonId);
       if (!window.gameState.profile.pokedex.has(id)) {
         window.gameState.profile.pokedex.add(id);
-        console.log(`Pokémon ID ${id} registrado na Pokédex.`);
         Utils.saveGame();
       }
     },
@@ -1238,8 +1234,6 @@ export async function createConfigAndUtils(v) {
       // Caso forma evoluída ramificada (usando o mapa reverso)
       const revOrigin = REVERSE_BRANCHED_EVOS[String(id)];
       if (revOrigin) {
-        console.log("revOrigin");
-        console.log(revOrigin);
         // Encontra a cadeia do origin
         const originLocated = locateChainContainingId(
           EVOLUTION_CHAINS,
